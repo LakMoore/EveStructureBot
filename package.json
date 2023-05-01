@@ -1,0 +1,26 @@
+{
+  "name": "discordbotts",
+  "version": "1.0.0",
+  "description": "Boilerplate code for a Typescript Discord Bot",
+  "main": "src/Bot.ts",
+  "scripts": {
+    "start": "ts-node src/Bot.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Lak Moore",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.4.0",
+    "axios-retry": "^3.4.0",
+    "discord.js": "^14.10.0",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "@marketgridsys/prettier": "^2.9.0-mgs.4",
+    "@types/node": "^18.16.3",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  }
+}
