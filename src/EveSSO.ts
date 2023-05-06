@@ -209,6 +209,7 @@ export async function checkNotificationsForCorp(
     Date.now() + NOTIFICATION_CHECK_DELAY / workingChars.length + 10000
   );
 
+  // get attack notifications that we have not seen before
   const attackNotifications = notifications.filter(
     (note) =>
       isAttackNotification(note) &&
