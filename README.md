@@ -1,7 +1,5 @@
-# DiscordBotTS
+# EveStructureBot
 
-Boilerplate code for a Discord Bot written in Typescript.
+A Discord bot to monitor corporation structure statuse in the MMORPG Eve Online.
 
-- Fork this project
-- add your commands and code
-- profit
+Link to add this bot to your Discord server: https://discord.com/api/oauth2/authorize?client_id=1104364770418753616&permissions=2048&scope=bot

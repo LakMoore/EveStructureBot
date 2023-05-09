@@ -1,4 +1,3 @@
-import Router from "@koa/router";
 import { Client } from "discord.js";
 import {
   CharacterApiFactory,
@@ -36,10 +35,9 @@ export function setup(client: Client) {
   });
 
   const app = new Koa();
-  const router = new Router();
 
   // Handle the SSO callback (this route is the CALLBACK_URI above)
-  router.get("/callback", async (ctx) => {
+  app.use(async (ctx) => {
     // Get the one-time access code
     let code = ctx.query.code;
     let state = ctx.query.state;
@@ -166,7 +164,6 @@ export function setup(client: Client) {
     }
   });
 
-  app.use(router.middleware());
   app.listen(CALLBACK_SERVER_PORT, () => {
     console.log(`Server listening on port ${CALLBACK_SERVER_PORT}`);
   });
