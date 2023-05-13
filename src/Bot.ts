@@ -141,6 +141,8 @@ export async function checkForChangeAndPersist(
     if (message.length > 0) {
       await channel.send(message);
     }
+
+    await data.save();
   }
 }
 

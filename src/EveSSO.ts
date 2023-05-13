@@ -283,6 +283,8 @@ export async function checkNotificationsForCorp(
       corp.mostRecentNotification = thisDate;
     }
   }
+
+  await data.save();
 }
 
 async function handleNotification(
