@@ -1,8 +1,8 @@
 import { GetCorporationsCorporationIdStructures200Ok } from "eve-client-ts";
 import storage from "node-persist";
-import { delay } from "../Bot";
+import { consoleLog, delay } from "../Bot";
 
-export interface authenticatedCharacter {
+export interface AuthenticatedCharacter {
   discordId: string;
   characterId: number;
   characterName: string;
@@ -14,11 +14,11 @@ export interface authenticatedCharacter {
   needsReAuth: boolean;
 }
 
-export interface authenticatedCorp {
+export interface AuthenticatedCorp {
   channelId: string;
   corpId: number;
   corpName: string;
-  characters: authenticatedCharacter[];
+  characters: AuthenticatedCharacter[];
   structures: GetCorporationsCorporationIdStructures200Ok[];
   nextStructureCheck: Date;
   nextNotificationCheck: Date;
@@ -29,11 +29,11 @@ const SAVE_DELAY_MS = 5 * 60 * 1000; // 5 mins in milliseconds
 
 export class Data {
   private static DATA_KEY = "users";
-  private _authenticatedCorps: authenticatedCorp[] = [];
+  private _authenticatedCorps: AuthenticatedCorp[] = [];
 
   public async init() {
     await storage.init();
-    let temp: authenticatedCorp[] = await storage.getItem(Data.DATA_KEY);
+    let temp: AuthenticatedCorp[] = await storage.getItem(Data.DATA_KEY);
     if (!temp) {
       temp = [];
     }
@@ -47,7 +47,7 @@ export class Data {
   }
 
   private async save() {
-    console.log("Persisting data to filesystem...");
+    consoleLog("Persisting data to filesystem...");
     await storage.setItem(Data.DATA_KEY, this._authenticatedCorps);
     await delay(SAVE_DELAY_MS);
     // infinite loop required

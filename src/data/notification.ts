@@ -32,6 +32,17 @@
 
 import { GetCharactersCharacterIdNotifications200Ok } from "eve-client-ts";
 
+export function getStructureIdFromGenericNotificationText(text: string) {
+  const part1 = text.split("structureID:");
+  const part2 = part1[1].split("\n");
+  const part3 = part2[0].split(" ");
+  const structId = part3.pop();
+  if (structId) {
+    return Number(structId);
+  }
+  return 0;
+}
+
 export function isAttackNotification(
   note: GetCharactersCharacterIdNotifications200Ok
 ) {
@@ -41,13 +52,41 @@ export function isAttackNotification(
   );
 }
 
-export function getStructureIdFromAttackNotificationText(text: string) {
-  const part1 = text.split("structureID:");
-  const part2 = part1[1].split("\n");
-  const part3 = part2[0].split(" ");
-  const structId = part3.pop();
-  if (structId) {
-    return Number(structId);
-  }
-  return 0;
+export function isMoonMiningExtractionStartedNotification(
+  note: GetCharactersCharacterIdNotifications200Ok
+) {
+  return (
+    note.type ==
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum
+      .MoonminingExtractionStarted
+  );
+}
+
+export function isMoonMiningExtractionFinishedNotification(
+  note: GetCharactersCharacterIdNotifications200Ok
+) {
+  return (
+    note.type ==
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum
+      .MoonminingExtractionFinished
+  );
+}
+
+export function isMoonMiningAutoFractureNotification(
+  note: GetCharactersCharacterIdNotifications200Ok
+) {
+  return (
+    note.type ==
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum
+      .MoonminingAutomaticFracture
+  );
+}
+
+export function isMoonMiningLaserFiredNotification(
+  note: GetCharactersCharacterIdNotifications200Ok
+) {
+  return (
+    note.type ==
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.MoonminingLaserFired
+  );
 }

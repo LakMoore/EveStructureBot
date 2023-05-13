@@ -1,18 +1,29 @@
-import { Client } from "discord.js";
+import { Client, ColorResolvable, Colors, EmbedBuilder } from "discord.js";
 import {
   CharacterApiFactory,
   Configuration,
   CorporationApiFactory,
+  GetCharactersCharacterIdNotifications200Ok,
   GetCharactersCharacterIdRolesOk,
 } from "eve-client-ts";
 import SingleSignOn from "eve-sso";
 import Koa from "koa";
-import { authenticatedCharacter, authenticatedCorp } from "./data/data";
-import { checkForChangeAndPersist, data } from "./Bot";
+import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
 import {
-  getStructureIdFromAttackNotificationText,
+  checkForChangeAndPersist,
+  consoleLog,
+  data,
+  getRelativeDiscordTime,
+} from "./Bot";
+import {
+  getStructureIdFromGenericNotificationText,
   isAttackNotification,
+  isMoonMiningAutoFractureNotification,
+  isMoonMiningExtractionFinishedNotification,
+  isMoonMiningExtractionStartedNotification,
+  isMoonMiningLaserFiredNotification,
 } from "./data/notification";
+//HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
 export let sso: SingleSignOn;
@@ -59,7 +70,7 @@ export function setup(client: Client) {
 
       // Usually you'd want to store the access token
       // as well as the refresh token
-      console.log("info", info);
+      consoleLog("info", info);
 
       const subParts = info.decoded_access_token.sub.split(":");
       const charId = Number(
@@ -74,24 +85,22 @@ export function setup(client: Client) {
         const channel = client.channels.cache.get(channelId);
 
         if (channel?.isTextBased()) {
-          let message = `Successfully authenticated ${info.decoded_access_token.name}.`;
+          let errMessage = "";
           const expires = getExpires(info.expires_in);
 
           const char = await CharacterApiFactory().getCharactersCharacterId(
             charId
           );
-          console.log("char", char);
+          consoleLog("char", char);
           const corpId = char.corporation_id;
           if (!corpId) {
-            message += "\nCharacter is not in a Corporation";
+            errMessage += "\nCharacter is not in a Corporation";
           } else {
             const corp =
               await CorporationApiFactory().getCorporationsCorporationId(
                 corpId
               );
             if (corp.name) {
-              message += `\nCharacter is a member of ${corp.name}. `;
-
               try {
                 const config = new Configuration();
                 config.accessToken = info.access_token;
@@ -106,9 +115,9 @@ export function setup(client: Client) {
                     GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
                   )
                 ) {
-                  message += `\n${char.name} does not have the Station Manager Role.  Give the role in game and re-auth here after 1 hour (thanks CCP!).`;
+                  errMessage += `\n${char.name} does not have the Station Manager Role.  Give the role in game and re-auth here after 1 hour (thanks CCP!).`;
                 } else {
-                  const character: authenticatedCharacter = {
+                  const character: AuthenticatedCharacter = {
                     discordId: userId,
                     characterId: charId,
                     characterName: char.name,
@@ -145,18 +154,26 @@ export function setup(client: Client) {
                   } else {
                     thisCorp.characters.push(character);
                   }
+
+                  await channel.send(`Successfully authenticated ${char.name}`);
+
+                  await channel.send({
+                    embeds: [generateCorpDetailsEmbed(thisCorp)],
+                  });
                 }
               } catch (error) {
-                console.log("error", error);
+                consoleLog("error", error);
                 if (error instanceof Response) {
                   const errorObj = await error.json();
-                  message += "\nUnable to proceed:\n" + errorObj.error;
+                  errMessage += "\nUnable to proceed:\n" + errorObj.error;
                 }
               }
             }
           }
 
-          channel.send(message);
+          if (errMessage) {
+            await channel.send(errMessage);
+          }
         }
       }
     } else {
@@ -165,12 +182,13 @@ export function setup(client: Client) {
   });
 
   app.listen(CALLBACK_SERVER_PORT, () => {
-    console.log(`Server listening on port ${CALLBACK_SERVER_PORT}`);
+    consoleLog(`Server listening on port ${CALLBACK_SERVER_PORT}`);
   });
 
   //   This is how to set up HTTPS
+  //   Shouldn't be needed if you are behind something like nginx
   //   https.createServer(app.callback()).listen(CALLBACK_SERVER_PORT, () => {
-  //     console.log(`Server listening on port ${CALLBACK_SERVER_PORT}`);
+  //     consoleLog(`Server listening on port ${CALLBACK_SERVER_PORT}`);
   //   });
 }
 
@@ -179,7 +197,7 @@ function getExpires(expires_in: number): Date {
 }
 
 export async function checkNotificationsForCorp(
-  corp: authenticatedCorp,
+  corp: AuthenticatedCorp,
   client: Client
 ) {
   const result = await getConfig(
@@ -196,46 +214,66 @@ export async function checkNotificationsForCorp(
 
   const { config, workingChars, thisChar } = result;
 
-  const notifications = await CharacterApiFactory(
-    config
-  ).getCharactersCharacterIdNotifications(thisChar.characterId);
-
-  console.log("notifications", notifications);
-
   corp.nextNotificationCheck = new Date(
     Date.now() + NOTIFICATION_CHECK_DELAY / workingChars.length + 10000
   );
 
+  const notifications = await CharacterApiFactory(
+    config
+  ).getCharactersCharacterIdNotifications(thisChar.characterId);
+
+  consoleLog("notifications", notifications);
+
   // get attack notifications that we have not seen before
-  const attackNotifications = notifications.filter(
-    (note) =>
-      isAttackNotification(note) &&
-      new Date(note.timestamp) > new Date(corp.mostRecentNotification)
+  await handleNotification(
+    client,
+    corp,
+    notifications,
+    isAttackNotification,
+    getStructureIdFromGenericNotificationText,
+    Colors.Red,
+    `STRUCTURE UNDER ATTACK`
   );
 
-  const channel = client.channels.cache.get(corp.channelId);
-  if (channel && channel.isTextBased()) {
-    for (const note of attackNotifications) {
-      let message = "";
-      if (note.text) {
-        const structId = getStructureIdFromAttackNotificationText(note.text);
-        const thisStruct = corp.structures.find(
-          (struct) => struct.structure_id === structId
-        );
-        if (thisStruct) {
-          message = `${thisStruct.name} was under attack <t:${
-            new Date(note.timestamp).getTime() / 1000
-          }:R>`;
-        }
-      }
-      if (message.length == 0) {
-        message = `A structure was under attack <t:${
-          new Date(note.timestamp).getTime() / 1000
-        }:R>. Not sure which one!`;
-      }
-      channel.send(message);
-    }
-  }
+  await handleNotification(
+    client,
+    corp,
+    notifications,
+    isMoonMiningExtractionStartedNotification,
+    getStructureIdFromGenericNotificationText,
+    Colors.Blue,
+    `Moon mining extraction started`
+  );
+
+  await handleNotification(
+    client,
+    corp,
+    notifications,
+    isMoonMiningExtractionFinishedNotification,
+    getStructureIdFromGenericNotificationText,
+    Colors.Blue,
+    `Moon mining extraction finished`
+  );
+
+  await handleNotification(
+    client,
+    corp,
+    notifications,
+    isMoonMiningAutoFractureNotification,
+    getStructureIdFromGenericNotificationText,
+    Colors.Blue,
+    `Moon mining automatic fracture triggered`
+  );
+
+  await handleNotification(
+    client,
+    corp,
+    notifications,
+    isMoonMiningLaserFiredNotification,
+    getStructureIdFromGenericNotificationText,
+    Colors.Blue,
+    `Moon mining laser fired`
+  );
 
   for (const note of notifications) {
     if (new Date(note.timestamp) > new Date(corp.mostRecentNotification)) {
@@ -244,8 +282,55 @@ export async function checkNotificationsForCorp(
   }
 }
 
+async function handleNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  notifications: GetCharactersCharacterIdNotifications200Ok[],
+  noteSelector: (note: GetCharactersCharacterIdNotifications200Ok) => boolean,
+  structureIDgetter: (note: string) => number,
+  colour: ColorResolvable,
+  message: string
+) {
+  const selectedNotifications = notifications.filter(
+    (note) =>
+      noteSelector(note) &&
+      new Date(note.timestamp) > new Date(corp.mostRecentNotification)
+  );
+
+  const channel = client.channels.cache.get(corp.channelId);
+  if (channel && channel.isTextBased()) {
+    for (const note of selectedNotifications) {
+      let embed = new EmbedBuilder()
+        .setColor(colour)
+        .setDescription(
+          `${message}\n${getRelativeDiscordTime(note.timestamp)}`
+        );
+      let foundStruct = false;
+      if (note.text) {
+        const structId = structureIDgetter(note.text);
+        const thisStruct = corp.structures.find(
+          (struct) => struct.structure_id === structId
+        );
+        if (thisStruct) {
+          foundStruct = true;
+          embed
+            .setTitle(thisStruct.name || "unknown structure")
+            .setAuthor({ name: corp.corpName })
+            .setThumbnail(
+              `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
+            );
+        }
+      }
+      if (!foundStruct) {
+        embed.setTitle(`Not sure which one!`);
+      }
+      await channel.send({ embeds: [embed] });
+    }
+  }
+}
+
 export async function checkStructuresForCorp(
-  corp: authenticatedCorp,
+  corp: AuthenticatedCorp,
   client: Client
 ) {
   const result = await getConfig(
@@ -266,9 +351,10 @@ export async function checkStructuresForCorp(
     config
   ).getCorporationsCorporationIdStructures(corp.corpId);
 
-  console.log("structs", structures);
+  consoleLog("structs", structures);
 
-  const c: authenticatedCorp = {
+  // make a new object so we can compare it to the old one
+  const c: AuthenticatedCorp = {
     channelId: corp.channelId,
     corpId: corp.corpId,
     corpName: corp.corpName,
@@ -286,15 +372,14 @@ export async function checkStructuresForCorp(
 }
 
 async function getConfig(
-  chars: authenticatedCharacter[],
+  chars: AuthenticatedCharacter[],
   nextCheck: Date,
   checkDelay: number,
-  getNextCheck: (c: authenticatedCharacter) => Date,
+  getNextCheck: (c: AuthenticatedCharacter) => Date,
   checkType: string
 ) {
   if (new Date(nextCheck) > new Date()) {
     // checking this record too soon!
-    console.log(`too soon to check for ${checkType}, keep waiting`);
     return;
   }
 
@@ -307,12 +392,12 @@ async function getConfig(
   );
 
   if (!thisChar) {
-    console.log(`No available character to check ${checkType} with!`);
+    consoleLog(`No available character to check ${checkType} with!`);
     return;
   }
 
   if (new Date(thisChar.tokenExpires) <= new Date()) {
-    console.log("refreshing token");
+    consoleLog("refreshing token");
     // auth token has expired, let's refresh it
     const response = await sso.getAccessToken(thisChar.refreshToken, true);
     thisChar.authToken = response.access_token;
@@ -327,4 +412,53 @@ async function getConfig(
   config.accessToken = thisChar.authToken;
 
   return { config, workingChars, thisChar };
+}
+
+export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
+  const chars = thisCorp.characters.filter((c) => !c.needsReAuth);
+
+  const fields = [];
+
+  fields.push({
+    name: "\u200b",
+    value: `Tracking ${chars.length} authorised character${
+      chars.length == 1 ? "" : "s"
+    }.`,
+  });
+
+  fields.push({
+    name: "\u200b",
+    value: `Checking notifications every ${
+      Math.round(100 / chars.length) / 10
+    } minutes.`,
+  });
+
+  fields.push({
+    name: "\u200b",
+    value: `Checking stucture status every ${
+      Math.round(600 / chars.length) / 10
+    } minutes.`,
+  });
+
+  if (chars.length < 10) {
+    fields.push({
+      name: "\u200b",
+      value: `Recommend authorising at least ${
+        10 - chars.length
+      } more characters!`,
+    });
+  }
+
+  fields.push({
+    name: "\u200b",
+    value: `Corporation has ${thisCorp.structures.length} structures.`,
+  });
+
+  return new EmbedBuilder()
+    .setColor(0x0000ff)
+    .setTitle(thisCorp.corpName)
+    .setThumbnail(
+      `https://images.evetech.net/corporations/${thisCorp.corpId}/logo?size=64`
+    )
+    .addFields(fields);
 }
