@@ -70,7 +70,7 @@ export function setup(client: Client) {
 
       // Usually you'd want to store the access token
       // as well as the refresh token
-      consoleLog("info", info);
+      consoleLog("info ", info);
 
       const subParts = info.decoded_access_token.sub.split(":");
       const charId = Number(
