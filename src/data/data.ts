@@ -39,18 +39,34 @@ export class Data {
     }
     this._authenticatedCorps = temp;
     // save in a little while
-    setTimeout(() => this.save(), SAVE_DELAY_MS);
+    setTimeout(() => this.autoSave(), SAVE_DELAY_MS);
   }
 
   get authenticatedCorps() {
     return this._authenticatedCorps;
   }
 
-  private async save() {
-    consoleLog("Persisting data to filesystem...");
-    await storage.setItem(Data.DATA_KEY, this._authenticatedCorps);
+  private async autoSave() {
+    await this.save();
     await delay(SAVE_DELAY_MS);
     // infinite loop required
     setTimeout(() => this.save(), 1);
+  }
+
+  public async save() {
+    consoleLog("Persisting data to filesystem...");
+    await storage.setItem(Data.DATA_KEY, this._authenticatedCorps);
+  }
+
+  public async removeChannel(channelId: string) {
+    this._authenticatedCorps = this._authenticatedCorps.filter(
+      (corp) => corp.channelId != channelId
+    );
+    this.save();
+  }
+
+  public async clear() {
+    await storage.clear();
+    consoleLog("Cleared all persistent storage!!!");
   }
 }

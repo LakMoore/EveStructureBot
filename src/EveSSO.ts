@@ -160,6 +160,8 @@ export function setup(client: Client) {
                   await channel.send({
                     embeds: [generateCorpDetailsEmbed(thisCorp)],
                   });
+
+                  await data.save();
                 }
               } catch (error) {
                 consoleLog("error", error);
@@ -276,8 +278,9 @@ export async function checkNotificationsForCorp(
   );
 
   for (const note of notifications) {
-    if (new Date(note.timestamp) > new Date(corp.mostRecentNotification)) {
-      corp.mostRecentNotification = note.timestamp;
+    const thisDate = new Date(note.timestamp);
+    if (thisDate > new Date(corp.mostRecentNotification)) {
+      corp.mostRecentNotification = thisDate;
     }
   }
 }
