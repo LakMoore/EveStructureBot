@@ -147,7 +147,7 @@ export function setup(client: Client) {
                   }
 
                   const idx = thisCorp.characters.findIndex(
-                    (ch) => (ch.characterId = charId)
+                    (ch) => ch.characterId == charId
                   );
                   if (idx > -1) {
                     thisCorp.characters[idx] = character;
