@@ -26,6 +26,11 @@ export const Info: Command = {
           embeds: [generateCorpDetailsEmbed(corp)],
         });
       }
+      if (channelCorps.length == 0) {
+        await channel.send(
+          "No data found for this channel.  Use /auth command to begin."
+        );
+      }
     }
   },
 };
