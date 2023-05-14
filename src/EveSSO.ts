@@ -124,8 +124,8 @@ export function setup(client: Client) {
                     authToken: info.access_token,
                     tokenExpires: expires,
                     refreshToken: info.refresh_token,
-                    nextStructureCheck: new Date(0),
-                    nextNotificationCheck: new Date(0),
+                    nextStructureCheck: new Date(),
+                    nextNotificationCheck: new Date(),
                     needsReAuth: false,
                   };
 
@@ -139,9 +139,9 @@ export function setup(client: Client) {
                       corpName: corp.name,
                       characters: [],
                       structures: [],
-                      nextStructureCheck: new Date(0),
-                      nextNotificationCheck: new Date(0),
-                      mostRecentNotification: new Date(0),
+                      nextStructureCheck: new Date(),
+                      nextNotificationCheck: new Date(),
+                      mostRecentNotification: new Date(),
                     };
                     data.authenticatedCorps.push(thisCorp);
                   }
