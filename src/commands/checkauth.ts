@@ -3,9 +3,9 @@ import { Command } from "../Command";
 import { data } from "../Bot";
 import { generateCorpDetailsEmbed } from "../EveSSO";
 
-export const Info: Command = {
-  name: "info",
-  description: "Returns details of what is being tracked in this channel",
+export const CheckAuth: Command = {
+  name: "checkauth",
+  description: "Lists chars that need reauthorisation and pings their owners",
   ephemeral: false,
   run: async (client: Client, interaction: CommandInteraction) => {
     const content = "Fetching info...";
@@ -21,14 +21,26 @@ export const Info: Command = {
         (ac) => ac.channelId == channel.id
       );
 
+      let found = false;
+
       for (const corp of channelCorps) {
-        await channel.send({
-          embeds: [generateCorpDetailsEmbed(corp)],
-        });
+        for (const char of corp.characters) {
+          if (char.needsReAuth) {
+            await channel.send(
+              `<@${char.discordId}> Please use /auth to re-authorise your character, named "${char.characterName}".`
+            );
+            found = true;
+          }
+        }
       }
+
       if (channelCorps.length == 0) {
         await channel.send(
           "No data found for this channel.  Use /auth command to begin."
+        );
+      } else if (!found) {
+        await channel.send(
+          "All characters are currently authorised correctly."
         );
       }
     }

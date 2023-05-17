@@ -446,6 +446,7 @@ async function getConfig(
 
 export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
   const chars = thisCorp.characters.filter((c) => !c.needsReAuth);
+  const needReauth = chars.filter((c) => c.needsReAuth);
 
   const fields = [];
 
@@ -476,6 +477,17 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
       value: `Recommend authorising at least ${
         10 - chars.length
       } more characters!`,
+    });
+  }
+
+  if (needReauth.length > 0) {
+    fields.push({
+      name: "\u200b",
+      value: `${needReauth.length} character ${
+        needReauth.length == 1 ? "" : "s"
+      } need${
+        needReauth.length == 1 ? "s" : ""
+      } to be re-authorised (use /checkauth for details)`,
     });
   }
 

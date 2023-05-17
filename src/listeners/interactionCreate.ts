@@ -15,11 +15,11 @@ const handleSlashCommand = async (
 ): Promise<void> => {
   const slashCommand = Commands.find((c) => c.name === interaction.commandName);
   if (!slashCommand) {
-    interaction.followUp({ content: "An error has occurred" });
+    interaction.reply({ content: "An error has occurred" });
     return;
   }
 
-  await interaction.deferReply();
+  await interaction.deferReply({ ephemeral: slashCommand.ephemeral });
 
   try {
     await slashCommand.run(client, interaction);

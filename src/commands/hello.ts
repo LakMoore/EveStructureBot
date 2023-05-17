@@ -4,18 +4,18 @@ import { Command } from "../Command";
 export const Hello: Command = {
   name: "hello",
   description: "Returns a greeting",
+  ephemeral: false,
   run: async (client: Client, interaction: CommandInteraction) => {
-    // const content = "Hello there!";
+    const content = "Command received";
 
-    // await interaction.followUp({
-    //   ephemeral: true,
-    //   content,
-    // });
+    await interaction.followUp({
+      content,
+    });
 
     const channel = await client.channels.cache.get(interaction.channelId);
 
     if (channel && channel.isTextBased()) {
-      channel.send(`Hello <@${interaction.user.id}>.`);
+      channel.send(`Hello <@${interaction.user.id}>`);
     }
   },
 };

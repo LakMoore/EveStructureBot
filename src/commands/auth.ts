@@ -17,6 +17,7 @@ const SCOPES_REQUIRED = [
 export const Auth: Command = {
   name: "auth",
   description: "Get a link to authorise a character using Eve SSO",
+  ephemeral: true,
   run: async (client: Client, interaction: CommandInteraction) => {
     let channelId = interaction.channelId || "unknown";
     let userId = interaction.user.id;
@@ -30,6 +31,6 @@ export const Auth: Command = {
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(login);
 
-    await interaction.followUp({ ephemeral: true, components: [row] });
+    await interaction.followUp({ components: [row] });
   },
 };
