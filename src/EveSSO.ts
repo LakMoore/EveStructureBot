@@ -7,7 +7,7 @@ import {
   GetCharactersCharacterIdRolesOk,
 } from "eve-client-ts";
 import SingleSignOn from "eve-sso";
-import Koa from "koa";
+import Koa, { HttpError } from "koa";
 import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
 import {
   checkForChangeAndPersist,
@@ -207,10 +207,11 @@ export async function checkNotificationsForCorp(
     corp.nextNotificationCheck,
     NOTIFICATION_CHECK_DELAY,
     (c) => c.nextNotificationCheck,
+    (c, next) => (c.nextNotificationCheck = next),
     "notifications"
   );
 
-  if (!result) {
+  if (!result || !result.config) {
     return;
   }
 
@@ -343,10 +344,11 @@ export async function checkStructuresForCorp(
     corp.nextStructureCheck,
     STRUCTURE_CHECK_DELAY,
     (c) => c.nextStructureCheck,
+    (c, next) => (c.nextStructureCheck = next),
     "structures"
   );
 
-  if (!result) {
+  if (!result || !result.config) {
     return;
   }
 
@@ -381,6 +383,7 @@ async function getConfig(
   nextCheck: Date,
   checkDelay: number,
   getNextCheck: (c: AuthenticatedCharacter) => Date,
+  setNextCheck: (c: AuthenticatedCharacter, next: Date) => void,
   checkType: string
 ) {
   if (new Date(nextCheck) > new Date()) {
@@ -401,22 +404,44 @@ async function getConfig(
     return;
   }
 
-  if (new Date(thisChar.tokenExpires) <= new Date()) {
-    consoleLog("refreshing token");
-    // auth token has expired, let's refresh it
-    const response = await sso.getAccessToken(thisChar.refreshToken, true);
-    thisChar.authToken = response.access_token;
-    thisChar.refreshToken = response.refresh_token;
-    thisChar.tokenExpires = getExpires(response.expires_in);
+  try {
+    if (new Date(thisChar.tokenExpires) <= new Date()) {
+      // auth token has expired, let's refresh it
+      consoleLog("refreshing token");
+      const response = await sso.getAccessToken(thisChar.refreshToken, true);
+      thisChar.authToken = response.access_token;
+      thisChar.refreshToken = response.refresh_token;
+      thisChar.tokenExpires = getExpires(response.expires_in);
+    }
+
+    // mark this character so we don't use it to check again too soon
+    setNextCheck(thisChar, new Date(Date.now() + checkDelay + 5000));
+
+    const config = new Configuration();
+    config.accessToken = thisChar.authToken;
+
+    return { config, workingChars, thisChar };
+  } catch (error) {
+    if (error instanceof HttpError) {
+      consoleLog(
+        `HttpError ${error.statusCode} while refreshing token`,
+        error.message
+      );
+
+      if (error.status === 401) {
+        // unauthorised
+        consoleLog("Marking character as needing re-authorisation");
+        thisChar.needsReAuth = true;
+      }
+    } else if (error instanceof Error) {
+      consoleLog("Error while refreshing token", error.message);
+    }
+
+    // mark this character so we don't use it to check again too soon
+    setNextCheck(thisChar, new Date(Date.now() + checkDelay + 5000));
   }
 
-  // mark this character so we don't use it to check again too soon
-  thisChar.nextStructureCheck = new Date(Date.now() + checkDelay + 5000);
-
-  const config = new Configuration();
-  config.accessToken = thisChar.authToken;
-
-  return { config, workingChars, thisChar };
+  return { config: undefined, workingChars, thisChar };
 }
 
 export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
