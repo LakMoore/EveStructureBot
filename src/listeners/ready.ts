@@ -21,20 +21,25 @@ export default (client: Client): void => {
 };
 
 async function pollNextCorp(client: Client) {
-  if (corpIndex < 0 || corpIndex > data.authenticatedCorps.length - 1)
-    corpIndex = 0;
+  try {
+    if (corpIndex < 0 || corpIndex > data.authenticatedCorps.length - 1)
+      corpIndex = 0;
 
-  consoleLog(
-    `Poll index: ${corpIndex} - Corp Count: ${data.authenticatedCorps.length}`
-  );
-  const thisCorp = data.authenticatedCorps[corpIndex];
-  if (thisCorp) {
-    await checkStructuresForCorp(thisCorp, client);
+    // consoleLog(
+    //   `Poll index: ${corpIndex} - Corp Count: ${data.authenticatedCorps.length}`
+    // );
+    const thisCorp = data.authenticatedCorps[corpIndex];
+    if (thisCorp) {
+      await checkStructuresForCorp(thisCorp, client);
+    }
+    const updatedCorp = data.authenticatedCorps[corpIndex];
+    if (updatedCorp) {
+      await checkNotificationsForCorp(updatedCorp, client);
+    }
+  } catch (error: any) {
+    consoleLog("An error occured in main loop", error.message);
   }
-  const updatedCorp = data.authenticatedCorps[corpIndex];
-  if (updatedCorp) {
-    await checkNotificationsForCorp(updatedCorp, client);
-  }
+
   corpIndex++;
 
   await delay(POLL_ATTEMPT_DELAY);
