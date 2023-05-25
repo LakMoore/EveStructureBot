@@ -10,10 +10,10 @@
   "author": "Lak Moore",
   "license": "ISC",
   "dependencies": {
+    "@after_ice/eve-sso": "^2.0.1",
     "discord.js": "^14.10.0",
     "dotenv": "^16.0.3",
     "eve-client-ts": "^1.0.0",
-    "eve-sso": "^1.3.1",
     "koa": "^2.14.2",
     "node-persist": "^3.1.3"
   },

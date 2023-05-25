@@ -6,8 +6,8 @@ import {
   GetCharactersCharacterIdNotifications200Ok,
   GetCharactersCharacterIdRolesOk,
 } from "eve-client-ts";
-import SingleSignOn from "eve-sso";
-import Koa, { HttpError } from "koa";
+import SingleSignOn, { HTTPFetchError } from "@after_ice/eve-sso";
+import Koa from "koa";
 import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
 import {
   checkForChangeAndPersist,
@@ -211,7 +211,7 @@ export async function checkNotificationsForCorp(
     "notifications"
   );
 
-  if (!result || !result.config) {
+  if (!result || !result.config || !result.config.accessToken) {
     return;
   }
 
@@ -225,7 +225,7 @@ export async function checkNotificationsForCorp(
     config
   ).getCharactersCharacterIdNotifications(thisChar.characterId);
 
-  consoleLog("notifications", notifications);
+  //consoleLog("notifications", notifications);
 
   // get attack notifications that we have not seen before
   await handleNotification(
@@ -348,7 +348,7 @@ export async function checkStructuresForCorp(
     "structures"
   );
 
-  if (!result || !result.config) {
+  if (!result || !result.config || !result.config.accessToken) {
     return;
   }
 
@@ -358,7 +358,7 @@ export async function checkStructuresForCorp(
     config
   ).getCorporationsCorporationIdStructures(corp.corpId);
 
-  consoleLog("structs", structures);
+  //consoleLog("structs", structures);
 
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
@@ -404,7 +404,12 @@ async function getConfig(
     return;
   }
 
+  const config = new Configuration();
+
   try {
+    // mark this character so we don't use it to check again too soon
+    setNextCheck(thisChar, new Date(Date.now() + checkDelay + 5000));
+
     if (new Date(thisChar.tokenExpires) <= new Date()) {
       // auth token has expired, let's refresh it
       consoleLog("refreshing token");
@@ -414,21 +419,15 @@ async function getConfig(
       thisChar.tokenExpires = getExpires(response.expires_in);
     }
 
-    // mark this character so we don't use it to check again too soon
-    setNextCheck(thisChar, new Date(Date.now() + checkDelay + 5000));
-
-    const config = new Configuration();
     config.accessToken = thisChar.authToken;
-
-    return { config, workingChars, thisChar };
-  } catch (error) {
-    if (error instanceof HttpError) {
+  } catch (error: any) {
+    if (error instanceof HTTPFetchError) {
       consoleLog(
-        `HttpError ${error.statusCode} while refreshing token`,
+        `HttpError ${error.response.status} while refreshing token`,
         error.message
       );
 
-      if (error.status === 401) {
+      if (error.response.status === 401) {
         // unauthorised
         consoleLog("Marking character as needing re-authorisation");
         thisChar.needsReAuth = true;
@@ -436,12 +435,10 @@ async function getConfig(
     } else if (error instanceof Error) {
       consoleLog("Error while refreshing token", error.message);
     }
-
-    // mark this character so we don't use it to check again too soon
-    setNextCheck(thisChar, new Date(Date.now() + checkDelay + 5000));
   }
 
-  return { config: undefined, workingChars, thisChar };
+  consoleLog("token refreshed");
+  return { config, workingChars, thisChar };
 }
 
 export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
