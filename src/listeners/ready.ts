@@ -37,7 +37,7 @@ async function pollNextCorp(client: Client) {
       await checkNotificationsForCorp(updatedCorp, client);
     }
   } catch (error: any) {
-    consoleLog("An error occured in main loop", error.message);
+    consoleLog("An error occured in main loop", error);
   }
 
   corpIndex++;
