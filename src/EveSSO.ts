@@ -1,4 +1,4 @@
-import { Client, ColorResolvable, Colors, EmbedBuilder } from "discord.js";
+import { Client, EmbedBuilder } from "discord.js";
 import {
   CharacterApiFactory,
   Configuration,
@@ -17,11 +17,7 @@ import {
 } from "./Bot";
 import {
   getStructureIdFromGenericNotificationText,
-  isAttackNotification,
-  isMoonMiningAutoFractureNotification,
-  isMoonMiningExtractionFinishedNotification,
-  isMoonMiningExtractionStartedNotification,
-  isMoonMiningLaserFiredNotification,
+  messageTypes,
 } from "./data/notification";
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
@@ -227,112 +223,25 @@ export async function checkNotificationsForCorp(
 
   //consoleLog("notifications", notifications);
 
-  // get attack notifications that we have not seen before
-  await handleNotification(
-    client,
-    corp,
-    notifications,
-    isAttackNotification,
-    getStructureIdFromGenericNotificationText,
-    Colors.Red,
-    `STRUCTURE UNDER ATTACK`
+  // Get the notifications that we have not seen previously
+  const selectedNotifications = notifications.filter(
+    (note) => new Date(note.timestamp) > new Date(corp.mostRecentNotification)
   );
 
-  await handleNotification(
-    client,
-    corp,
-    notifications,
-    isMoonMiningExtractionStartedNotification,
-    getStructureIdFromGenericNotificationText,
-    Colors.Blue,
-    `Moon mining extraction started`
-  );
+  // Iterate through each notification
+  for (const notification of selectedNotifications) {
+    const data = messageTypes.get(notification.type);
+    if (data) {
+      await data.handler(client, corp, notification, data);
+    }
 
-  await handleNotification(
-    client,
-    corp,
-    notifications,
-    isMoonMiningExtractionFinishedNotification,
-    getStructureIdFromGenericNotificationText,
-    Colors.Blue,
-    `Moon mining extraction finished`
-  );
-
-  await handleNotification(
-    client,
-    corp,
-    notifications,
-    isMoonMiningAutoFractureNotification,
-    getStructureIdFromGenericNotificationText,
-    Colors.Blue,
-    `Moon mining automatic fracture triggered`
-  );
-
-  await handleNotification(
-    client,
-    corp,
-    notifications,
-    isMoonMiningLaserFiredNotification,
-    getStructureIdFromGenericNotificationText,
-    Colors.Blue,
-    `Moon mining laser fired`
-  );
-
-  for (const note of notifications) {
-    const thisDate = new Date(note.timestamp);
+    const thisDate = new Date(notification.timestamp);
     if (thisDate > new Date(corp.mostRecentNotification)) {
       corp.mostRecentNotification = thisDate;
     }
   }
 
   await data.save();
-}
-
-async function handleNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  notifications: GetCharactersCharacterIdNotifications200Ok[],
-  noteSelector: (note: GetCharactersCharacterIdNotifications200Ok) => boolean,
-  structureIDgetter: (note: string) => number,
-  colour: ColorResolvable,
-  message: string
-) {
-  const selectedNotifications = notifications.filter(
-    (note) =>
-      noteSelector(note) &&
-      new Date(note.timestamp) > new Date(corp.mostRecentNotification)
-  );
-
-  const channel = client.channels.cache.get(corp.channelId);
-  if (channel && channel.isTextBased()) {
-    for (const note of selectedNotifications) {
-      let embed = new EmbedBuilder()
-        .setColor(colour)
-        .setDescription(
-          `${message}\n${getRelativeDiscordTime(note.timestamp)}`
-        );
-      let foundStruct = false;
-      if (note.text) {
-        const structId = structureIDgetter(note.text);
-        const thisStruct = corp.structures.find(
-          (struct) => struct.structure_id === structId
-        );
-        if (thisStruct) {
-          foundStruct = true;
-          embed
-            .setTitle(thisStruct.name || "unknown structure")
-            .setAuthor({ name: corp.corpName })
-            .setThumbnail(
-              `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
-            );
-        }
-      }
-      if (!foundStruct) {
-        embed.setTitle(`Not sure which one!`);
-      }
-      await channel.send({ embeds: [embed] });
-    }
-  }
 }
 
 export async function checkStructuresForCorp(
@@ -410,14 +319,14 @@ async function getConfig(
     // mark this character so we don't use it to check again too soon
     setNextCheck(thisChar, new Date(Date.now() + checkDelay + 5000));
 
-    if (new Date(thisChar.tokenExpires) <= new Date()) {
-      // auth token has expired, let's refresh it
-      consoleLog("refreshing token");
-      const response = await sso.getAccessToken(thisChar.refreshToken, true);
-      thisChar.authToken = response.access_token;
-      thisChar.refreshToken = response.refresh_token;
-      thisChar.tokenExpires = getExpires(response.expires_in);
-    }
+    //if (new Date(thisChar.tokenExpires) <= new Date()) {
+    // auth token has expired, let's refresh it
+    consoleLog("refreshing token");
+    const response = await sso.getAccessToken(thisChar.refreshToken, true);
+    thisChar.authToken = response.access_token;
+    thisChar.refreshToken = response.refresh_token;
+    thisChar.tokenExpires = getExpires(response.expires_in);
+    //}
 
     config.accessToken = thisChar.authToken;
   } catch (error: any) {

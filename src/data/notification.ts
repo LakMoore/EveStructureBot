@@ -30,7 +30,10 @@
     type: 'StructureUnderAttack'
   }*/
 
+import { Client, Colors, EmbedBuilder } from "discord.js";
 import { GetCharactersCharacterIdNotifications200Ok } from "eve-client-ts";
+import { AuthenticatedCorp } from "./data";
+import { getRelativeDiscordTime } from "../Bot";
 
 export function getStructureIdFromGenericNotificationText(text: string) {
   const part1 = text.split("structureID:");
@@ -43,50 +46,220 @@ export function getStructureIdFromGenericNotificationText(text: string) {
   return 0;
 }
 
-export function isAttackNotification(
-  note: GetCharactersCharacterIdNotifications200Ok
-) {
-  return (
-    note.type ==
-    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureUnderAttack
-  );
-}
+export const messageTypes = new Map<
+  GetCharactersCharacterIdNotifications200Ok.TypeEnum,
+  {
+    message: string;
+    colour: number;
+    handler: (
+      client: Client<boolean>,
+      corp: AuthenticatedCorp,
+      note: GetCharactersCharacterIdNotifications200Ok,
+      data: { message: string; colour: number }
+    ) => Promise<void>;
+  }
+>();
 
-export function isMoonMiningExtractionStartedNotification(
-  note: GetCharactersCharacterIdNotifications200Ok
-) {
-  return (
-    note.type ==
+export function initNotifications() {
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureUnderAttack,
+    {
+      message: "STRUCTURE UNDER ATTACK",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum
-      .MoonminingExtractionStarted
+      .MoonminingExtractionStarted,
+    {
+      message: "Moon mining extraction started",
+      colour: Colors.Blue,
+      handler: handleNotification,
+    }
   );
-}
 
-export function isMoonMiningExtractionFinishedNotification(
-  note: GetCharactersCharacterIdNotifications200Ok
-) {
-  return (
-    note.type ==
+  messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum
-      .MoonminingExtractionFinished
+      .MoonminingExtractionFinished,
+    {
+      message: "Moon mining extraction finished",
+      colour: Colors.Blue,
+      handler: handleNotification,
+    }
   );
-}
 
-export function isMoonMiningAutoFractureNotification(
-  note: GetCharactersCharacterIdNotifications200Ok
-) {
-  return (
-    note.type ==
+  messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum
-      .MoonminingAutomaticFracture
+      .MoonminingAutomaticFracture,
+    {
+      message: "Moon mining automatic fracture triggered",
+      colour: Colors.Blue,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.MoonminingLaserFired,
+    {
+      message: "Moon mining laser fired",
+      colour: Colors.Blue,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureFuelAlert,
+    {
+      message: "Structure low on fuel",
+      colour: Colors.Yellow,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureDestroyed,
+    {
+      message: "Structure destroyed",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureLostArmor,
+    {
+      message: "Structure armor depleated",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureLostShields,
+    {
+      message: "Structure shields depleated",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureOnline,
+    {
+      message: "Structure online",
+      colour: Colors.Green,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum
+      .StructureServicesOffline,
+    {
+      message: "Structure services offline",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureUnanchoring,
+    {
+      message: "Structure unanchoring",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureWentHighPower,
+    {
+      message: "Structure power restored",
+      colour: Colors.Green,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureWentLowPower,
+    {
+      message: "Structure power failed",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.OrbitalAttacked,
+    {
+      message: "POCO Attacked",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.OrbitalReinforced,
+    {
+      message: "POCO Re-inforced",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.TowerAlertMsg,
+    {
+      message: "POS Alert",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
+  );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.TowerResourceAlertMsg,
+    {
+      message: "POS low on fuel",
+      colour: Colors.Red,
+      handler: handleNotification,
+    }
   );
 }
 
-export function isMoonMiningLaserFiredNotification(
-  note: GetCharactersCharacterIdNotifications200Ok
+async function handleNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharactersCharacterIdNotifications200Ok,
+  data: { message: string; colour: number }
 ) {
-  return (
-    note.type ==
-    GetCharactersCharacterIdNotifications200Ok.TypeEnum.MoonminingLaserFired
-  );
+  const channel = client.channels.cache.get(corp.channelId);
+  if (channel && channel.isTextBased()) {
+    let embed = new EmbedBuilder()
+      .setColor(data.colour)
+      .setDescription(
+        `${data.message}\n${getRelativeDiscordTime(note.timestamp)}`
+      );
+    let foundStruct = false;
+    if (note.text) {
+      const structId = getStructureIdFromGenericNotificationText(note.text);
+      const thisStruct = corp.structures.find(
+        (struct) => struct.structure_id === structId
+      );
+      if (thisStruct) {
+        foundStruct = true;
+        embed
+          .setTitle(thisStruct.name || "unknown structure")
+          .setAuthor({ name: corp.corpName })
+          .setThumbnail(
+            `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
+          );
+      }
+    }
+    if (!foundStruct) {
+      embed.setTitle(`Not sure which one!`);
+    }
+    await channel.send({ embeds: [embed] });
+  }
 }

@@ -5,6 +5,7 @@ import interactionCreate from "./listeners/interactionCreate";
 import { setup } from "./EveSSO";
 import { Data, AuthenticatedCorp } from "./data/data";
 import { GetCorporationsCorporationIdStructures200Ok } from "eve-client-ts";
+import { initNotifications } from "./data/notification";
 
 export const data = new Data();
 const LOW_FUEL_WARNING = 24 * 60 * 60 * 1000; //24 hours
@@ -14,6 +15,7 @@ async function main() {
   consoleLog("Bot is starting...");
 
   await data.init();
+  initNotifications();
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],
