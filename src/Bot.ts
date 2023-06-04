@@ -166,8 +166,14 @@ function formatState(
       return "armor under attack";
     case GetCorporationsCorporationIdStructures200Ok.StateEnum.HullVulnerable:
       return "armor depleated";
+    case GetCorporationsCorporationIdStructures200Ok.StateEnum.Anchoring:
+      return "anchoring";
+    case GetCorporationsCorporationIdStructures200Ok.StateEnum.Unanchored:
+      return "unanchored";
+    case GetCorporationsCorporationIdStructures200Ok.StateEnum.ShieldVulnerable:
+      return "full shields";
     default:
-      return "normal";
+      return "unknown";
   }
 }
 

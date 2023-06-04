@@ -224,6 +224,8 @@ export async function checkNotificationsForCorp(
     const data = messageTypes.get(notification.type);
     if (data) {
       await data.handler(client, corp, notification, data);
+    } else {
+      consoleLog("No handler for message", notification);
     }
 
     const thisDate = new Date(notification.timestamp);

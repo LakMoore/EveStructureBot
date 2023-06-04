@@ -226,6 +226,15 @@ export function initNotifications() {
       handler: handleNotification,
     }
   );
+
+  messageTypes.set(
+    GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureAnchoring,
+    {
+      message: "Structure Anchoring",
+      colour: Colors.Yellow,
+      handler: handleNotification,
+    }
+  );
 }
 
 async function handleNotification(
