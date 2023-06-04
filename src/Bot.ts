@@ -33,7 +33,9 @@ async function main() {
   setup(client);
 }
 
-main();
+main().catch((err) => {
+  consoleLog(err);
+});
 
 export function consoleLog(message?: any, ...optionalParams: any[]) {
   console.log(new Date().toISOString() + ": " + message, ...optionalParams);
@@ -56,7 +58,7 @@ export async function checkForChangeAndPersist(
   });
 
   const channel = client.channels.cache.get(corp.channelId);
-  if (channel && channel.isTextBased()) {
+  if (channel?.isTextBased()) {
     if (idx > -1) {
       // seen this before, check each structure for changes.
       const oldCorp = data.authenticatedCorps[idx];
@@ -199,7 +201,7 @@ function generateNewStructureEmbed(
       iconURL: badgeUrl,
       url: undefined,
     })
-    .setTitle(s.name || "Unknown Structure")
+    .setTitle(s.name ?? "Unknown Structure")
     .setDescription(`Status: ${formatState(s.state)}\n${fuelMessage}` + message)
     .setThumbnail(
       `https://images.evetech.net/types/${s.type_id}/render?size=64`
@@ -218,7 +220,7 @@ function generateDeletedStructureEmbed(
       iconURL: badgeUrl,
       url: undefined,
     })
-    .setTitle(s.name || "Unknown Structure")
+    .setTitle(s.name ?? "Unknown Structure")
     .setDescription("Structure is no longer part of the corporation!")
     .setThumbnail(
       `https://images.evetech.net/types/${s.type_id}/render?size=64`

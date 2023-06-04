@@ -33,7 +33,7 @@
 import { Client, Colors, EmbedBuilder } from "discord.js";
 import { GetCharactersCharacterIdNotifications200Ok } from "eve-client-ts";
 import { AuthenticatedCorp } from "./data";
-import { getRelativeDiscordTime } from "../Bot";
+import { consoleLog, getRelativeDiscordTime } from "../Bot";
 
 export function getStructureIdFromGenericNotificationText(text: string) {
   const part1 = text.split("structureID:");
@@ -235,7 +235,7 @@ async function handleNotification(
   data: { message: string; colour: number }
 ) {
   const channel = client.channels.cache.get(corp.channelId);
-  if (channel && channel.isTextBased()) {
+  if (channel?.isTextBased()) {
     let embed = new EmbedBuilder()
       .setColor(data.colour)
       .setDescription(
@@ -250,11 +250,13 @@ async function handleNotification(
       if (thisStruct) {
         foundStruct = true;
         embed
-          .setTitle(thisStruct.name || "unknown structure")
+          .setTitle(thisStruct.name ?? "unknown structure")
           .setAuthor({ name: corp.corpName })
           .setThumbnail(
             `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
           );
+      } else {
+        consoleLog("Failed to find structure", note);
       }
     }
     if (!foundStruct) {

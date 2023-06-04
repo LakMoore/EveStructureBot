@@ -16,7 +16,11 @@ export default (client: Client): void => {
 
     consoleLog(`${client.user.username} is online`);
 
-    setTimeout(() => pollNextCorp(client), POLL_ATTEMPT_DELAY);
+    setTimeout(() => {
+      pollNextCorp(client).catch((err) => {
+        consoleLog("Error in pollNextCorp setTimeout()", err);
+      });
+    }, POLL_ATTEMPT_DELAY);
   });
 };
 
@@ -45,5 +49,9 @@ async function pollNextCorp(client: Client) {
   await delay(POLL_ATTEMPT_DELAY);
 
   // infinite loop required
-  setTimeout(() => pollNextCorp(client), 1);
+  setTimeout(() => {
+    pollNextCorp(client).catch((err) => {
+      consoleLog("Error in pollNextCorp setTimeout()", err);
+    });
+  }, 1);
 }

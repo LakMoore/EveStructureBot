@@ -3,22 +3,13 @@ import {
   CharacterApiFactory,
   Configuration,
   CorporationApiFactory,
-  GetCharactersCharacterIdNotifications200Ok,
   GetCharactersCharacterIdRolesOk,
 } from "eve-client-ts";
 import SingleSignOn, { HTTPFetchError } from "@after_ice/eve-sso";
 import Koa from "koa";
 import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
-import {
-  checkForChangeAndPersist,
-  consoleLog,
-  data,
-  getRelativeDiscordTime,
-} from "./Bot";
-import {
-  getStructureIdFromGenericNotificationText,
-  messageTypes,
-} from "./data/notification";
+import { checkForChangeAndPersist, consoleLog, data } from "./Bot";
+import { messageTypes } from "./data/notification";
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
@@ -28,12 +19,12 @@ const NOTIFICATION_CHECK_DELAY = 1000 * 60 * 10; // 10 mins
 
 export function setup(client: Client) {
   // Get the client ID and secret from the Eve developers section
-  const CLIENT_ID = process.env.EVE_CLIENT_ID || "";
-  const SECRET = process.env.EVE_SECRET_KEY || "";
+  const CLIENT_ID = process.env.EVE_CLIENT_ID ?? "";
+  const SECRET = process.env.EVE_SECRET_KEY ?? "";
   // The callback URI as defined in the application in the developers section
-  const CALLBACK_URI = process.env.EVE_CALLBACK_URL || "";
+  const CALLBACK_URI = process.env.EVE_CALLBACK_URL ?? "";
   const CALLBACK_SERVER_PORT = Number(
-    process.env.CALLBACK_SERVER_PORT || "8080"
+    process.env.CALLBACK_SERVER_PORT ?? "8080"
   );
 
   sso = new SingleSignOn(CLIENT_ID, SECRET, CALLBACK_URI, {

@@ -14,9 +14,9 @@ export const Info: Command = {
       content,
     });
 
-    const channel = await client.channels.cache.get(interaction.channelId);
+    const channel = client.channels.cache.get(interaction.channelId);
 
-    if (channel && channel.isTextBased()) {
+    if (channel?.isTextBased()) {
       let channelCorps = data.authenticatedCorps.filter(
         (ac) => ac.channelId == channel.id
       );

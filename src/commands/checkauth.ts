@@ -1,7 +1,6 @@
 import { CommandInteraction, Client } from "discord.js";
 import { Command } from "../Command";
 import { data } from "../Bot";
-import { generateCorpDetailsEmbed } from "../EveSSO";
 
 export const CheckAuth: Command = {
   name: "checkauth",
@@ -14,9 +13,9 @@ export const CheckAuth: Command = {
       content,
     });
 
-    const channel = await client.channels.cache.get(interaction.channelId);
+    const channel = client.channels.cache.get(interaction.channelId);
 
-    if (channel && channel.isTextBased()) {
+    if (channel?.isTextBased()) {
       let channelCorps = data.authenticatedCorps.filter(
         (ac) => ac.channelId == channel.id
       );

@@ -12,7 +12,7 @@ export const Hello: Command = {
       content,
     });
 
-    const channel = await client.channels.cache.get(interaction.channelId);
+    const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel && channel.isTextBased()) {
       channel.send(`Hello <@${interaction.user.id}>`);
