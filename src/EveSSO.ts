@@ -1,4 +1,4 @@
-import { Channel, Client, EmbedBuilder } from "discord.js";
+import { Client, EmbedBuilder, Guild, HTTPError } from "discord.js";
 import {
   CharacterApiFactory,
   Configuration,
@@ -7,7 +7,11 @@ import {
 } from "eve-client-ts";
 import SingleSignOn, { HTTPFetchError } from "@after_ice/eve-sso";
 import Koa from "koa";
-import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
+import {
+  AuthenticatedCharacter,
+  AuthenticatedCorp,
+  CorpMember,
+} from "./data/data";
 import { checkForChangeAndPersist, consoleLog, data } from "./Bot";
 import { messageTypes } from "./data/notification";
 //HTTPS shouldn't be needed if you are behind something like nginx
@@ -100,6 +104,7 @@ export function setup(client: Client) {
                 );
                 if (!thisCorp) {
                   thisCorp = {
+                    serverId: channel.guildId,
                     channelId: channelId,
                     corpId: corpId,
                     corpName: corp.name,
@@ -112,6 +117,8 @@ export function setup(client: Client) {
                   };
                   data.authenticatedCorps.push(thisCorp);
                 }
+
+                if (!thisCorp.serverId) thisCorp.serverId = channel.guildId;
 
                 // make a new version of the character that just got authenticated
                 const character: AuthenticatedCharacter = {
@@ -163,14 +170,8 @@ export function setup(client: Client) {
 
                 await data.save();
 
-                const member = thisCorp.members.find(
-                  (m) => m.discordId === userId
-                );
-
-                if (member) {
-                  // use tickers to set Discord Roles
-                  await setDiscordRoles(channel, userId, member.characters);
-                }
+                // use tickers to set Discord Roles
+                await setDiscordRoles(channel.guild, userId);
               } catch (error) {
                 consoleLog("error", error);
                 if (error instanceof Response) {
@@ -202,62 +203,68 @@ export function setup(client: Client) {
   //   });
 }
 
-async function setDiscordRoles(
-  channel: Channel,
-  userId: string,
-  characters: AuthenticatedCharacter[]
-) {
-  if (channel.isTextBased() && !channel.isDMBased()) {
-    const member = channel.guild.members.cache.get(userId);
 
-    // ensure the member exists
-    if (!member) {
-      consoleLog("Unable to find Discord member with ID = " + userId);
-      return;
     }
 
-    const uniqueCorps = characters
-      .map((c) => c.corpId)
-      .filter((value, index, array) => array.indexOf(value) === index);
+async function setDiscordRoles(guild: Guild, userId: string) {
+  const member = guild.members.cache.get(userId);
 
-    // create an array of unique tickers for this member
-    const corpTickers = await Promise.all(
-      uniqueCorps.map(async (corpId) => {
-        const corp = await CorporationApiFactory().getCorporationsCorporationId(
-          corpId
-        );
-        return `[${corp.ticker}]`;
-      })
+  // ensure the member exists
+  if (!member) {
+    consoleLog(
+      `Unable to find Discord member of ${guild.name} with ID ${userId}`
     );
+    return;
+  }
 
-    // remove roles that should not exist
-    await Promise.all(
-      member.roles.cache.map(async (corpRole) => {
-        // if the Discord role starts with [ and ends with ]
-        // and is NOT in the list we just created
-        if (
-          corpRole.name.startsWith("[") &&
-          corpRole.name.endsWith("]") &&
-          !corpTickers.includes(corpRole.name)
-        ) {
-          // then remove this role from this user
-          await member.roles.remove(corpRole);
-        }
-      })
-    );
+  const serverCorps = data.authenticatedCorps.filter(
+    (ac) => ac.serverId == guild.id
+  );
 
-    // ensure all the roles exist and are applied to this member
-    await Promise.all(
-      corpTickers.map(async (ticker) => {
+  const uniqueCorps = serverCorps
+    .filter((c) => c.members.some((cm) => cm.discordId == userId))
+    .map((c) => c.corpId)
+    .filter((value, index, array) => array.indexOf(value) === index);
+
+  // create an array of unique tickers for this member
+  const corpTickers = await Promise.all(
+    uniqueCorps.map(async (corpId) => {
+      if (!corpId) return "";
+      const corp = await CorporationApiFactory().getCorporationsCorporationId(
+        corpId
+      );
+      return `[${corp.ticker}]`;
+    })
+  );
+
+  // remove roles that should not exist
+  await Promise.all(
+    member.roles.cache.map(async (corpRole) => {
+      // if the Discord role starts with [ and ends with ]
+      // and is NOT in the list we just created
+      if (
+        corpRole.name.startsWith("[") &&
+        corpRole.name.endsWith("]") &&
+        !corpTickers.includes(corpRole.name)
+      ) {
+        // then remove this role from this user
+        await member.roles.remove(corpRole);
+      }
+    })
+  );
+
+  // ensure all the roles exist and are applied to this member
+  await Promise.all(
+    corpTickers
+      .filter((ticker) => ticker)
+      .map(async (ticker) => {
         // get role by name
-        let corpRole = channel.guild.roles.cache.find(
-          (role) => role.name === ticker
-        );
+        let corpRole = guild.roles.cache.find((role) => role.name === ticker);
 
         if (!corpRole) {
           // a role for this corp does not exist, let's make one
           // TODO: Role colours!
-          corpRole = await channel.guild.roles.create({ name: ticker });
+          corpRole = await guild.roles.create({ name: ticker });
         }
 
         if (!corpRole) {
@@ -268,8 +275,7 @@ async function setDiscordRoles(
           }
         }
       })
-    );
-  }
+  );
 }
 
 function getExpires(expires_in: number): Date {
@@ -357,6 +363,7 @@ export async function checkStructuresForCorp(
 
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
+    serverId: corp.serverId,
     channelId: corp.channelId,
     corpId: corp.corpId,
     corpName: corp.corpName,
@@ -436,12 +443,18 @@ async function getConfig(
     return;
   }
 
+  const config = await getAccessToken(thisChar);
+
+  // mark this character so we don't use it to check again too soon
+  setNextCheck(thisChar, new Date(Date.now() + checkDelay + 1000));
+
+  return { config, workingChars, thisChar };
+}
+
+async function getAccessToken(thisChar: AuthenticatedCharacter) {
   const config = new Configuration();
 
   try {
-    // mark this character so we don't use it to check again too soon
-    setNextCheck(thisChar, new Date(Date.now() + checkDelay + 1000));
-
     if (new Date(thisChar.tokenExpires) <= new Date()) {
       // auth token has expired, let's refresh it
       consoleLog("refreshing token");
@@ -470,7 +483,7 @@ async function getConfig(
   }
 
   consoleLog("token refreshed");
-  return { config, workingChars, thisChar };
+  return config;
 }
 
 export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {

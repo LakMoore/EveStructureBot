@@ -21,6 +21,7 @@ export interface CorpMember {
 }
 
 export interface AuthenticatedCorp {
+  serverId: string;
   channelId: string;
   corpId: number;
   corpName: string;
