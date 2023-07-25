@@ -6,6 +6,7 @@ export interface AuthenticatedCharacter {
   discordId: string;
   characterId: number;
   characterName: string;
+  corpId: number;
   authToken: string;
   tokenExpires: Date;
   refreshToken: string;
@@ -14,11 +15,20 @@ export interface AuthenticatedCharacter {
   needsReAuth: boolean;
 }
 
+export interface CorpMember {
+  discordId: string;
+  characters: AuthenticatedCharacter[];
+}
+
 export interface AuthenticatedCorp {
   channelId: string;
   corpId: number;
   corpName: string;
-  characters: AuthenticatedCharacter[];
+  members: CorpMember[];
+  /**
+   * @deprecated fetch a character via members[]
+   */
+  characters: AuthenticatedCharacter[] | undefined;
   structures: GetCorporationsCorporationIdStructures200Ok[];
   nextStructureCheck: Date;
   nextNotificationCheck: Date;
@@ -38,6 +48,54 @@ export class Data {
       temp = [];
     }
     this._authenticatedCorps = temp;
+
+    let upgraded = false;
+
+    for (const thisCorp of this._authenticatedCorps) {
+      if (!thisCorp.members) {
+        thisCorp.members = [];
+        upgraded = true;
+      }
+      if (thisCorp.characters) {
+        // if characters exists, let's upgrade to the new layout
+        thisCorp.characters.forEach((thisCharacter) => {
+          if (thisCorp) {
+            const memberIdx = thisCorp.members.findIndex(
+              (corpMember) => corpMember.discordId === thisCharacter.discordId
+            );
+            if (memberIdx > -1) {
+              const corpMember = thisCorp.members[memberIdx];
+              const charIdx = corpMember.characters.findIndex((c) => {
+                c.characterId === thisCharacter.characterId;
+              });
+
+              if (charIdx > -1) {
+                // if the member already has this character, copy over the top
+                corpMember.characters[charIdx] = thisCharacter;
+              } else {
+                // if the member does not have this character, add it
+                corpMember.characters.push(thisCharacter);
+              }
+            } else {
+              // if this member is not in our list, add them with this initial character attached
+              thisCorp.members.push({
+                discordId: thisCharacter.discordId,
+                characters: [thisCharacter],
+              });
+            }
+          }
+        });
+        // then delete the old property
+        delete thisCorp.characters;
+        upgraded = true;
+      }
+    }
+
+    if (upgraded) {
+      consoleLog("Upgraded the datastore to new schema.");
+      this.save();
+    }
+
     // save in a little while
     setTimeout(() => this.autoSave(), SAVE_DELAY_MS);
   }

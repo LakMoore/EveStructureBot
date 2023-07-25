@@ -40,7 +40,7 @@ async function pollNextCorp(client: Client) {
     if (updatedCorp) {
       await checkNotificationsForCorp(updatedCorp, client);
     }
-  } catch (error: any) {
+  } catch (error) {
     consoleLog("An error occured in main loop", error);
   }
 

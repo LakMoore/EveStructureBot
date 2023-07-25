@@ -16,14 +16,16 @@ export const CheckAuth: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel?.isTextBased()) {
-      let channelCorps = data.authenticatedCorps.filter(
+      const channelCorps = data.authenticatedCorps.filter(
         (ac) => ac.channelId == channel.id
       );
 
       let found = false;
 
       for (const corp of channelCorps) {
-        for (const char of corp.characters) {
+        for (const char of Array.prototype.concat(
+          corp.members.map((m) => m.characters)
+        )) {
           if (char.needsReAuth) {
             await channel.send(
               `<@${char.discordId}> Please use /auth to re-authorise your character, named "${char.characterName}".`
