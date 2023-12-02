@@ -30,18 +30,20 @@
     type: 'StructureUnderAttack'
   }*/
 
-import { Client, Colors, EmbedBuilder } from "discord.js";
+import { Client, Colors } from "discord.js";
 import { GetCharactersCharacterIdNotifications200Ok } from "eve-client-ts";
 import { AuthenticatedCorp } from "./data";
-import { consoleLog, getRelativeDiscordTime } from "../Bot";
+import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
 
-export function getStructureIdFromGenericNotificationText(text: string) {
-  const part1 = text.split("structureID:");
-  const part2 = part1[1].split("\n");
-  const part3 = part2[0].split(" ");
-  const structId = part3.pop();
-  if (structId) {
-    return Number(structId);
+export function getStructureIdFromGenericNotificationText(text?: string) {
+  if (text) {
+    const part1 = text.split("structureID:");
+    const part2 = part1[1].split("\n");
+    const part3 = part2[0].split(" ");
+    const structId = part3.pop();
+    if (structId) {
+      return Number(structId);
+    }
   }
   return 0;
 }
@@ -245,32 +247,21 @@ async function handleNotification(
 ) {
   const channel = client.channels.cache.get(corp.channelId);
   if (channel?.isTextBased()) {
-    let embed = new EmbedBuilder()
-      .setColor(data.colour)
-      .setDescription(
-        `${data.message}\n${getRelativeDiscordTime(note.timestamp)}`
-      );
-    let foundStruct = false;
-    if (note.text) {
-      const structId = getStructureIdFromGenericNotificationText(note.text);
-      const thisStruct = corp.structures.find(
-        (struct) => struct.structure_id === structId
-      );
-      if (thisStruct) {
-        foundStruct = true;
-        embed
-          .setTitle(thisStruct.name ?? "unknown structure")
-          .setAuthor({ name: corp.corpName })
-          .setThumbnail(
-            `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
-          );
-      } else {
-        consoleLog("Failed to find structure", note);
-      }
-    }
-    if (!foundStruct) {
-      embed.setTitle(`Not sure which one!`);
-    }
-    await channel.send({ embeds: [embed] });
+    const structId = getStructureIdFromGenericNotificationText(note.text);
+    const thisStruct = corp.structures.find(
+      (struct) => struct.structure_id === structId
+    );
+
+    await channel.send({
+      embeds: [
+        generateStructureNotificationEmbed(
+          data.colour,
+          data.message,
+          note.timestamp,
+          thisStruct,
+          corp.corpName
+        ),
+      ],
+    });
   }
 }

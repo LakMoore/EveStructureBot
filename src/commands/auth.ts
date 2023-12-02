@@ -19,8 +19,8 @@ export const Auth: Command = {
   description: "Get a link to authorise a character using Eve SSO",
   ephemeral: true,
   run: async (client: Client, interaction: CommandInteraction) => {
-    let channelId = interaction.channelId || "unknown";
-    let userId = interaction.user.id;
+    const channelId = interaction.channelId || "unknown";
+    const userId = interaction.user.id;
 
     const state = `${channelId}|${userId}`;
 

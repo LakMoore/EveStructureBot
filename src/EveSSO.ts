@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, Guild, HTTPError } from "discord.js";
+import { Client, Guild, HTTPError } from "discord.js";
 import {
   CharacterApiFactory,
   Configuration,
@@ -14,6 +14,7 @@ import {
 } from "./data/data";
 import { checkForChangeAndPersist, consoleLog, data } from "./Bot";
 import { messageTypes } from "./data/notification";
+import { generateCorpDetailsEmbed } from "./embeds/corpDetails";
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
@@ -171,7 +172,9 @@ export function setup(client: Client) {
                 await data.save();
 
                 // use tickers to set Discord Roles
-                await setDiscordRoles(channel.guild, userId);
+                // if (false) {
+                //   await setDiscordRoles(channel.guild, userId);
+                // }
               } catch (error) {
                 consoleLog("error", error);
                 if (error instanceof Response) {
@@ -203,8 +206,43 @@ export function setup(client: Client) {
   //   });
 }
 
+export async function checkMembership(member: CorpMember) {
+  for (const char of member.characters) {
+    let corpConfirmed = false;
+    const config = await getAccessToken(char);
 
+    if (config.accessToken) {
+      try {
+        const memberList = await CorporationApiFactory(
+          config
+        ).getCorporationsCorporationIdMembers(98130952); //char.corpId);
+
+        if (memberList.includes(char.characterId)) {
+          // character is confirmed as a member of this corp
+        } else {
+          // this should not be possible as the ESI let us fetch this Corp's
+          // member list but then this character is not in that list!?!?
+          corpConfirmed = true;
+        }
+      } catch (error) {
+        // Failed to get the Member list for this corp
+
+        const httpError = error as HTTPError;
+        if (httpError?.status == 403) {
+          // if error code is 403 then this character is not a member
+          // of the corp specified
+          consoleLog("Not authed for this corp!!!");
+        }
+      }
+
+      if (!corpConfirmed) {
+        // The character is NOT in the corp the ESI says it is in!!!
+        // Let's check all the other corps that are authenticated to see if
+        // we can figure out which corp this character is really in.
+      }
     }
+  }
+}
 
 async function setDiscordRoles(guild: Guild, userId: string) {
   const member = guild.members.cache.get(userId);
@@ -221,8 +259,11 @@ async function setDiscordRoles(guild: Guild, userId: string) {
     (ac) => ac.serverId == guild.id
   );
 
+  // TODO: ensure that members get removed from a corp collection when they have no authenticated characters in that corp
   const uniqueCorps = serverCorps
-    .filter((c) => c.members.some((cm) => cm.discordId == userId))
+    .filter((c) =>
+      c.members.some((cm) => cm.discordId == userId && cm.characters.length > 0)
+    )
     .map((c) => c.corpId)
     .filter((value, index, array) => array.indexOf(value) === index);
 
@@ -286,6 +327,8 @@ export async function checkNotificationsForCorp(
   corp: AuthenticatedCorp,
   client: Client
 ) {
+  consoleLog("checkNotificationsForCorp ", corp.corpName);
+
   const result = await getConfig(
     Array.prototype.concat(corp.members.map((m) => m.characters)),
     corp.nextNotificationCheck,
@@ -339,6 +382,8 @@ export async function checkStructuresForCorp(
   corp: AuthenticatedCorp,
   client: Client
 ) {
+  consoleLog("checkStructuresForCorp ", corp.corpName);
+
   const result = await getConfig(
     Array.prototype.concat(corp.members.map((m) => m.characters)),
     corp.nextStructureCheck,
@@ -484,68 +529,4 @@ async function getAccessToken(thisChar: AuthenticatedCharacter) {
 
   consoleLog("token refreshed");
   return config;
-}
-
-export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
-  const allChars: AuthenticatedCharacter[] = Array.prototype.concat(
-    thisCorp.members.map((m) => m.characters)
-  );
-  const chars = allChars.filter((c) => !c.needsReAuth);
-  const needReauth = chars.filter((c) => c.needsReAuth);
-
-  const fields = [];
-
-  fields.push({
-    name: "\u200b",
-    value: `Tracking ${chars.length} authorised character${
-      chars.length == 1 ? "" : "s"
-    }.`,
-  });
-
-  fields.push({
-    name: "\u200b",
-    value: `Checking notifications every ${
-      Math.round(100 / chars.length) / 10
-    } minutes.`,
-  });
-
-  fields.push({
-    name: "\u200b",
-    value: `Checking stucture status every ${
-      Math.round(600 / chars.length) / 10
-    } minutes.`,
-  });
-
-  if (chars.length < 10) {
-    fields.push({
-      name: "\u200b",
-      value: `Recommend authorising at least ${
-        10 - chars.length
-      } more characters!`,
-    });
-  }
-
-  if (needReauth.length > 0) {
-    fields.push({
-      name: "\u200b",
-      value: `${needReauth.length} character ${
-        needReauth.length == 1 ? "" : "s"
-      } need${
-        needReauth.length == 1 ? "s" : ""
-      } to be re-authorised (use /checkauth for details)`,
-    });
-  }
-
-  fields.push({
-    name: "\u200b",
-    value: `Corporation has ${thisCorp.structures.length} structures.`,
-  });
-
-  return new EmbedBuilder()
-    .setColor(0x0000ff)
-    .setTitle(thisCorp.corpName)
-    .setThumbnail(
-      `https://images.evetech.net/corporations/${thisCorp.corpId}/logo?size=64`
-    )
-    .addFields(fields);
 }

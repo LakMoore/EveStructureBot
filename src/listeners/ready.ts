@@ -1,7 +1,11 @@
 import { Client } from "discord.js";
 import { Commands } from "../Commands";
 import { consoleLog, data, delay } from "../Bot";
-import { checkNotificationsForCorp, checkStructuresForCorp } from "../EveSSO";
+import {
+  checkMembership,
+  checkNotificationsForCorp,
+  checkStructuresForCorp,
+} from "../EveSSO";
 
 const POLL_ATTEMPT_DELAY = 5000;
 let corpIndex = 0;
@@ -33,6 +37,10 @@ async function pollNextCorp(client: Client) {
     //   `Poll index: ${corpIndex} - Corp Count: ${data.authenticatedCorps.length}`
     // );
     const thisCorp = data.authenticatedCorps[corpIndex];
+
+    // Use Corp members list rather than player's corp
+    //await checkMembership(thisCorp.members[0]);
+
     if (thisCorp) {
       await checkStructuresForCorp(thisCorp, client);
     }

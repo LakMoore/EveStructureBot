@@ -1,7 +1,7 @@
 import { CommandInteraction, Client } from "discord.js";
 import { Command } from "../Command";
 import { data } from "../Bot";
-import { generateCorpDetailsEmbed } from "../EveSSO";
+import { generateCorpDetailsEmbed } from "../embeds/corpDetails";
 
 export const Info: Command = {
   name: "info",
@@ -17,7 +17,7 @@ export const Info: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel?.isTextBased()) {
-      let channelCorps = data.authenticatedCorps.filter(
+      const channelCorps = data.authenticatedCorps.filter(
         (ac) => ac.channelId == channel.id
       );
 

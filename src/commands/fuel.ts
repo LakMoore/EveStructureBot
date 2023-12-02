@@ -1,0 +1,111 @@
+import {
+  CommandInteraction,
+  Client,
+  AutocompleteInteraction,
+  SlashCommandBuilder,
+  SlashCommandStringOption,
+} from "discord.js";
+import { Command } from "../Command";
+import { data } from "../Bot";
+import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
+
+const stationNameOption = new SlashCommandStringOption()
+  .setName("name")
+  .setDescription("Name of Structure")
+  .setRequired(true)
+  .setAutocomplete(true);
+
+export const Fuel: Command = {
+  name: "fuel",
+  description: "Dump fuel status for stations.",
+  ephemeral: false,
+  options: [stationNameOption],
+  autocomplete: async (
+    client: Client,
+    interaction: AutocompleteInteraction
+  ) => {
+    const focusedValue = interaction.options.getFocused();
+
+    const channel = client.channels.cache.get(interaction.channelId);
+
+    if (channel?.isTextBased()) {
+      const channelCorps = data.authenticatedCorps.filter(
+        (ac) => ac.channelId == channel.id
+      );
+
+      const choices = channelCorps
+        .flatMap((corp) => {
+          return corp.structures.map((struct) => {
+            return {
+              name: struct.name ?? "unknown structure",
+              value: struct.structure_id.toString(),
+            };
+          });
+        })
+        .filter(
+          (struct) =>
+            focusedValue.length == 0 ||
+            struct.name
+              ?.toLocaleLowerCase()
+              .includes(focusedValue.toLocaleLowerCase())
+        );
+
+      await interaction.respond(choices);
+    }
+  },
+  run: async (client: Client, interaction: CommandInteraction) => {
+    const content = "Fetching fuel info...";
+
+    await interaction.followUp({
+      content,
+    });
+
+    const channel = client.channels.cache.get(interaction.channelId);
+
+    if (channel?.isTextBased()) {
+      const channelCorps = data.authenticatedCorps.filter(
+        (ac) => ac.channelId == channel.id
+      );
+
+      const result = channelCorps
+        .flatMap((corp) => {
+          return corp.structures.map((struct) => {
+            return { struct, corp };
+          });
+        })
+        .find(
+          (v) => v.struct.structure_id == interaction.options.get("name")?.value
+        );
+
+      if (result?.struct.fuel_expires) {
+        let text = "Fuel expires";
+        if (new Date(result.struct.fuel_expires) < new Date()) {
+          text = "Fuel expired";
+        }
+        await channel.send({
+          embeds: [
+            generateStructureNotificationEmbed(
+              0x00ff00,
+              text,
+              result.struct.fuel_expires,
+              result.struct,
+              result.corp.corpName
+            ),
+          ],
+        });
+      } else {
+        await interaction.followUp(
+          `No structure found with the name ${
+            interaction.options.get("name")?.value
+          }`
+        );
+      }
+
+      if (channelCorps.length == 0) {
+        await channel.send(
+          "No data found for this channel.  Use /auth command to begin."
+        );
+      }
+    }
+  },
+};
