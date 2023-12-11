@@ -24,7 +24,7 @@ export const CheckAuth: Command = {
 
       for (const corp of channelCorps) {
         for (const char of Array.prototype.concat(
-          corp.members.map((m) => m.characters)
+          corp.members.flatMap((m) => m.characters)
         )) {
           if (char.needsReAuth) {
             await channel.send(

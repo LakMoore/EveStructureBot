@@ -330,7 +330,7 @@ export async function checkNotificationsForCorp(
   consoleLog("checkNotificationsForCorp ", corp.corpName);
 
   const result = await getConfig(
-    Array.prototype.concat(corp.members.map((m) => m.characters)),
+    Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
     corp.nextNotificationCheck,
     NOTIFICATION_CHECK_DELAY,
     (c) => c.nextNotificationCheck,
@@ -385,7 +385,7 @@ export async function checkStructuresForCorp(
   consoleLog("checkStructuresForCorp ", corp.corpName);
 
   const result = await getConfig(
-    Array.prototype.concat(corp.members.map((m) => m.characters)),
+    Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
     corp.nextStructureCheck,
     STRUCTURE_CHECK_DELAY,
     (c) => c.nextStructureCheck,
@@ -466,7 +466,7 @@ async function getConfig(
     if (new Date(getNextCheck(c)) < new Date()) {
       if (requiredRole) {
         const roles = await CharacterApiFactory(
-          config
+          await getAccessToken(c)
         ).getCharactersCharacterIdRoles(c.characterId);
 
         if (!roles.roles || !roles.roles.includes(requiredRole)) {

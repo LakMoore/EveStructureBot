@@ -1,9 +1,10 @@
 import { EmbedBuilder } from "discord.js";
 import { AuthenticatedCorp, AuthenticatedCharacter } from "../data/data";
+import { NOTIFICATION_CHECK_DELAY, STRUCTURE_CHECK_DELAY } from "../Bot";
 
 export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
   const allChars: AuthenticatedCharacter[] = Array.prototype.concat(
-    thisCorp.members.map((m) => m.characters)
+    thisCorp.members.flatMap((m) => m.characters)
   );
   const chars = allChars.filter((c) => !c.needsReAuth);
   const needReauth = chars.filter((c) => c.needsReAuth);
