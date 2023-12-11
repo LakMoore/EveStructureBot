@@ -234,5 +234,5 @@ function generateDeletedStructureEmbed(
 }
 
 export function getRelativeDiscordTime(time: Date): string {
-  return `<t:${new Date(time).getTime() / 1000}:R>`;
+  return `<t:${Math.round(new Date(time).getTime() / 1000)}:R>`;
 }
