@@ -2,7 +2,6 @@ import {
   CommandInteraction,
   Client,
   AutocompleteInteraction,
-  SlashCommandBuilder,
   SlashCommandStringOption,
 } from "discord.js";
 import { Command } from "../Command";

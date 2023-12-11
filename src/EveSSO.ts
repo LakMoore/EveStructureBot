@@ -12,16 +12,20 @@ import {
   AuthenticatedCorp,
   CorpMember,
 } from "./data/data";
-import { checkForChangeAndPersist, consoleLog, data } from "./Bot";
+import {
+  NOTIFICATION_CHECK_DELAY,
+  NO_ROLE_DELAY,
+  STRUCTURE_CHECK_DELAY,
+  checkForChangeAndPersist,
+  consoleLog,
+  data,
+} from "./Bot";
 import { messageTypes } from "./data/notification";
 import { generateCorpDetailsEmbed } from "./embeds/corpDetails";
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
 export let sso: SingleSignOn;
-const STRUCTURE_CHECK_DELAY = 1000 * 60 * 60; // 1 hour
-const NOTIFICATION_CHECK_DELAY = 1000 * 60 * 10; // 10 mins
-const NO_ROLE_DELAY = 1000 * 60 * 60 * 24; // 1 day
 
 export function setup(client: Client) {
   // Get the client ID and secret from the Eve developers section

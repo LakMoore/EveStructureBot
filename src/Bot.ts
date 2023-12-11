@@ -8,7 +8,11 @@ import { GetCorporationsCorporationIdStructures200Ok } from "eve-client-ts";
 import { initNotifications } from "./data/notification";
 
 export const data = new Data();
-const LOW_FUEL_WARNING = 24 * 60 * 60 * 1000; //24 hours
+const LOW_FUEL_WARNING = 7 * 24 * 60 * 60 * 1000; //7 days
+const SUPER_LOW_FUEL_WARNING = 2 * 24 * 60 * 60 * 1000; //2 days
+export const STRUCTURE_CHECK_DELAY = 1000 * 60 * 60; // 1 hour
+export const NOTIFICATION_CHECK_DELAY = 1000 * 60 * 10; // 10 mins
+export const NO_ROLE_DELAY = 1000 * 60 * 60 * 24; // 1 day
 
 async function main() {
   dotenv.config();
@@ -110,10 +114,57 @@ export async function checkForChangeAndPersist(
               thisMessage += `\nStructure timer has reset`;
             }
           }
+          // check for change of fuel (up or down!)
+          if (oldStruct.fuel_expires != s.fuel_expires) {
+            if (oldStruct.fuel_expires && s.fuel_expires) {
+              thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
+                oldStruct.fuel_expires
+              )} now expiring ${getRelativeDiscordTime(s.fuel_expires)}`;
+            } else if (oldStruct.fuel_expires) {
+              thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
+                oldStruct.fuel_expires
+              )}. Now has "unknown expiry"`;
+            } else if (s.fuel_expires) {
+              thisMessage += `\nFuel level has changed from "unknown expiry". Now expiring ${getRelativeDiscordTime(
+                s.fuel_expires
+              )}`;
+            }
+          }
+
           // check for low fuel
           if (s.fuel_expires != undefined) {
             const expires = new Date(s.fuel_expires);
-            if (expires < new Date(Date.now() + LOW_FUEL_WARNING)) {
+
+            const authedCharCount =
+              Array.prototype
+                .concat(corp.members.flatMap((m) => m.characters))
+                .filter((c) => !c.needsReAuth).length ?? 1;
+
+            if (
+              // fuel expiry is within one check delay of the super low warning
+              expires <= new Date(Date.now() + SUPER_LOW_FUEL_WARNING) &&
+              expires >=
+                new Date(
+                  Date.now() +
+                    SUPER_LOW_FUEL_WARNING -
+                    1000 -
+                    NOTIFICATION_CHECK_DELAY / authedCharCount
+                )
+            ) {
+              thisMessage += `\n<@here>URGENT: Fuel will be depleated very soon ${getRelativeDiscordTime(
+                expires
+              )}`;
+            } else if (
+              // fuel expiry is within one check delay of the low warning
+              expires <= new Date(Date.now() + LOW_FUEL_WARNING) &&
+              expires >=
+                new Date(
+                  Date.now() +
+                    LOW_FUEL_WARNING -
+                    1000 -
+                    NOTIFICATION_CHECK_DELAY / authedCharCount
+                )
+            ) {
               thisMessage += `\nWarning: Fuel will be depleated ${getRelativeDiscordTime(
                 expires
               )}`;
