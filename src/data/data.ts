@@ -1,4 +1,7 @@
-import { GetCorporationsCorporationIdStructures200Ok } from "eve-client-ts";
+import {
+  GetCorporationsCorporationIdStarbases200Ok,
+  GetCorporationsCorporationIdStructures200Ok,
+} from "eve-client-ts";
 import storage from "node-persist";
 import { consoleLog, delay } from "../Bot";
 
@@ -11,6 +14,7 @@ export interface AuthenticatedCharacter {
   tokenExpires: Date;
   refreshToken: string;
   nextStructureCheck: Date;
+  nextStarbaseCheck: Date;
   nextNotificationCheck: Date;
   needsReAuth: boolean;
 }
@@ -30,8 +34,10 @@ export interface AuthenticatedCorp {
    * @deprecated fetch a character via members[]
    */
   characters: AuthenticatedCharacter[] | undefined;
+  starbases: GetCorporationsCorporationIdStarbases200Ok[];
   structures: GetCorporationsCorporationIdStructures200Ok[];
   nextStructureCheck: Date;
+  nextStarbaseCheck: Date;
   nextNotificationCheck: Date;
   mostRecentNotification: Date;
 }
@@ -57,6 +63,18 @@ export class Data {
         thisCorp.members = [];
         upgraded = true;
       }
+
+      if (!thisCorp.starbases) {
+        thisCorp.starbases = [];
+        thisCorp.nextStarbaseCheck = new Date();
+        thisCorp.members.forEach((m) => {
+          m.characters.forEach((c) => {
+            c.nextStarbaseCheck = new Date();
+          });
+        });
+        upgraded = true;
+      }
+
       if (thisCorp.characters) {
         // if characters exists, let's upgrade to the new layout
         thisCorp.characters.forEach((thisCharacter) => {

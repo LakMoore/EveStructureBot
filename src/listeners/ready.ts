@@ -1,11 +1,9 @@
 import { Client } from "discord.js";
 import { Commands } from "../Commands";
 import { consoleLog, data, delay } from "../Bot";
-import {
-  checkMembership,
-  checkNotificationsForCorp,
-  checkStructuresForCorp,
-} from "../EveSSO";
+import { checkNotificationsForCorp } from "../EveSSO";
+import { checkStarbasesForCorp } from "../starbases";
+import { checkStructuresForCorp } from "../structures";
 
 const POLL_ATTEMPT_DELAY = 5000;
 let corpIndex = 0;
@@ -43,6 +41,7 @@ async function pollNextCorp(client: Client) {
 
     if (thisCorp) {
       await checkStructuresForCorp(thisCorp, client);
+      await checkStarbasesForCorp(thisCorp, client);
     }
     const updatedCorp = data.authenticatedCorps[corpIndex];
     if (updatedCorp) {

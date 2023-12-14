@@ -15,8 +15,6 @@ import {
 import {
   NOTIFICATION_CHECK_DELAY,
   NO_ROLE_DELAY,
-  STRUCTURE_CHECK_DELAY,
-  checkForChangeAndPersist,
   consoleLog,
   data,
 } from "./Bot";
@@ -115,7 +113,9 @@ export function setup(client: Client) {
                     corpName: corp.name,
                     members: [],
                     characters: undefined,
+                    starbases: [],
                     structures: [],
+                    nextStarbaseCheck: new Date(),
                     nextStructureCheck: new Date(),
                     nextNotificationCheck: new Date(),
                     mostRecentNotification: new Date(),
@@ -134,6 +134,7 @@ export function setup(client: Client) {
                   authToken: info.access_token,
                   tokenExpires: expires,
                   refreshToken: info.refresh_token,
+                  nextStarbaseCheck: new Date(),
                   nextStructureCheck: new Date(),
                   nextNotificationCheck: new Date(),
                   needsReAuth: false,
@@ -382,54 +383,6 @@ export async function checkNotificationsForCorp(
   await data.save();
 }
 
-export async function checkStructuresForCorp(
-  corp: AuthenticatedCorp,
-  client: Client
-) {
-  consoleLog("checkStructuresForCorp ", corp.corpName);
-
-  const result = await getConfig(
-    Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
-    corp.nextStructureCheck,
-    STRUCTURE_CHECK_DELAY,
-    (c) => c.nextStructureCheck,
-    (c, next) => (c.nextStructureCheck = next),
-    "structures",
-    GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
-  );
-
-  if (!result || !result.config || !result.config.accessToken) {
-    return;
-  }
-
-  const { config, workingChars, thisChar } = result;
-
-  const structures = await CorporationApiFactory(
-    config
-  ).getCorporationsCorporationIdStructures(corp.corpId);
-
-  //consoleLog("structs", structures);
-
-  // make a new object so we can compare it to the old one
-  const c: AuthenticatedCorp = {
-    serverId: corp.serverId,
-    channelId: corp.channelId,
-    corpId: corp.corpId,
-    corpName: corp.corpName,
-    members: corp.members,
-    characters: undefined,
-    structures: structures,
-    nextStructureCheck: new Date(
-      Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 10000
-    ),
-    nextNotificationCheck: corp.nextNotificationCheck,
-    mostRecentNotification: corp.mostRecentNotification,
-  };
-
-  // check for change
-  await checkForChangeAndPersist(client, c);
-}
-
 async function findAsyncSequential<T>(
   array: T[],
   predicate: (t: T) => Promise<boolean>
@@ -442,7 +395,7 @@ async function findAsyncSequential<T>(
   return undefined;
 }
 
-async function getConfig(
+export async function getConfig(
   chars: AuthenticatedCharacter[],
   nextCheck: Date,
   checkDelay: number,
@@ -464,10 +417,13 @@ async function getConfig(
       new Date(getNextCheck(c)) < new Date(Date.now() + checkDelay)
   );
 
+  consoleLog("workingChars", workingChars);
+
   // get the first authorised char that is able to make a fresh call to ESI
   // and has any required roles
   const thisChar = await findAsyncSequential(workingChars, async (c) => {
     if (new Date(getNextCheck(c)) < new Date()) {
+      consoleLog("checking role", requiredRole);
       if (requiredRole) {
         const roles = await CharacterApiFactory(
           await getAccessToken(c)
@@ -475,6 +431,7 @@ async function getConfig(
 
         if (!roles.roles || !roles.roles.includes(requiredRole)) {
           // This character does not have the required role
+          consoleLog("no role", requiredRole);
 
           // mark this character so we don't use it to check this again today!
           setNextCheck(c, new Date(Date.now() + NO_ROLE_DELAY + 5000));
