@@ -21,14 +21,14 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
   fields.push({
     name: "\u200b",
     value: `Checking notifications every ${
-      Math.round(NOTIFICATION_CHECK_DELAY / (100 * chars.length)) / 10
+      Math.round(NOTIFICATION_CHECK_DELAY / (1000 * chars.length)) / 10
     } minutes.`,
   });
 
   fields.push({
     name: "\u200b",
     value: `Checking stucture status every ${
-      Math.round(STRUCTURE_CHECK_DELAY / (100 * chars.length)) / 10
+      Math.round(STRUCTURE_CHECK_DELAY / (1000 * chars.length)) / 10
     } minutes.`,
   });
 
