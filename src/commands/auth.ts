@@ -9,6 +9,7 @@ import { Command } from "../Command";
 import { sso } from "../EveSSO";
 
 const SCOPES_REQUIRED = [
+  "esi-corporations.read_starbases.v1",
   "esi-corporations.read_structures.v1",
   "esi-characters.read_notifications.v1",
   "esi-characters.read_corporation_roles.v1",

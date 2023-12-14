@@ -4,7 +4,6 @@ import ready from "./listeners/ready";
 import interactionCreate from "./listeners/interactionCreate";
 import { setup } from "./EveSSO";
 import { Data } from "./data/data";
-import { GetCorporationsCorporationIdStructures200Ok } from "eve-client-ts";
 import { initNotifications } from "./data/notification";
 
 export const data = new Data();
