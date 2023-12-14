@@ -417,8 +417,6 @@ export async function getConfig(
       new Date(getNextCheck(c)) < new Date(Date.now() + checkDelay)
   );
 
-  consoleLog("workingChars", workingChars);
-
   // get the first authorised char that is able to make a fresh call to ESI
   // and has any required roles
   const thisChar = await findAsyncSequential(workingChars, async (c) => {
