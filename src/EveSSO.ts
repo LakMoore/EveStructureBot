@@ -421,8 +421,8 @@ export async function getConfig(
   // and has any required roles
   const thisChar = await findAsyncSequential(workingChars, async (c) => {
     if (new Date(getNextCheck(c)) < new Date()) {
-      consoleLog("checking role", requiredRole);
       if (requiredRole) {
+        consoleLog("checking role", requiredRole);
         const roles = await CharacterApiFactory(
           await getAccessToken(c)
         ).getCharactersCharacterIdRoles(c.characterId);
