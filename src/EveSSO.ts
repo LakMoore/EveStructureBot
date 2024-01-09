@@ -476,7 +476,7 @@ async function getAccessToken(thisChar: AuthenticatedCharacter) {
         error.message
       );
 
-      if (error.response.status === 401) {
+      if (error.response.status > 399 && error.response.status < 500) {
         // unauthorised
         consoleLog("Marking character as needing re-authorisation");
         thisChar.needsReAuth = true;
