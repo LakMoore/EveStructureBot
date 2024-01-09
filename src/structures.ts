@@ -280,13 +280,13 @@ function formatState(
 ): string {
   switch (state) {
     case GetCorporationsCorporationIdStructures200Ok.StateEnum.ArmorReinforce:
-      return "shield under attack";
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.ArmorVulnerable:
       return "shield depleated";
+    case GetCorporationsCorporationIdStructures200Ok.StateEnum.ArmorVulnerable:
+      return "partial shields";
     case GetCorporationsCorporationIdStructures200Ok.StateEnum.HullReinforce:
-      return "armor under attack";
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.HullVulnerable:
       return "armor depleated";
+    case GetCorporationsCorporationIdStructures200Ok.StateEnum.HullVulnerable:
+      return "partial armor";
     case GetCorporationsCorporationIdStructures200Ok.StateEnum.Anchoring:
       return "anchoring";
     case GetCorporationsCorporationIdStructures200Ok.StateEnum.Unanchored:
