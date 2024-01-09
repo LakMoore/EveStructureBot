@@ -138,14 +138,12 @@ async function checkForStarbaseChangeAndPersist(
             }
           }
 
-          const systemName = await getSystemName(s.system_id);
-          const moonName = await getMoonName(s.moon_id);
+          const starbaseName = await getStarbaseName(s.system_id, s.moon_id);
 
           if (thisMessage.length > 0) {
-            thisMessage =
-              `ALERT on Starbase location ${systemName} - ${moonName}` +
-              thisMessage;
+            thisMessage = `ALERT on Starbase ${starbaseName}` + thisMessage;
           }
+
           if (thisMessage.length > 0) {
             message += thisMessage + "\n\n";
           }
@@ -193,9 +191,8 @@ async function generateNewStarbaseEmbed(
   }
 
   const badgeUrl = `https://images.evetech.net/corporations/${corp.corpId}/logo?size=64`;
-  const starbaseName = await getStarbaseName(s.type_id);
-  const systemName = await getSystemName(s.system_id);
-  const moonName = await getMoonName(s.moon_id);
+  const starbaseType = await getStarbaseType(s.type_id);
+  const starbaseName = await getStarbaseName(s.system_id, s.moon_id);
 
   return new EmbedBuilder()
     .setColor(colours.green)
@@ -204,8 +201,8 @@ async function generateNewStarbaseEmbed(
       iconURL: badgeUrl,
       url: undefined,
     })
-    .setTitle(`${systemName} - ${moonName}`)
-    .setDescription(`Type: ${starbaseName}\nStatus: ${s.state}${message}`)
+    .setTitle(starbaseName)
+    .setDescription(`Type: ${starbaseType}\nStatus: ${s.state}${message}`)
     .setThumbnail(
       `https://images.evetech.net/types/${s.type_id}/render?size=64`
     );
@@ -217,9 +214,8 @@ async function generateDeletedStarbasesEmbed(
 ) {
   const badgeUrl = `https://images.evetech.net/corporations/${corp.corpId}/logo?size=64`;
 
-  const starbaseName = await getStarbaseName(s.type_id);
-  const systemName = await getSystemName(s.system_id);
-  const moonName = await getMoonName(s.moon_id);
+  const starbaseType = await getStarbaseType(s.type_id);
+  const starbaseName = await getStarbaseName(s.system_id, s.moon_id);
 
   return new EmbedBuilder()
     .setColor(colours.red)
@@ -228,21 +224,32 @@ async function generateDeletedStarbasesEmbed(
       iconURL: badgeUrl,
       url: undefined,
     })
-    .setTitle(`${systemName} - ${moonName}`)
+    .setTitle(starbaseName)
     .setDescription(
-      `Type: ${starbaseName}\nStarbase is no longer part of the corporation!`
+      `Type: ${starbaseType}\nStarbase is no longer part of the corporation!`
     )
     .setThumbnail(
       `https://images.evetech.net/types/${s.type_id}/render?size=64`
     );
 }
 
-async function getStarbaseName(type_id: number) {
+async function getStarbaseType(type_id: number) {
   const result = await UniverseApiFactory().getUniverseTypesTypeId(type_id);
   if (result) {
     return result.name;
   }
   return "Unknown Type";
+}
+
+async function getStarbaseName(system_id: number, moon_id?: number) {
+  const systemName = await getSystemName(system_id);
+  const moonName = await getMoonName(moon_id);
+
+  let nameText = moonName;
+  if (!moonName.startsWith(systemName)) {
+    nameText = systemName + " - " + moonName;
+  }
+  return nameText;
 }
 
 async function getSystemName(system_id: number) {
