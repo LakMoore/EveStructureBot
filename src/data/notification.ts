@@ -34,15 +34,23 @@ import { Client, Colors } from "discord.js";
 import { GetCharactersCharacterIdNotifications200Ok } from "eve-client-ts";
 import { AuthenticatedCorp } from "./data";
 import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
+import { consoleLog } from "../Bot";
 
 export function getStructureIdFromGenericNotificationText(text?: string) {
   if (text) {
-    const part1 = text.split("structureID:");
-    const part2 = part1[1].split("\n");
-    const part3 = part2[0].split(" ");
-    const structId = part3.pop();
-    if (structId) {
-      return Number(structId);
+    try {
+      const part1 = text.split("structureID:");
+      const part2 = part1[1].split("\n");
+      const part3 = part2[0].split(" ");
+      const structId = part3.pop();
+      if (structId) {
+        return Number(structId);
+      }
+    } catch (error) {
+      consoleLog(
+        "Error parsing structureID from notification text '" + text + "'",
+        error
+      );
     }
   }
   return 0;
