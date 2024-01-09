@@ -124,10 +124,14 @@ export class Data {
   }
 
   private async autoSave() {
-    await this.save();
-    await delay(SAVE_DELAY_MS);
-    // infinite loop required
-    setTimeout(() => this.save(), 1);
+    try {
+      await this.save();
+      await delay(SAVE_DELAY_MS);
+      // infinite loop required
+      setTimeout(async () => await this.autoSave(), 1);
+    } catch (error) {
+      consoleLog("An error occured in autoSave", error);
+    }
   }
 
   public async save() {
