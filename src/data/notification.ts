@@ -74,7 +74,7 @@ export function getTowerDetailsFromNotificationText(text?: string) {
     const system_id = Number(part3[0]);
     const starbase_type_id = Number(part4[0]);
     const quantity = part6 ? Number(part6[0]) : undefined;
-    const type_id = part6 ? Number(part6[1]) : undefined;
+    const type_id = part3.length > 2 ? Number(part3[2]) : undefined;
 
     return {
       moon_id,
