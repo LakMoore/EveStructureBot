@@ -1,4 +1,4 @@
-import { Client, Guild, HTTPError } from "discord.js";
+import { Client, Guild, HTTPError, TextChannel } from "discord.js";
 import {
   CharacterApiFactory,
   Configuration,
@@ -17,6 +17,7 @@ import {
   NO_ROLE_DELAY,
   consoleLog,
   data,
+  sendMessage,
 } from "./Bot";
 import { messageTypes } from "./data/notification";
 import { generateCorpDetailsEmbed } from "./embeds/corpDetails";
@@ -79,7 +80,7 @@ export function setup(client: Client) {
       if (channelId && !Array.isArray(channelId) && channelId != "unknown") {
         const channel = client.channels.cache.get(channelId);
 
-        if (channel?.isTextBased() && !channel.isDMBased()) {
+        if (channel instanceof TextChannel) {
           let errMessage = "";
           const expires = getExpires(info.expires_in);
 
@@ -168,11 +169,19 @@ export function setup(client: Client) {
                   });
                 }
 
-                await channel.send(`Successfully authenticated ${char.name}`);
+                await sendMessage(
+                  channel,
+                  `Successfully authenticated ${char.name}`,
+                  `Auth success for ${char.name}`
+                );
 
-                await channel.send({
-                  embeds: [generateCorpDetailsEmbed(thisCorp)],
-                });
+                await sendMessage(
+                  channel,
+                  {
+                    embeds: [generateCorpDetailsEmbed(thisCorp)],
+                  },
+                  "Corp Details"
+                );
 
                 await data.save();
 
@@ -191,7 +200,11 @@ export function setup(client: Client) {
           }
 
           if (errMessage) {
-            await channel.send(errMessage);
+            await sendMessage(
+              channel,
+              errMessage,
+              `error during auth ${errMessage}`
+            );
           }
         }
       }

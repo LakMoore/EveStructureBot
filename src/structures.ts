@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder } from "discord.js";
+import { Client, EmbedBuilder, TextChannel } from "discord.js";
 import {
   GetCharactersCharacterIdRolesOk,
   CorporationApiFactory,
@@ -13,6 +13,7 @@ import {
   LOW_FUEL_WARNING,
   SUPER_LOW_FUEL_WARNING,
   colours,
+  sendMessage,
 } from "./Bot";
 import { getConfig } from "./EveSSO";
 import { AuthenticatedCorp } from "./data/data";
@@ -81,7 +82,7 @@ async function checkForStructureChangeAndPersist(
   });
 
   const channel = client.channels.cache.get(corp.channelId);
-  if (channel?.isTextBased()) {
+  if (channel instanceof TextChannel) {
     if (idx > -1) {
       // seen this before, check each structure for changes.
       const oldCorp = data.authenticatedCorps[idx];
@@ -93,7 +94,11 @@ async function checkForStructureChangeAndPersist(
       );
 
       for (const s of addedStructs) {
-        await channel.send({ embeds: [generateNewStructureEmbed(s)] });
+        await sendMessage(
+          channel,
+          { embeds: [generateNewStructureEmbed(s)] },
+          "new structure"
+        );
       }
 
       // check for removed structures
@@ -104,9 +109,13 @@ async function checkForStructureChangeAndPersist(
 
       // max embeds per message is 10
       for (const s of removedStructs) {
-        await channel.send({
-          embeds: [generateDeletedStructureEmbed(s)],
-        });
+        await sendMessage(
+          channel,
+          {
+            embeds: [generateDeletedStructureEmbed(s)],
+          },
+          "deleted structure"
+        );
       }
 
       const matchingStructs = corp.structures.filter((s1) =>
@@ -205,7 +214,11 @@ async function checkForStructureChangeAndPersist(
 
       // send individually to avoid max embed per message limit (10)
       for (const s of corp.structures) {
-        await channel.send({ embeds: [generateNewStructureEmbed(s)] });
+        await sendMessage(
+          channel,
+          { embeds: [generateNewStructureEmbed(s)] },
+          "new structure"
+        );
       }
 
       // add the data to storage
@@ -213,7 +226,7 @@ async function checkForStructureChangeAndPersist(
     }
 
     if (message.length > 0) {
-      await channel.send(message);
+      await sendMessage(channel, message, "structures: " + message);
     }
 
     await data.save();

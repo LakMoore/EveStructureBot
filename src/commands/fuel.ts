@@ -3,9 +3,10 @@ import {
   Client,
   AutocompleteInteraction,
   SlashCommandStringOption,
+  TextChannel,
 } from "discord.js";
 import { Command } from "../Command";
-import { data } from "../Bot";
+import { data, sendMessage } from "../Bot";
 import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
 
 const stationNameOption = new SlashCommandStringOption()
@@ -61,7 +62,7 @@ export const Fuel: Command = {
 
     const channel = client.channels.cache.get(interaction.channelId);
 
-    if (channel?.isTextBased()) {
+    if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter(
         (ac) => ac.channelId == channel.id
       );
@@ -81,17 +82,21 @@ export const Fuel: Command = {
         if (new Date(result.struct.fuel_expires) < new Date()) {
           text = "Fuel expired";
         }
-        await channel.send({
-          embeds: [
-            generateStructureNotificationEmbed(
-              0x00ff00,
-              text,
-              result.struct.fuel_expires,
-              result.struct,
-              result.corp.corpName
-            ),
-          ],
-        });
+        await sendMessage(
+          channel,
+          {
+            embeds: [
+              generateStructureNotificationEmbed(
+                0x00ff00,
+                text,
+                result.struct.fuel_expires,
+                result.struct,
+                result.corp.corpName
+              ),
+            ],
+          },
+          "Fuel expired"
+        );
       } else {
         await interaction.followUp(
           `No structure found with the name ${
@@ -101,7 +106,9 @@ export const Fuel: Command = {
       }
 
       if (channelCorps.length == 0) {
-        await channel.send(
+        await sendMessage(
+          channel,
+          "No data found for this channel.  Use /auth command to begin.",
           "No data found for this channel.  Use /auth command to begin."
         );
       }

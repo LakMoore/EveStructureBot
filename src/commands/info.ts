@@ -1,6 +1,6 @@
-import { CommandInteraction, Client } from "discord.js";
+import { CommandInteraction, Client, TextChannel } from "discord.js";
 import { Command } from "../Command";
-import { data } from "../Bot";
+import { data, sendMessage } from "../Bot";
 import { generateCorpDetailsEmbed } from "../embeds/corpDetails";
 
 export const Info: Command = {
@@ -16,18 +16,24 @@ export const Info: Command = {
 
     const channel = client.channels.cache.get(interaction.channelId);
 
-    if (channel?.isTextBased()) {
+    if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter(
         (ac) => ac.channelId == channel.id
       );
 
       for (const corp of channelCorps) {
-        await channel.send({
-          embeds: [generateCorpDetailsEmbed(corp)],
-        });
+        await sendMessage(
+          channel,
+          {
+            embeds: [generateCorpDetailsEmbed(corp)],
+          },
+          "Corp Details"
+        );
       }
       if (channelCorps.length == 0) {
-        await channel.send(
+        await sendMessage(
+          channel,
+          "No data found for this channel.  Use /auth command to begin.",
           "No data found for this channel.  Use /auth command to begin."
         );
       }

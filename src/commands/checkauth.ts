@@ -1,6 +1,6 @@
-import { CommandInteraction, Client } from "discord.js";
+import { CommandInteraction, Client, TextChannel } from "discord.js";
 import { Command } from "../Command";
-import { data } from "../Bot";
+import { data, sendMessage } from "../Bot";
 
 export const CheckAuth: Command = {
   name: "checkauth",
@@ -15,7 +15,7 @@ export const CheckAuth: Command = {
 
     const channel = client.channels.cache.get(interaction.channelId);
 
-    if (channel?.isTextBased()) {
+    if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter(
         (ac) => ac.channelId == channel.id
       );
@@ -27,7 +27,9 @@ export const CheckAuth: Command = {
           corp.members.flatMap((m) => m.characters)
         )) {
           if (char.needsReAuth) {
-            await channel.send(
+            await sendMessage(
+              channel,
+              `<@${char.discordId}> Please use /auth to re-authorise your character, named "${char.characterName}".`,
               `<@${char.discordId}> Please use /auth to re-authorise your character, named "${char.characterName}".`
             );
             found = true;
@@ -36,12 +38,16 @@ export const CheckAuth: Command = {
       }
 
       if (channelCorps.length == 0) {
-        await channel.send(
+        await sendMessage(
+          channel,
+          "No data found for this channel.  Use /auth command to begin.",
           "No data found for this channel.  Use /auth command to begin."
         );
       } else if (!found) {
-        await channel.send(
-          "All characters are currently authorised correctly."
+        await sendMessage(
+          channel,
+          "All characters are currently authorised correctly.",
+          "All characters are currently authorised correctly"
         );
       }
     }

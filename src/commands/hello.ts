@@ -1,5 +1,6 @@
-import { CommandInteraction, Client } from "discord.js";
+import { CommandInteraction, Client, TextChannel } from "discord.js";
 import { Command } from "../Command";
+import { sendMessage } from "../Bot";
 
 export const Hello: Command = {
   name: "hello",
@@ -14,8 +15,8 @@ export const Hello: Command = {
 
     const channel = client.channels.cache.get(interaction.channelId);
 
-    if (channel && channel.isTextBased()) {
-      channel.send(`Hello <@${interaction.user.id}>`);
+    if (channel instanceof TextChannel) {
+      sendMessage(channel, `Hello <@${interaction.user.id}>`, "Hello");
     }
   },
 };

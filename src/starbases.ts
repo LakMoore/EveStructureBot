@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder } from "discord.js";
+import { Client, EmbedBuilder, TextChannel } from "discord.js";
 import {
   GetCharactersCharacterIdRolesOk,
   CorporationApiFactory,
@@ -10,6 +10,7 @@ import {
   consoleLog,
   data,
   getRelativeDiscordTime,
+  sendMessage,
   STRUCTURE_CHECK_DELAY,
 } from "./Bot";
 import { AuthenticatedCorp } from "./data/data";
@@ -77,7 +78,7 @@ async function checkForStarbaseChangeAndPersist(
   });
 
   const channel = client.channels.cache.get(corp.channelId);
-  if (channel?.isTextBased()) {
+  if (channel instanceof TextChannel) {
     if (idx > -1) {
       // seen this before, check each starbase for changes.
       const oldCorp = data.authenticatedCorps[idx];
@@ -89,9 +90,13 @@ async function checkForStarbaseChangeAndPersist(
       );
 
       for (const s of addedStarbase) {
-        await channel.send({
-          embeds: [await generateNewStarbaseEmbed(s, corp)],
-        });
+        await sendMessage(
+          channel,
+          {
+            embeds: [await generateNewStarbaseEmbed(s, corp)],
+          },
+          "removed starbase"
+        );
       }
 
       // check for removed starbases
@@ -101,9 +106,13 @@ async function checkForStarbaseChangeAndPersist(
 
       // max embeds per message is 10
       for (const s of removedStarbases) {
-        await channel.send({
-          embeds: [await generateDeletedStarbasesEmbed(s, corp)],
-        });
+        await sendMessage(
+          channel,
+          {
+            embeds: [await generateDeletedStarbasesEmbed(s, corp)],
+          },
+          "removed starbase"
+        );
       }
 
       const matchingStarbases = corp.starbases.filter((s1) =>
@@ -157,9 +166,13 @@ async function checkForStarbaseChangeAndPersist(
 
       // send individually to avoid max embed per message limit (10)
       for (const s of corp.starbases) {
-        await channel.send({
-          embeds: [await generateNewStarbaseEmbed(s, corp)],
-        });
+        await sendMessage(
+          channel,
+          {
+            embeds: [await generateNewStarbaseEmbed(s, corp)],
+          },
+          "New Starbase"
+        );
       }
 
       // add the data to storage
@@ -167,7 +180,7 @@ async function checkForStarbaseChangeAndPersist(
     }
 
     if (message.length > 0) {
-      await channel.send(message);
+      await sendMessage(channel, message, "Starbases");
     }
 
     await data.save();

@@ -1,5 +1,11 @@
 import dotenv from "dotenv";
-import { Client, IntentsBitField } from "discord.js";
+import {
+  Client,
+  IntentsBitField,
+  MessageCreateOptions,
+  MessagePayload,
+  TextChannel,
+} from "discord.js";
 import ready from "./listeners/ready";
 import interactionCreate from "./listeners/interactionCreate";
 import { setup } from "./EveSSO";
@@ -54,4 +60,21 @@ export const delay = (ms: number) =>
 
 export function getRelativeDiscordTime(time: Date): string {
   return `<t:${Math.round(new Date(time).getTime() / 1000)}:R>`;
+}
+
+export async function sendMessage(
+  channel: TextChannel,
+  message: string | MessagePayload | MessageCreateOptions,
+  type: string
+) {
+  try {
+    consoleLog(
+      `sending ${type} message to
+      ${channel.name} in 
+      ${channel.guild.name}`
+    );
+    await channel.send(message);
+  } catch (error) {
+    consoleLog("An error occured in sendMessage", error);
+  }
 }
