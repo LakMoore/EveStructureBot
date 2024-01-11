@@ -327,6 +327,9 @@ async function handleTowerNotification(
     if (channel instanceof TextChannel) {
       const details = getTowerDetailsFromNotificationText(note.text);
 
+      consoleLog("note", note);
+      consoleLog("details", details);
+
       const starbaseName = await getStarbaseName(
         details.system_id,
         details.moon_id
