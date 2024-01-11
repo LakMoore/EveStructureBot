@@ -1,7 +1,7 @@
 import { Command } from "./Command";
 import { Auth } from "./commands/auth";
 import { CheckAuth } from "./commands/checkauth";
-import { DebugReprocessAll } from "./commands/debug_reprocess_all";
+import { DebugReprocess } from "./commands/debug_reprocess";
 import { Fuel } from "./commands/fuel";
 import { Hello } from "./commands/hello";
 import { Info } from "./commands/info";
@@ -16,5 +16,5 @@ export const Commands: Command[] = [
   Info,
   Remove,
   Reload,
-  DebugReprocessAll,
+  DebugReprocess,
 ];
