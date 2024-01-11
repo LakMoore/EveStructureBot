@@ -262,7 +262,7 @@ export function initNotifications() {
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.TowerResourceAlertMsg,
     {
-      message: "POS needs Resources",
+      message: "POS Needs Resources",
       colour: Colors.Red,
       handler: handleTowerNotification,
     }
