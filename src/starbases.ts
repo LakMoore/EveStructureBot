@@ -254,7 +254,7 @@ async function getStarbaseType(type_id: number) {
   return "Unknown Type";
 }
 
-async function getStarbaseName(system_id: number, moon_id?: number) {
+export async function getStarbaseName(system_id?: number, moon_id?: number) {
   const systemName = await getSystemName(system_id);
   const moonName = await getMoonName(moon_id);
 
@@ -265,14 +265,26 @@ async function getStarbaseName(system_id: number, moon_id?: number) {
   return nameText;
 }
 
-async function getSystemName(system_id: number) {
-  const result = await UniverseApiFactory().getUniverseSystemsSystemId(
-    system_id
-  );
-  if (result) {
-    return result.name;
+async function getSystemName(system_id?: number) {
+  if (system_id) {
+    const result = await UniverseApiFactory().getUniverseSystemsSystemId(
+      system_id
+    );
+    if (result) {
+      return result.name;
+    }
   }
   return "Unknown System";
+}
+
+export async function getItemName(type_id?: number) {
+  if (type_id) {
+    const result = await UniverseApiFactory().getUniverseTypesTypeId(type_id);
+    if (result) {
+      return result.name;
+    }
+  }
+  return "Unknown Item";
 }
 
 async function getMoonName(moon_id?: number) {
