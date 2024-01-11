@@ -69,9 +69,7 @@ export async function sendMessage(
 ) {
   try {
     consoleLog(
-      `sending ${type} message to
-      ${channel.name} in 
-      ${channel.guild.name}`
+      `sending "${type}" message to ${channel.name} in ${channel.guild.name}`
     );
     await channel.send(message);
   } catch (error) {
