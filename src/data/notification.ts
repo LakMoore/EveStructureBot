@@ -335,10 +335,12 @@ async function handleTowerNotification(
         details.moon_id
       );
 
+      let message = data.message;
+
       if (details.quantity && details.type_id) {
         // POS wants something
         const itemName = await getItemName(details.type_id);
-        data.message += ". Requires " + details.quantity + " " + itemName;
+        message += "\nRequires " + details.quantity + " " + itemName;
       }
 
       await sendMessage(
@@ -347,7 +349,7 @@ async function handleTowerNotification(
           embeds: [
             generateStarbaseNotificationEmbed(
               data.colour,
-              data.message,
+              message,
               note.timestamp,
               starbaseName,
               corp.corpName,
