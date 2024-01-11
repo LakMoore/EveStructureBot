@@ -3,8 +3,10 @@ import {
   Client,
   CommandInteraction,
   AutocompleteInteraction,
+  TextChannel,
 } from "discord.js";
 import { Commands } from "../Commands";
+import { consoleLog } from "../Bot";
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
@@ -29,6 +31,12 @@ const handleSlashCommand = async (
   await interaction.deferReply({ ephemeral: slashCommand.ephemeral });
 
   try {
+    const channel = interaction.channel as TextChannel;
+
+    consoleLog(
+      `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`
+    );
+
     await slashCommand.run(client, interaction);
   } catch (error) {
     if (error instanceof Error) {
