@@ -4,6 +4,8 @@ import {
   CorporationApiFactory,
   GetCorporationsCorporationIdStarbases200Ok,
   UniverseApiFactory,
+  CharacterApiFactory,
+  AllianceApiFactory,
 } from "eve-client-ts";
 import {
   colours,
@@ -295,4 +297,43 @@ async function getMoonName(moon_id?: number) {
     }
   }
   return "Unknown Moon";
+}
+
+// Get Character name from ID
+export async function getCharacterName(character_id?: number) {
+  if (character_id) {
+    const result = await CharacterApiFactory().getCharactersCharacterId(
+      character_id
+    );
+    if (result) {
+      return result.name;
+    }
+  }
+  return "Unknown Character";
+}
+
+// Get Corp Name from ID
+export async function getCorpName(corp_id?: number) {
+  if (corp_id) {
+    const result = await CorporationApiFactory().getCorporationsCorporationId(
+      corp_id
+    );
+    if (result) {
+      return result.name;
+    }
+  }
+  return "Unknown Corporation";
+}
+
+// Get Alliance Name from ID
+export async function getAllianceName(alliance_id?: number) {
+  if (alliance_id) {
+    const result = await AllianceApiFactory().getAlliancesAllianceId(
+      alliance_id
+    );
+    if (result) {
+      return result.name;
+    }
+  }
+  return "Unknown Alliance";
 }

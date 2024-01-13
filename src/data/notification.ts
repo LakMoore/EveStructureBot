@@ -36,7 +36,13 @@ import { AuthenticatedCorp } from "./data";
 import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
 import { consoleLog, sendMessage } from "../Bot";
 import { generateStarbaseNotificationEmbed } from "../embeds/starbaseNotification";
-import { getItemName, getStarbaseName } from "../starbases";
+import {
+  getAllianceName,
+  getCharacterName,
+  getCorpName,
+  getItemName,
+  getStarbaseName,
+} from "../starbases";
 
 export function getStructureIdFromGenericNotificationText(text?: string) {
   if (text) {
@@ -63,18 +69,23 @@ wants:
 */
 export function getTowerDetailsFromNotificationText(text?: string) {
   if (text) {
-    const part1 = text.split("moonID:");
-    const part2 = part1[1].split("solarSystemID:");
-    const part3 = part2[1].split("typeID:");
-    const part4 = part3[1].split("wants:");
-    const part5 = part4[1]?.split("quantity:");
-    const part6 = part5[1]?.split("typeID:");
-
-    const moon_id = Number(part2[0]);
-    const system_id = Number(part3[0]);
-    const starbase_type_id = Number(part4[0]);
-    const quantity = part6 ? Number(part6[0]) : undefined;
-    const type_id = part3.length > 2 ? Number(part3[2]) : undefined;
+    const moon_id = getValueFromNotificationText(text, "moonID:");
+    const system_id = getValueFromNotificationText(text, "solarSystemID:");
+    const starbase_type_id = getValueFromNotificationText(text, "typeID:");
+    const quantity = getValueFromNotificationText(text, "- quantity:");
+    const type_id = getValueFromNotificationText(text, "  typeID:");
+    const aggressor_alliance_id = getValueFromNotificationText(
+      text,
+      "aggressorAllianceID:"
+    );
+    const aggressor_corp_id = getValueFromNotificationText(
+      text,
+      "aggressorCorpID:"
+    );
+    const aggressor_id = getValueFromNotificationText(text, "aggressorID:");
+    const armor_value = getValueFromNotificationText(text, "armorValue:");
+    const hull_value = getValueFromNotificationText(text, "hullValue:");
+    const shield_value = getValueFromNotificationText(text, "shieldValue:");
 
     return {
       moon_id,
@@ -82,9 +93,24 @@ export function getTowerDetailsFromNotificationText(text?: string) {
       starbase_type_id,
       quantity,
       type_id,
+      aggressor_alliance_id,
+      aggressor_corp_id,
+      aggressor_id,
+      armor_value,
+      hull_value,
+      shield_value,
     };
   }
   return {};
+}
+
+function getValueFromNotificationText(text: string, key: string) {
+  const parts = text.split(key);
+  const result = parts[1].split("\n");
+  if (result?.length > 0) {
+    return Number(result[0]);
+  }
+  return 0;
 }
 
 export const messageTypes = new Map<
@@ -327,9 +353,6 @@ async function handleTowerNotification(
     if (channel instanceof TextChannel) {
       const details = getTowerDetailsFromNotificationText(note.text);
 
-      consoleLog("note", note);
-      consoleLog("details", details);
-
       const starbaseName = await getStarbaseName(
         details.system_id,
         details.moon_id
@@ -342,6 +365,20 @@ async function handleTowerNotification(
         const itemName = await getItemName(details.type_id);
         message += "\nRequires " + details.quantity + " " + itemName;
       }
+
+      if (details.aggressor_id) {
+        // POS under attack
+        const corpName = await getCorpName(details.aggressor_corp_id);
+        const aggressorName = await getCharacterName(details.aggressor_id);
+        message +=
+          `Under attack by [${aggressorName}](https://zkillboard.com/character/${details.aggressor_id}/)([${corpName}](https://zkillboard.com/corporation/${details.aggressor_corp_id}/))%n` +
+          `Shields: ${formatNumberToPercent1DP(details.shield_value)}%n` +
+          `Armor: ${formatNumberToPercent1DP(details.armor_value)}%n` +
+          `Hull: ${formatNumberToPercent1DP(details.hull_value)}%n`;
+      }
+
+      consoleLog("note", note);
+      consoleLog("details", details);
 
       await sendMessage(
         channel,
@@ -366,4 +403,9 @@ async function handleTowerNotification(
       error
     );
   }
+}
+
+// return number to 1 decimal place
+function formatNumberToPercent1DP(num: number) {
+  return `${Math.round(num * 1000) / 10}%`;
 }
