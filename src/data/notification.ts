@@ -375,10 +375,10 @@ async function handleTowerNotification(
         const corpName = await getCorpName(details.aggressor_corp_id);
         const aggressorName = await getCharacterName(details.aggressor_id);
         message +=
-          `Under attack by [${aggressorName}](https://zkillboard.com/character/${details.aggressor_id}/)([${corpName}](https://zkillboard.com/corporation/${details.aggressor_corp_id}/))%n` +
-          `Shields: ${formatNumberToPercent1DP(details.shield_value)}%n` +
-          `Armor: ${formatNumberToPercent1DP(details.armor_value)}%n` +
-          `Hull: ${formatNumberToPercent1DP(details.hull_value)}%n`;
+          `Under attack by [${aggressorName}] (https://zkillboard.com/character/${details.aggressor_id}/)([${corpName}](https://zkillboard.com/corporation/${details.aggressor_corp_id}/))\n` +
+          `Shields: ${formatNumberToPercent1DP(details.shield_value)}\n` +
+          `Armor: ${formatNumberToPercent1DP(details.armor_value)}\n` +
+          `Hull: ${formatNumberToPercent1DP(details.hull_value)}\n`;
       }
 
       consoleLog("note", note);
@@ -411,5 +411,5 @@ async function handleTowerNotification(
 
 // return number to 1 decimal place
 function formatNumberToPercent1DP(num: number) {
-  return `${Math.round(num * 1000) / 10}%`;
+  return `${Math.floor(num * 1000) / 10}%`;
 }
