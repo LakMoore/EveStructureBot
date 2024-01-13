@@ -105,10 +105,14 @@ export function getTowerDetailsFromNotificationText(text?: string) {
 }
 
 function getValueFromNotificationText(text: string, key: string) {
-  const parts = text.split(key);
-  const result = parts[1].split("\n");
-  if (result?.length > 0) {
-    return Number(result[0]);
+  if (text) {
+    const parts = text.split(key);
+    if (parts?.length > 1) {
+      const result = parts[1].split("\n");
+      if (result?.length > 0) {
+        return Number(result[0]);
+      }
+    }
   }
   return 0;
 }
