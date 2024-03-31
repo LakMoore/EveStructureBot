@@ -42,19 +42,38 @@ export interface AuthenticatedCorp {
   mostRecentNotification: Date;
 }
 
+export interface DiscordChannel {
+  serverId: string;
+  channelId: string;
+  name: string;
+  low_fuel_role?: string;
+  attack_alert_role?: string;
+}
+
 const SAVE_DELAY_MS = 5 * 60 * 1000; // 5 mins in milliseconds
 
 export class Data {
-  private static DATA_KEY = "users";
+  private static CORPS_DATA_KEY = "users";
+  private static CHANNELS_DATA_KEY = "channels";
   private _authenticatedCorps: AuthenticatedCorp[] = [];
+  private _channels: DiscordChannel[] = [];
 
   public async init() {
     await storage.init();
-    let temp: AuthenticatedCorp[] = await storage.getItem(Data.DATA_KEY);
+
+    let temp: AuthenticatedCorp[] = await storage.getItem(Data.CORPS_DATA_KEY);
     if (!temp) {
       temp = [];
     }
     this._authenticatedCorps = temp;
+
+    let tempChannels: DiscordChannel[] = await storage.getItem(
+      Data.CHANNELS_DATA_KEY
+    );
+    if (!tempChannels) {
+      tempChannels = [];
+    }
+    this._channels = tempChannels;
 
     let upgraded = false;
 
@@ -123,6 +142,10 @@ export class Data {
     return this._authenticatedCorps;
   }
 
+  get channels() {
+    return this._channels;
+  }
+
   private async autoSave() {
     try {
       await this.save();
@@ -136,13 +159,15 @@ export class Data {
 
   public async save() {
     consoleLog("Persisting data to filesystem...");
-    await storage.setItem(Data.DATA_KEY, this._authenticatedCorps);
+    await storage.setItem(Data.CORPS_DATA_KEY, this._authenticatedCorps);
+    await storage.setItem(Data.CHANNELS_DATA_KEY, this._channels);
   }
 
   public async removeChannel(channelId: string) {
     this._authenticatedCorps = this._authenticatedCorps.filter(
       (corp) => corp.channelId != channelId
     );
+    this._channels = this._channels.filter((c) => c.channelId != channelId);
     this.save();
   }
 

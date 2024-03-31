@@ -47,6 +47,10 @@ async function pollNextCorp(client: Client) {
     if (updatedCorp) {
       await checkNotificationsForCorp(updatedCorp, client);
     }
+
+    client.user?.setActivity(
+      `Checking Structures at ${new Date(Date.now()).toUTCString()}`
+    );
   } catch (error) {
     consoleLog("An error occured in main loop", error);
   }

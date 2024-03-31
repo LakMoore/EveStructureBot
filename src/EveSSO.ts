@@ -382,7 +382,14 @@ export async function checkNotificationsForCorp(
   for (const notification of selectedNotifications) {
     const data = messageTypes.get(notification.type);
     if (data) {
-      await data.handler(client, corp, notification, data);
+      await data.handler(
+        client,
+        corp,
+        notification,
+        data.message,
+        data.colour,
+        data.get_role_to_mention
+      );
     } else {
       consoleLog("No handler for message", notification);
     }

@@ -7,6 +7,7 @@ import { Hello } from "./commands/hello";
 import { Info } from "./commands/info";
 import { Reload } from "./commands/reload";
 import { Remove } from "./commands/remove";
+import { SetPing } from "./commands/set_ping";
 
 export const Commands: Command[] = [
   Auth,
@@ -16,5 +17,6 @@ export const Commands: Command[] = [
   Info,
   Remove,
   Reload,
+  SetPing,
   DebugReprocess,
 ];
