@@ -252,7 +252,7 @@ export function initNotifications() {
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureUnanchoring,
     {
-      message: "Structure unanchoring",
+      message: "Structure has started unanchoring",
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,

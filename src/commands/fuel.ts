@@ -6,7 +6,7 @@ import {
   TextChannel,
 } from "discord.js";
 import { Command } from "../Command";
-import { data, sendMessage } from "../Bot";
+import { consoleLog, data, sendMessage } from "../Bot";
 import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
 
 const stationNameOption = new SlashCommandStringOption()
@@ -17,7 +17,7 @@ const stationNameOption = new SlashCommandStringOption()
 
 export const Fuel: Command = {
   name: "fuel",
-  description: "Dump fuel status for stations.",
+  description: "Fetch fuel status for a station.",
   ephemeral: false,
   options: [stationNameOption],
   autocomplete: async (
@@ -48,7 +48,8 @@ export const Fuel: Command = {
             struct.name
               ?.toLocaleLowerCase()
               .includes(focusedValue.toLocaleLowerCase())
-        );
+        )
+        .slice(0, 25);
 
       await interaction.respond(choices);
     }

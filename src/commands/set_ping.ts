@@ -28,7 +28,7 @@ export const SetPing: Command = {
   ephemeral: false,
   options: [pingType, roleOption],
   run: async (client: Client, interaction: CommandInteraction) => {
-    const content = "Fetching fuel info...";
+    const content = "Setting notification role...";
 
     await interaction.followUp({
       content,

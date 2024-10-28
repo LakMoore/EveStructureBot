@@ -267,7 +267,7 @@ export async function getStarbaseName(system_id?: number, moon_id?: number) {
   return nameText;
 }
 
-async function getSystemName(system_id?: number) {
+export async function getSystemName(system_id?: number) {
   if (system_id) {
     const result = await UniverseApiFactory().getUniverseSystemsSystemId(
       system_id

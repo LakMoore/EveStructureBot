@@ -1,7 +1,7 @@
 import { Client } from "discord.js";
 import { Commands } from "../Commands";
 import { consoleLog, data, delay } from "../Bot";
-import { checkNotificationsForCorp } from "../EveSSO";
+import { checkMembership, checkNotificationsForCorp } from "../EveSSO";
 import { checkStarbasesForCorp } from "../starbases";
 import { checkStructuresForCorp } from "../structures";
 
@@ -37,7 +37,7 @@ async function pollNextCorp(client: Client) {
     const thisCorp = data.authenticatedCorps[corpIndex];
 
     // Use Corp members list rather than player's corp
-    //await checkMembership(thisCorp.members[0]);
+    await checkMembership(client, thisCorp);
 
     if (thisCorp) {
       await checkStructuresForCorp(thisCorp, client);

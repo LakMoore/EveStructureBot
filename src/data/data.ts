@@ -40,6 +40,7 @@ export interface AuthenticatedCorp {
   nextStarbaseCheck: Date;
   nextNotificationCheck: Date;
   mostRecentNotification: Date;
+  setDiscordRoles: boolean;
 }
 
 export interface DiscordChannel {
@@ -125,6 +126,11 @@ export class Data {
         });
         // then delete the old property
         delete thisCorp.characters;
+        upgraded = true;
+      }
+
+      if (thisCorp.setDiscordRoles == undefined) {
+        thisCorp.setDiscordRoles = false;
         upgraded = true;
       }
     }

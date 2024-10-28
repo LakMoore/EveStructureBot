@@ -7,11 +7,7 @@ import {
 } from "eve-client-ts";
 import SingleSignOn, { HTTPFetchError } from "@after_ice/eve-sso";
 import Koa from "koa";
-import {
-  AuthenticatedCharacter,
-  AuthenticatedCorp,
-  CorpMember,
-} from "./data/data";
+import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
 import {
   NOTIFICATION_CHECK_DELAY,
   NO_ROLE_DELAY,
@@ -24,7 +20,10 @@ import { generateCorpDetailsEmbed } from "./embeds/corpDetails";
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
-export let sso: SingleSignOn;
+let _sso: SingleSignOn;
+export function sso(): SingleSignOn {
+  return _sso;
+}
 
 export function setup(client: Client) {
   // Get the client ID and secret from the Eve developers section
@@ -36,7 +35,7 @@ export function setup(client: Client) {
     process.env.CALLBACK_SERVER_PORT ?? "8080"
   );
 
-  sso = new SingleSignOn(CLIENT_ID, SECRET, CALLBACK_URI, {
+  _sso = new SingleSignOn(CLIENT_ID, SECRET, CALLBACK_URI, {
     endpoint: "https://login.eveonline.com",
     userAgent: "eve-structure-bot",
   });
@@ -62,7 +61,7 @@ export function setup(client: Client) {
       const userId = parts[1];
 
       // Swap the one-time code for an access token
-      const info = await sso.getAccessToken(code);
+      const info = await sso().getAccessToken(code);
 
       // Usually you'd want to store the access token
       // as well as the refresh token
@@ -120,6 +119,7 @@ export function setup(client: Client) {
                     nextStructureCheck: new Date(),
                     nextNotificationCheck: new Date(),
                     mostRecentNotification: new Date(),
+                    setDiscordRoles: false,
                   };
                   data.authenticatedCorps.push(thisCorp);
                 }
@@ -185,10 +185,10 @@ export function setup(client: Client) {
 
                 await data.save();
 
-                // use tickers to set Discord Roles
-                // if (false) {
-                //   await setDiscordRoles(channel.guild, userId);
-                // }
+                // use tickers to set Discord Roles - this may not be ready for production
+                if (thisCorp.setDiscordRoles) {
+                  await setDiscordRoles(channel.guild, userId);
+                }
               } catch (error) {
                 consoleLog("error", error);
                 if (error instanceof Response) {
@@ -224,46 +224,72 @@ export function setup(client: Client) {
   //   });
 }
 
-export async function checkMembership(member: CorpMember) {
-  for (const char of member.characters) {
-    let corpConfirmed = false;
-    const config = await getAccessToken(char);
+export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
+  for (const corpMember of corp.members) {
+    for (const char of corpMember.characters) {
+      let corpConfirmed = true;
+      const config = await getAccessToken(char);
 
-    if (config.accessToken) {
-      try {
-        const memberList = await CorporationApiFactory(
-          config
-        ).getCorporationsCorporationIdMembers(98130952); //char.corpId);
+      if (config.accessToken) {
+        try {
+          const memberList = await CorporationApiFactory(
+            config
+          ).getCorporationsCorporationIdMembers(char.corpId);
 
-        if (memberList.includes(char.characterId)) {
-          // character is confirmed as a member of this corp
-        } else {
-          // this should not be possible as the ESI let us fetch this Corp's
-          // member list but then this character is not in that list!?!?
-          corpConfirmed = true;
+          if (memberList.includes(char.characterId)) {
+            // character is confirmed as a member of this corp
+            // take no action
+          } else {
+            // this should not be possible as the ESI let us fetch this Corp's
+            // member list but then this character is not in that list!?!?
+            corpConfirmed = false;
+          }
+        } catch (error) {
+          // Failed to get the Member list for this corp
+
+          const httpError = error as HTTPError;
+          if (httpError?.status == 403) {
+            // if error code is 403 then this character is not a member
+            // of the corp specified
+            consoleLog(
+              `${char.characterName} is not authed for corp ${corp.corpName}!!!`
+            );
+            corpConfirmed = false;
+          }
         }
-      } catch (error) {
-        // Failed to get the Member list for this corp
 
-        const httpError = error as HTTPError;
-        if (httpError?.status == 403) {
-          // if error code is 403 then this character is not a member
-          // of the corp specified
-          consoleLog("Not authed for this corp!!!");
+        if (!corpConfirmed) {
+          // The character is NOT in the corp the ESI says it is in!!!
+
+          const serverCorps = data.authenticatedCorps.filter(
+            (ac) => ac.serverId == corp.serverId && ac.corpId == char.corpId
+          );
+
+          serverCorps.forEach((c) => {
+            // ensure the character is removed from this corp
+            c.members.forEach((m) => {
+              m.characters = m.characters.filter(
+                (c) => c.characterId != char.characterId
+              );
+            });
+          });
+
+          // TODO:Let's check all the other corps that are authenticated to see if
+          // we can figure out which corp this character is really in.
         }
       }
-
-      if (!corpConfirmed) {
-        // The character is NOT in the corp the ESI says it is in!!!
-        // Let's check all the other corps that are authenticated to see if
-        // we can figure out which corp this character is really in.
-      }
+    }
+    const guild = client.guilds.cache.get(corp.serverId);
+    if (guild) {
+      // confirmed membership may have changed
+      // update the roles in Discord
+      await setDiscordRoles(guild, corpMember.discordId);
     }
   }
 }
 
 async function setDiscordRoles(guild: Guild, userId: string) {
-  const member = guild.members.cache.get(userId);
+  const member = await guild.members.fetch(userId);
 
   // ensure the member exists
   if (!member) {
@@ -298,7 +324,7 @@ async function setDiscordRoles(guild: Guild, userId: string) {
 
   // remove roles that should not exist
   await Promise.all(
-    member.roles.cache.map(async (corpRole) => {
+    member.roles.cache.map((corpRole) => {
       // if the Discord role starts with [ and ends with ]
       // and is NOT in the list we just created
       if (
@@ -307,7 +333,7 @@ async function setDiscordRoles(guild: Guild, userId: string) {
         !corpTickers.includes(corpRole.name)
       ) {
         // then remove this role from this user
-        await member.roles.remove(corpRole);
+        return member.roles.remove(corpRole);
       }
     })
   );
@@ -330,7 +356,7 @@ async function setDiscordRoles(guild: Guild, userId: string) {
           consoleLog("Unable to find or create a corp role for " + ticker);
         } else {
           if (!member.roles.cache.has(corpRole.id)) {
-            await member.roles.add(corpRole);
+            return member.roles.add(corpRole);
           }
         }
       })
@@ -481,14 +507,15 @@ async function getAccessToken(thisChar: AuthenticatedCharacter) {
   try {
     if (new Date(thisChar.tokenExpires) <= new Date()) {
       // auth token has expired, let's refresh it
-      consoleLog("refreshing token");
-      const response = await sso.getAccessToken(thisChar.refreshToken, true);
+      consoleLog("refreshing token for ", thisChar.characterName);
+      const response = await sso().getAccessToken(thisChar.refreshToken, true);
       thisChar.authToken = response.access_token;
       thisChar.refreshToken = response.refresh_token;
       thisChar.tokenExpires = getExpires(response.expires_in);
     }
 
     config.accessToken = thisChar.authToken;
+    consoleLog("token refreshed");
   } catch (error) {
     if (error instanceof HTTPFetchError) {
       consoleLog(
@@ -506,6 +533,5 @@ async function getAccessToken(thisChar: AuthenticatedCharacter) {
     }
   }
 
-  consoleLog("token refreshed");
   return config;
 }
