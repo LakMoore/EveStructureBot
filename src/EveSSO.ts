@@ -279,11 +279,14 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
         }
       }
     }
-    const guild = client.guilds.cache.get(corp.serverId);
-    if (guild) {
-      // confirmed membership may have changed
-      // update the roles in Discord
-      await setDiscordRoles(guild, corpMember.discordId);
+
+    if (corp.setDiscordRoles) {
+      const guild = client.guilds.cache.get(corp.serverId);
+      if (guild) {
+        // confirmed membership may have changed
+        // update the roles in Discord
+        await setDiscordRoles(guild, corpMember.discordId);
+      }
     }
   }
 }
