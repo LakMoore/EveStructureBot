@@ -62,6 +62,7 @@ export async function checkStructuresForCorp(
     ),
     nextNotificationCheck: corp.nextNotificationCheck,
     mostRecentNotification: corp.mostRecentNotification,
+    setDiscordRoles: corp.setDiscordRoles,
   };
 
   // check for change

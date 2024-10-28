@@ -60,6 +60,7 @@ export async function checkStarbasesForCorp(
     nextStructureCheck: corp.nextStructureCheck,
     nextNotificationCheck: corp.nextNotificationCheck,
     mostRecentNotification: corp.mostRecentNotification,
+    setDiscordRoles: corp.setDiscordRoles,
   };
 
   // check for change
