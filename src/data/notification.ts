@@ -57,6 +57,46 @@ export function getStructureIdFromGenericNotificationText(text?: string) {
   return 0;
 }
 
+export function getAggressorIdFromNotificationText(text?: string) {
+  if (text) {
+    const part1 = text.split("charID: ");
+    const part2 = part1[1].split("\n");
+    const charID = part2[0];
+    if (charID) {
+      return Number(charID);
+    }
+  }
+  return 0;
+}
+
+export function getCorpNameFromNotificationText(text?: string) {
+  if (text) {
+    const part1 = text.split("corpName: ");
+    if (part1.length > 1) {
+      const part2 = part1[1].split("\n");
+      const corpName = part2[0];
+      if (corpName && corpName.length > 0) {
+        return corpName;
+      }
+    }
+  }
+  return "Unknown Corporation";
+}
+
+export function getAllianceNameFromNotificationText(text?: string) {
+  if (text) {
+    const part1 = text.split("allianceName: ");
+    if (part1.length > 1) {
+      const part2 = part1[1].split("\n");
+      const allianceName = part2[0];
+      if (allianceName && allianceName.length > 0) {
+        return allianceName;
+      }
+    }
+  }
+  return "Unknown Alliance";
+}
+
 /*  Message has this structure
 allianceID: 99012530
 corpID: 98691522
@@ -141,7 +181,7 @@ export function initNotifications() {
       message: "STRUCTURE UNDER ATTACK",
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
-      handler: handleStructureNotification,
+      handler: handleStructureUnderAttackNotification,
     }
   );
 
@@ -330,6 +370,43 @@ export function initNotifications() {
   );
 }
 
+async function handleStructureUnderAttackNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharactersCharacterIdNotifications200Ok,
+  message: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined
+) {
+  try {
+    const aggressor_id = getAggressorIdFromNotificationText(note.text);
+    const aggressorCharName = await getCharacterName(aggressor_id);
+    const corpName = getCorpNameFromNotificationText(note.text);
+    const allianceName = getAllianceNameFromNotificationText(note.text);
+
+    const attackMessage =
+      message +
+      `
+Aggressor: [${aggressorCharName}](https://zkillboard.com/character/${aggressor_id}/)
+Corporation: ${corpName}
+Alliance: ${allianceName}`;
+
+    return handleStructureNotification(
+      client,
+      corp,
+      note,
+      attackMessage,
+      colour,
+      role_to_mention
+    );
+  } catch (error) {
+    consoleLog(
+      `An error occured in handleAttackNotification for ${message}. Body: ${note.text}%n`,
+      error
+    );
+  }
+}
+
 async function handleStructureNotification(
   client: Client<boolean>,
   corp: AuthenticatedCorp,
@@ -351,7 +428,6 @@ async function handleStructureNotification(
       let content;
       if (thisChannel) {
         const role = role_to_mention(thisChannel);
-        consoleLog("role");
         if (role) {
           content = `<@&${role}>`;
         }

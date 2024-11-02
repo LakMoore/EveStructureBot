@@ -411,6 +411,9 @@ export async function checkNotificationsForCorp(
   for (const notification of selectedNotifications) {
     const data = messageTypes.get(notification.type);
     if (data) {
+      if (process.env.NODE_ENV === "development") {
+        consoleLog("Handling notification", notification);
+      }
       await data.handler(
         client,
         corp,

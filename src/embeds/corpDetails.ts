@@ -7,30 +7,38 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
     thisCorp.members.flatMap((m) => m.characters)
   );
   const chars = allChars.filter((c) => !c.needsReAuth);
-  const needReauth = chars.filter((c) => c.needsReAuth);
+  const needReauth = allChars.filter((c) => c.needsReAuth);
 
   const fields = [];
 
-  fields.push({
-    name: "\u200b",
-    value: `Tracking ${chars.length} authorised character${
-      chars.length == 1 ? "" : "s"
-    }.`,
-  });
+  let authed = `Tracking ${chars.length} authorised character${
+    chars.length == 1 ? "" : "s"
+  }.`;
+
+  if (chars.length > 0) {
+    for (const c of chars) {
+      authed += `\n${c.characterName}`;
+    }
+  }
 
   fields.push({
     name: "\u200b",
-    value: `Checking notifications every ${
+    value: authed,
+  });
+
+  if (chars.length > 0) {
+    const frequencies = `Checking notifications every ${
       Math.round(NOTIFICATION_CHECK_DELAY / (6000 * chars.length)) / 10
-    } minutes.`,
-  });
-
-  fields.push({
-    name: "\u200b",
-    value: `Checking stucture status every ${
+    } minutes.
+Checking stucture status every ${
       Math.round(STRUCTURE_CHECK_DELAY / (6000 * chars.length)) / 10
-    } minutes.`,
-  });
+    } minutes.`;
+
+    fields.push({
+      name: "\u200b",
+      value: frequencies,
+    });
+  }
 
   if (chars.length < 10) {
     fields.push({
@@ -48,13 +56,15 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
         needReauth.length == 1 ? "" : "s"
       } need${
         needReauth.length == 1 ? "s" : ""
-      } to be re-authorised (use /checkauth for details)`,
+      } to be re-authorised\n(use /checkauth for details)`,
     });
   }
 
   fields.push({
     name: "\u200b",
-    value: `Corporation has ${thisCorp.structures.length} structures.`,
+    value: `Corporation has ${thisCorp.structures.length} structure${
+      thisCorp.structures.length == 1 ? "" : "s"
+    }.`,
   });
 
   return new EmbedBuilder()
