@@ -36,21 +36,24 @@ async function pollNextCorp(client: Client) {
     // );
     const thisCorp = data.authenticatedCorps[corpIndex];
 
-    // Use Corp members list rather than player's corp
-    await checkMembership(client, thisCorp);
-
     if (thisCorp) {
-      await checkStructuresForCorp(thisCorp, client);
-      await checkStarbasesForCorp(thisCorp, client);
-    }
-    const updatedCorp = data.authenticatedCorps[corpIndex];
-    if (updatedCorp) {
-      await checkNotificationsForCorp(updatedCorp, client);
+      // Use Corp members list rather than player's corp
+      await checkMembership(client, thisCorp);
+
+      if (thisCorp) {
+        await checkStructuresForCorp(thisCorp, client);
+        await checkStarbasesForCorp(thisCorp, client);
+      }
+      const updatedCorp = data.authenticatedCorps[corpIndex];
+      if (updatedCorp) {
+        await checkNotificationsForCorp(updatedCorp, client);
+      }
+
+      client.user?.setActivity(
+        `Checking Structures at ${new Date(Date.now()).toUTCString()}`
+      );
     }
 
-    client.user?.setActivity(
-      `Checking Structures at ${new Date(Date.now()).toUTCString()}`
-    );
   } catch (error) {
     consoleLog("An error occured in main loop", error);
   }
