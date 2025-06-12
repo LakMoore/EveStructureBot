@@ -87,7 +87,16 @@ export function setup(client: Client) {
             charId
           );
           consoleLog("char", char);
-          const corpId = char.corporation_id;
+
+          // char.corporation_id could be up to 6 days old!
+          // let's get the history to find the current corp
+          const corpHistory = await CharacterApiFactory().getCharactersCharacterIdCorporationhistory(charId);
+          consoleLog("corpHistory", corpHistory);
+
+          const corpId = corpHistory.length > 0
+            ? corpHistory[0].corporation_id
+            : char.corporation_id;
+
           if (!corpId) {
             errMessage +=
               "\nCharacter is not in a Corporation. Unable to proceed.";
