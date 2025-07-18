@@ -11,7 +11,7 @@ import { data } from "../Bot";
 const roleOption = new SlashCommandRoleOption()
   .setName("role")
   .setDescription("Role to Ping")
-  .setRequired(true);
+  .setRequired(false);
 
 const pingType = new SlashCommandStringOption()
   .setName("type")
@@ -36,20 +36,11 @@ export const SetPing: Command = {
     });
 
     const channel = client.channels.cache.get(interaction.channelId);
-    const role = interaction.options.get("role", true).value;
+    const role = interaction.options.get("role", false)?.value;
     const type = interaction.options.get("type", true).value;
 
     if (channel instanceof TextChannel) {
-      let thisChannel = data.channels.find((c) => c.channelId == channel.id);
-
-      if (!thisChannel) {
-        thisChannel = {
-          serverId: channel.guild.id,
-          channelId: channel.id,
-          name: channel.name,
-        };
-        data.channels.push(thisChannel);
-      }
+      let thisChannel = data.channelFor(channel);
 
       if (type == "attack") {
         thisChannel.attack_alert_role = role?.toString();
@@ -59,7 +50,11 @@ export const SetPing: Command = {
 
       data.save();
 
-      await interaction.followUp(`Pings for ${type} set to <@&${role}>`);
+      if (role) {
+        await interaction.followUp(`Pings for ${type} set to <@&${role}>`);
+      } else {
+        await interaction.followUp(`Pings for ${type} removed`);
+      }
     }
   },
 };
