@@ -5,6 +5,7 @@ import { Commands } from "../Commands";
 export const Reload: Command = {
   name: "reload",
   description: "Forces the bot to reload the specified command",
+  deferReply: true,
   ephemeral: true,
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     const content = "Reloading command...";

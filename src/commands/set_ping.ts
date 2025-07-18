@@ -25,6 +25,7 @@ const pingType = new SlashCommandStringOption()
 export const SetPing: Command = {
   name: "set_ping",
   description: "Set the roles to be pinged on a given alert type.",
+  deferReply: true,
   ephemeral: false,
   options: [pingType, roleOption],
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {

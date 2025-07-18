@@ -18,6 +18,7 @@ const systemNameOption = new SlashCommandStringOption()
 export const Refuel: Command = {
   name: "refuel",
   description: "Fetch fuel status for all stations in a system.",
+  deferReply: true,
   ephemeral: false,
   options: [systemNameOption],
   autocomplete: async (

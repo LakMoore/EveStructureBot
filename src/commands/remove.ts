@@ -15,6 +15,7 @@ const CANCEL_DELETE = "CancelDelete";
 export const Remove: Command = {
   name: "remove",
   description: "Deletes all stored data for the Corporations in this channel",
+  deferReply: true,
   ephemeral: false,
   run: async (client: Client, interaction: CommandInteraction) => {
     const content =

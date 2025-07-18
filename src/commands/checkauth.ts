@@ -5,6 +5,7 @@ import { data, sendMessage } from "../Bot";
 export const CheckAuth: Command = {
   name: "checkauth",
   description: "Lists chars that need reauthorisation and pings their owners",
+  deferReply: true,
   ephemeral: false,
   run: async (client: Client, interaction: CommandInteraction) => {
     const content = "Fetching info...";

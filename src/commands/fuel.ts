@@ -19,6 +19,7 @@ const stationNameOption = new SlashCommandStringOption()
 export const Fuel: Command = {
   name: "fuel",
   description: "Fetch fuel status for a station.",
+  deferReply: true,
   ephemeral: false,
   options: [stationNameOption],
   autocomplete: async (
@@ -101,8 +102,7 @@ export const Fuel: Command = {
         );
       } else {
         await interaction.followUp(
-          `No structure found with the name ${
-            interaction.options.get("name")?.value
+          `No structure found with the name ${interaction.options.get("name")?.value
           }`
         );
       }

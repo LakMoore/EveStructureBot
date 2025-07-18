@@ -5,6 +5,7 @@ import { sendMessage } from "../Bot";
 export const Hello: Command = {
   name: "hello",
   description: "Returns a greeting",
+  deferReply: true,
   ephemeral: false,
   run: async (client: Client, interaction: CommandInteraction) => {
     const content = "Command received";
@@ -16,7 +17,7 @@ export const Hello: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel instanceof TextChannel) {
-      sendMessage(channel, `Hello <@${interaction.user.id}>`, "Hello");
+      await sendMessage(channel, `Hello <@${interaction.user.id}>`, "Hello");
     }
   },
 };

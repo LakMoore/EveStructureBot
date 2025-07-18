@@ -29,25 +29,28 @@ const handleSlashCommand = async (
       return;
     }
 
-  await interaction.deferReply({ ephemeral: slashCommand.ephemeral });
+    if (slashCommand.deferReply) {
+      await interaction.deferReply({ ephemeral: slashCommand.ephemeral });
+    }
 
-  try {
-    const channel = interaction.channel as TextChannel;
+    try {
+      const channel = interaction.channel as TextChannel;
 
-    consoleLog(
-      `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`
-    );
+      consoleLog(
+        `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`
+      );
 
-    await slashCommand.run(client, interaction);
-  } catch (error) {
-    if (error instanceof Error) {
-      await interaction.followUp({
-        content: "An error has occurred (" + error.message + ")",
-      });
-    } else {
-      await interaction.followUp({
-        content: "An unknown error has occurred.",
-      });
+      await slashCommand.run(client, interaction);
+    } catch (error) {
+      if (error instanceof Error) {
+        await interaction.followUp({
+          content: "An error has occurred (" + error.message + ")",
+        });
+      } else {
+        await interaction.followUp({
+          content: "An unknown error has occurred.",
+        });
+      }
     }
   }
 };

@@ -19,6 +19,7 @@ const SCOPES_REQUIRED = [
 export const Auth: Command = {
   name: "auth",
   description: "Get a link to authorise a character using Eve SSO",
+  deferReply: true,
   ephemeral: true,
   run: async (client: Client, interaction: CommandInteraction) => {
     const channelId = interaction.channelId || "unknown";

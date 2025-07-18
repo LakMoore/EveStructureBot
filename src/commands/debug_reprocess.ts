@@ -18,6 +18,7 @@ const reprocessOption = new SlashCommandStringOption()
 export const DebugReprocess: Command = {
   name: "debug_reprocess",
   description: "Reprocess all the notifications (debug command).",
+  deferReply: true,
   ephemeral: false,
   options: [reprocessOption],
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {

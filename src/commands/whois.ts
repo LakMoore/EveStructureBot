@@ -17,6 +17,7 @@ const characterNameOption = new SlashCommandStringOption()
 export const WhoIs: Command = {
   name: "whois",
   description: "Find the discord user who owns a given character.",
+  deferReply: true,
   ephemeral: false,
   options: [characterNameOption],
   autocomplete: async (

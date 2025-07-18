@@ -6,6 +6,7 @@ import { generateCorpDetailsEmbed } from "../embeds/corpDetails";
 export const Info: Command = {
   name: "info",
   description: "Returns details of what is being tracked in this channel",
+  deferReply: true,
   ephemeral: false,
   run: async (client: Client, interaction: CommandInteraction) => {
     const content = "Fetching info...";
