@@ -1,9 +1,9 @@
 import {
-  CommandInteraction,
   Client,
   SlashCommandStringOption,
   TextChannel,
   SlashCommandRoleOption,
+  ChatInputCommandInteraction,
 } from "discord.js";
 import { Command } from "../Command";
 import { data } from "../Bot";
@@ -27,7 +27,7 @@ export const SetPing: Command = {
   description: "Set the roles to be pinged on a given alert type.",
   ephemeral: false,
   options: [pingType, roleOption],
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     const content = "Setting notification role...";
 
     await interaction.followUp({

@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   AutocompleteInteraction,
   SlashCommandStringOption,
@@ -56,7 +56,7 @@ export const WhoIs: Command = {
       await interaction.respond(choices);
     }
   },
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     let content = "Fetching character info...";
 
     const channel = client.channels.cache.get(interaction.channelId);

@@ -1,4 +1,4 @@
-import { CommandInteraction, Client } from "discord.js";
+import { ChatInputCommandInteraction, Client } from "discord.js";
 import { Command } from "../Command";
 import { Commands } from "../Commands";
 
@@ -6,7 +6,7 @@ export const Reload: Command = {
   name: "reload",
   description: "Forces the bot to reload the specified command",
   ephemeral: true,
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     const content = "Reloading command...";
 
     await interaction.followUp({

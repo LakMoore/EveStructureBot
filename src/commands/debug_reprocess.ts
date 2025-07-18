@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   SlashCommandStringOption,
 } from "discord.js";
@@ -20,7 +20,7 @@ export const DebugReprocess: Command = {
   description: "Reprocess all the notifications (debug command).",
   ephemeral: false,
   options: [reprocessOption],
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     const channel = client.channels.cache.get(interaction.channelId);
 
     let response = "Something went wrong!";

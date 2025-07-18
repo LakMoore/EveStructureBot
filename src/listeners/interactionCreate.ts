@@ -1,7 +1,7 @@
 import {
   Interaction,
   Client,
-  CommandInteraction,
+  ChatInputCommandInteraction,
   AutocompleteInteraction,
   TextChannel,
 } from "discord.js";
@@ -20,13 +20,14 @@ export default (client: Client): void => {
 
 const handleSlashCommand = async (
   client: Client,
-  interaction: CommandInteraction
+  interaction: Interaction
 ): Promise<void> => {
-  const slashCommand = Commands.find((c) => c.name === interaction.commandName);
-  if (!slashCommand) {
-    interaction.reply({ content: "An error has occurred" });
-    return;
-  }
+  if (interaction instanceof ChatInputCommandInteraction) {
+    const slashCommand = Commands.find((c) => c.name === interaction.commandName);
+    if (!slashCommand) {
+      interaction.reply({ content: "An error has occurred" });
+      return;
+    }
 
   await interaction.deferReply({ ephemeral: slashCommand.ephemeral });
 

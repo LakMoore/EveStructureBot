@@ -4,6 +4,7 @@ import {
   AutocompleteInteraction,
   SlashCommandStringOption,
   TextChannel,
+  ChatInputCommandInteraction,
 } from "discord.js";
 import { Command } from "../Command";
 import { consoleLog, data, sendMessage } from "../Bot";
@@ -54,7 +55,7 @@ export const Fuel: Command = {
       await interaction.respond(choices);
     }
   },
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     const content = "Fetching fuel info...";
 
     await interaction.followUp({
