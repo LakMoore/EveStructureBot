@@ -18,5 +18,5 @@ jobs:
             cd /home/pmtwo/StructureBot
             git pull origin main
             npm install
-            ./node_modules/typescript/bin/tsc
-            pm2 restart StructureBot
+            npx tsc
+            sudo -u pmtwo pm2 restart StructureBot
