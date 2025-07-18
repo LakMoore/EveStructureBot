@@ -4,6 +4,7 @@ import {
 } from "eve-client-ts";
 import storage from "node-persist";
 import { consoleLog, delay } from "../Bot";
+import { TextChannel } from "discord.js";
 
 export interface AuthenticatedCharacter {
   discordId: string;
@@ -49,6 +50,11 @@ export interface DiscordChannel {
   name: string;
   low_fuel_role?: string;
   attack_alert_role?: string;
+  starbaseFuel: boolean;
+  starbaseStatus: boolean;
+  structureFuel: boolean;
+  structureStatus: boolean;
+  miningUpdates: boolean;
 }
 
 const SAVE_DELAY_MS = 5 * 60 * 1000; // 5 mins in milliseconds
@@ -74,9 +80,33 @@ export class Data {
     if (!tempChannels) {
       tempChannels = [];
     }
-    this._channels = tempChannels;
 
     let upgraded = false;
+
+    for (const thisChannel of tempChannels) {
+      if (thisChannel.starbaseFuel === undefined) {
+        thisChannel.starbaseFuel = true;
+        upgraded = true;
+      }
+      if (thisChannel.starbaseStatus === undefined) {
+        thisChannel.starbaseStatus = true;
+        upgraded = true;
+      }
+      if (thisChannel.structureFuel === undefined) {
+        thisChannel.structureFuel = true;
+        upgraded = true;
+      }
+      if (thisChannel.structureStatus === undefined) {
+        thisChannel.structureStatus = true;
+        upgraded = true;
+      }
+      if (thisChannel.miningUpdates === undefined) {
+        thisChannel.miningUpdates = true;
+        upgraded = true;
+      }
+    }
+
+    this._channels = tempChannels;
 
     for (const thisCorp of this._authenticatedCorps) {
       if (!thisCorp.members) {
@@ -148,8 +178,22 @@ export class Data {
     return this._authenticatedCorps;
   }
 
-  get channels() {
-    return this._channels;
+  public channelFor(channel: TextChannel) {
+    let tempChannel = this._channels.find((c) => c.channelId == channel.id);
+    if (!tempChannel) {
+      tempChannel = {
+        serverId: channel.guild.id,
+        channelId: channel.id,
+        name: channel.name,
+        starbaseFuel: true,
+        starbaseStatus: true,
+        structureFuel: true,
+        structureStatus: true,
+        miningUpdates: true,
+      };
+      this._channels.push(tempChannel);
+    }
+    return tempChannel;
   }
 
   private async autoSave() {

@@ -4,6 +4,7 @@ import {
   ChatInputCommandInteraction,
   AutocompleteInteraction,
   TextChannel,
+  ButtonInteraction,
 } from "discord.js";
 import { Commands } from "../Commands";
 import { consoleLog } from "../Bot";
@@ -14,6 +15,8 @@ export default (client: Client): void => {
       await handleSlashCommand(client, interaction);
     } else if (interaction.isAutocomplete()) {
       await handleAutocomplete(client, interaction);
+    } else if (interaction.isButton()) {
+      await handleButton(client, interaction);
     }
   });
 };
@@ -70,6 +73,25 @@ const handleAutocomplete = async (
       console.log("Autocomplete error: " + error.message);
     } else {
       console.log("Autocomplete error: " + error);
+    }
+  }
+};
+
+const handleButton = async (
+  client: Client,
+  interaction: ButtonInteraction
+): Promise<void> => {
+  const buttonCommand = Commands.find((c) => c.name === interaction.customId.split("_")[0]);
+
+  try {
+    if (buttonCommand?.button) {
+      await buttonCommand.button(client, interaction);
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      console.log("Button error: " + error.message);
+    } else {
+      console.log("Button error: " + error);
     }
   }
 };

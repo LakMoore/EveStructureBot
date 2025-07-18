@@ -3,6 +3,7 @@ import {
   Client,
   AutocompleteInteraction,
   ChatInputCommandInteraction,
+  ButtonInteraction,
 } from "discord.js";
 
 export interface Command extends ChatInputApplicationCommandData {
@@ -12,5 +13,9 @@ export interface Command extends ChatInputApplicationCommandData {
   autocomplete?: (
     client: Client,
     interaction: AutocompleteInteraction
+  ) => Promise<void>;
+  button?: (
+    client: Client,
+    interaction: ButtonInteraction
   ) => Promise<void>;
 }

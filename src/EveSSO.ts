@@ -429,7 +429,10 @@ export async function checkNotificationsForCorp(
         notification,
         data.message,
         data.colour,
-        data.get_role_to_mention
+        data.get_role_to_mention,
+        data.structureStateMessage,
+        data.structureFuelMessage,
+        data.miningUpdatesMessage
       );
     } else {
       consoleLog("No handler for message", notification);

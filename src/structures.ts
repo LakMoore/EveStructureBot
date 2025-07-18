@@ -84,6 +84,10 @@ async function checkForStructureChangeAndPersist(
 
   const channel = client.channels.cache.get(corp.channelId);
   if (channel instanceof TextChannel) {
+    var channelConfig = data.channelFor(channel);
+    let fuelMessage = false;
+    let statusMessage = false;
+
     if (idx > -1) {
       // seen this before, check each structure for changes.
       const oldCorp = data.authenticatedCorps[idx];
@@ -94,12 +98,14 @@ async function checkForStructureChangeAndPersist(
           !oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
       );
 
-      for (const s of addedStructs) {
-        await sendMessage(
-          channel,
-          { embeds: [generateNewStructureEmbed(s)] },
-          "new structure"
-        );
+      if (channelConfig.structureStatus) {
+        for (const s of addedStructs) {
+          await sendMessage(
+            channel,
+            { embeds: [generateNewStructureEmbed(s)] },
+            "new structure"
+          );
+        }
       }
 
       // check for removed structures
@@ -108,15 +114,17 @@ async function checkForStructureChangeAndPersist(
           !corp.structures.some((s2) => s1.structure_id === s2.structure_id)
       );
 
-      // max embeds per message is 10
-      for (const s of removedStructs) {
-        await sendMessage(
-          channel,
-          {
-            embeds: [generateDeletedStructureEmbed(s)],
-          },
-          "deleted structure"
-        );
+      if (channelConfig.structureStatus) {
+        // max embeds per message is 10
+        for (const s of removedStructs) {
+          await sendMessage(
+            channel,
+            {
+              embeds: [generateDeletedStructureEmbed(s)],
+            },
+            "deleted structure"
+          );
+        }
       }
 
       const matchingStructs = corp.structures.filter((s1) =>
@@ -133,6 +141,7 @@ async function checkForStructureChangeAndPersist(
             thisMessage += `\nStatus has changed from ${formatState(
               oldStruct.state
             )} to ${formatState(s.state)}`;
+            statusMessage = true;
           }
           if (s.state_timer_end !== oldStruct.state_timer_end) {
             if (s.state_timer_end) {
@@ -142,6 +151,7 @@ async function checkForStructureChangeAndPersist(
             } else {
               thisMessage += `\nStructure timer has reset`;
             }
+            statusMessage = true;
           }
           // check for change of fuel (up or down!)
           if (oldStruct.fuel_expires != s.fuel_expires) {
@@ -158,6 +168,7 @@ async function checkForStructureChangeAndPersist(
                 s.fuel_expires
               )}`;
             }
+            fuelMessage = true;
           }
 
           // check for low fuel
@@ -173,32 +184,35 @@ async function checkForStructureChangeAndPersist(
               // fuel expiry is within one check delay of the super low warning
               expires <= new Date(Date.now() + SUPER_LOW_FUEL_WARNING) &&
               expires >=
-                new Date(
-                  Date.now() +
-                    SUPER_LOW_FUEL_WARNING -
-                    1000 -
-                    NOTIFICATION_CHECK_DELAY / authedCharCount
-                )
+              new Date(
+                Date.now() +
+                SUPER_LOW_FUEL_WARNING -
+                1000 -
+                NOTIFICATION_CHECK_DELAY / authedCharCount
+              )
             ) {
               thisMessage += `\n@hereURGENT: Fuel will be depleated very soon ${getRelativeDiscordTime(
                 expires
               )}`;
+              fuelMessage = true;
             } else if (
               // fuel expiry is within one check delay of the low warning
               expires <= new Date(Date.now() + LOW_FUEL_WARNING) &&
               expires >=
-                new Date(
-                  Date.now() +
-                    LOW_FUEL_WARNING -
-                    1000 -
-                    NOTIFICATION_CHECK_DELAY / authedCharCount
-                )
+              new Date(
+                Date.now() +
+                LOW_FUEL_WARNING -
+                1000 -
+                NOTIFICATION_CHECK_DELAY / authedCharCount
+              )
             ) {
               thisMessage += `\nWarning: Fuel will be depleated ${getRelativeDiscordTime(
                 expires
               )}`;
+              fuelMessage = true;
             }
           }
+
           if (thisMessage.length > 0) {
             thisMessage = `ALERT on ${s.name}` + thisMessage;
           }
@@ -213,20 +227,28 @@ async function checkForStructureChangeAndPersist(
     } else {
       // tracking new structures!
 
-      // send individually to avoid max embed per message limit (10)
-      for (const s of corp.structures) {
-        await sendMessage(
-          channel,
-          { embeds: [generateNewStructureEmbed(s)] },
-          "new structure"
-        );
+      if (channelConfig.structureStatus) {
+        // send individually to avoid max embed per message limit (10)
+        for (const s of corp.structures) {
+          await sendMessage(
+            channel,
+            { embeds: [generateNewStructureEmbed(s)] },
+            "new structure"
+          );
+        }
       }
 
       // add the data to storage
       data.authenticatedCorps.push(corp);
     }
 
-    if (message.length > 0) {
+    if (
+      message.length > 0
+      && (
+        (channelConfig.structureStatus && statusMessage)
+        || (channelConfig.structureFuel && fuelMessage)
+      )
+    ) {
       await sendMessage(channel, message, "structures: " + message);
     }
 

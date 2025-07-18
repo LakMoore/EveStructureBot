@@ -10,10 +10,12 @@ import { Reload } from "./commands/reload";
 import { Remove } from "./commands/remove";
 import { SetPing } from "./commands/set_ping";
 import { WhoIs } from "./commands/whois";
+import { Configure } from "./commands/configure";
 
 export const Commands: Command[] = [
   Auth,
   CheckAuth,
+  Configure,
   Fuel,
   Hello,
   Info,

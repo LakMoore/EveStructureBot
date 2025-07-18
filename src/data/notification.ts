@@ -169,8 +169,14 @@ export const messageTypes = new Map<
       note: GetCharactersCharacterIdNotifications200Ok,
       message: string,
       colour: number,
-      role_to_mention: (c: DiscordChannel) => string | undefined
+      role_to_mention: (c: DiscordChannel) => string | undefined,
+      structureStateMessage: boolean,
+      structureFuelMessage: boolean,
+      miningUpdatesMessage: boolean,
     ) => Promise<void>;
+    structureStateMessage: boolean;
+    structureFuelMessage: boolean;
+    miningUpdatesMessage: boolean;
   }
 >();
 
@@ -182,6 +188,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureUnderAttackNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -193,6 +202,9 @@ export function initNotifications() {
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
     }
   );
 
@@ -204,6 +216,9 @@ export function initNotifications() {
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
     }
   );
 
@@ -215,6 +230,9 @@ export function initNotifications() {
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
     }
   );
 
@@ -225,6 +243,9 @@ export function initNotifications() {
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
     }
   );
 
@@ -235,6 +256,9 @@ export function initNotifications() {
       colour: Colors.Yellow,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
+      structureStateMessage: false,
+      structureFuelMessage: true,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -245,6 +269,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -255,6 +282,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -265,6 +295,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -275,6 +308,9 @@ export function initNotifications() {
       colour: Colors.Green,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -286,6 +322,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -296,6 +335,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -306,6 +348,9 @@ export function initNotifications() {
       colour: Colors.Green,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: true,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -316,6 +361,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: true,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -326,6 +374,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -336,6 +387,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -346,6 +400,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleTowerNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -356,6 +413,9 @@ export function initNotifications() {
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleTowerNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 
@@ -366,6 +426,9 @@ export function initNotifications() {
       colour: Colors.Yellow,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
     }
   );
 }
@@ -376,7 +439,10 @@ async function handleStructureUnderAttackNotification(
   note: GetCharactersCharacterIdNotifications200Ok,
   message: string,
   colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean,
 ) {
   try {
     const aggressor_id = getAggressorIdFromNotificationText(note.text);
@@ -397,7 +463,10 @@ Alliance: ${allianceName}`;
       note,
       attackMessage,
       colour,
-      role_to_mention
+      role_to_mention,
+      structureStateMessage,
+      structureFuelMessage,
+      miningUpdatesMessage
     );
   } catch (error) {
     consoleLog(
@@ -413,7 +482,10 @@ async function handleStructureNotification(
   note: GetCharactersCharacterIdNotifications200Ok,
   message: string,
   colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean,
 ) {
   try {
     const channel = client.channels.cache.get(corp.channelId);
@@ -423,32 +495,36 @@ async function handleStructureNotification(
         (struct) => struct.structure_id === structId
       );
 
-      const thisChannel = data.channels.find((c) => c.channelId === channel.id);
+      const thisChannel = data.channelFor(channel);
 
-      let content;
-      if (thisChannel) {
+      if (
+        (structureStateMessage && thisChannel.structureStatus)
+        || (structureFuelMessage && thisChannel.structureFuel)
+        || (miningUpdatesMessage && thisChannel.miningUpdates)
+      ) {
+        let content;
         const role = role_to_mention(thisChannel);
         if (role) {
           content = `<@&${role}>`;
         }
-      }
 
-      await sendMessage(
-        channel,
-        {
-          content,
-          embeds: [
-            generateStructureNotificationEmbed(
-              colour,
-              message,
-              note.timestamp,
-              thisStruct,
-              corp.corpName
-            ),
-          ],
-        },
-        `Structure Notification: ${message}`
-      );
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateStructureNotificationEmbed(
+                colour,
+                message,
+                note.timestamp,
+                thisStruct,
+                corp.corpName
+              ),
+            ],
+          },
+          `Structure Notification: ${message}`
+        );
+      }
     }
   } catch (error) {
     consoleLog(
@@ -464,7 +540,10 @@ async function handleTowerNotification(
   note: GetCharactersCharacterIdNotifications200Ok,
   message: string,
   colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean,
 ) {
   try {
     const channel = client.channels.cache.get(corp.channelId);
@@ -477,13 +556,15 @@ async function handleTowerNotification(
       );
 
       let builtMessage = message;
+      let fuelMessage = false;
+      let statusMessage = false;
 
       if (details.quantity && details.type_id) {
         // POS wants something
         const itemName = await getItemName(details.type_id);
-        builtMessage += `\n${details.quantity} ${itemName}${
-          details.quantity === 1 ? "" : "s"
-        } remain${details.quantity === 1 ? "s" : ""}`;
+        builtMessage += `\n${details.quantity} ${itemName}${details.quantity === 1 ? "" : "s"
+          } remain${details.quantity === 1 ? "s" : ""}`;
+        fuelMessage = true;
       }
 
       if (details.aggressor_id) {
@@ -495,38 +576,42 @@ async function handleTowerNotification(
           `Shields: ${formatNumberToPercent1DP(details.shield_value)}\n` +
           `Armor: ${formatNumberToPercent1DP(details.armor_value)}\n` +
           `Hull: ${formatNumberToPercent1DP(details.hull_value)}\n`;
+        statusMessage = true;
       }
 
       consoleLog("note", note);
       consoleLog("details", details);
 
-      const thisChannel = data.channels.find((c) => c.channelId === channel.id);
-      let content;
-      if (thisChannel) {
+      const thisChannel = data.channelFor(channel);
+
+      if (
+        (thisChannel.starbaseFuel && fuelMessage)
+        || (thisChannel.starbaseStatus && statusMessage)
+      ) {
+        let content;
         const role = role_to_mention(thisChannel);
-        consoleLog("role");
         if (role) {
           content = `<@&${role}>`;
         }
-      }
 
-      await sendMessage(
-        channel,
-        {
-          content,
-          embeds: [
-            generateStarbaseNotificationEmbed(
-              colour,
-              builtMessage,
-              note.timestamp,
-              starbaseName,
-              corp.corpName,
-              details.starbase_type_id
-            ),
-          ],
-        },
-        `Structure Notification: ${builtMessage}`
-      );
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateStarbaseNotificationEmbed(
+                colour,
+                builtMessage,
+                note.timestamp,
+                starbaseName,
+                corp.corpName,
+                details.starbase_type_id
+              ),
+            ],
+          },
+          `Structure Notification: ${builtMessage}`
+        );
+      }
     }
   } catch (error) {
     consoleLog(
