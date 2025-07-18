@@ -25,31 +25,34 @@ export const colours = {
 };
 
 async function main() {
-  dotenv.config();
-  consoleLog("Bot is starting...");
+  try {
+    dotenv.config();
+    consoleLog("Bot is starting...");
 
-  await data.init();
-  initNotifications();
+    await data.init();
+    initNotifications();
 
-  const client = new Client({
-    intents: [IntentsBitField.Flags.Guilds],
-  });
+    const client = new Client({
+      intents: [IntentsBitField.Flags.Guilds],
+    });
 
-  // setup listeners
-  ready(client);
-  interactionCreate(client);
+    // setup listeners
+    ready(client);
+    interactionCreate(client);
 
-  // login
-  await client.login(process.env.SECRET_TOKEN);
+    // login
+    await client.login(process.env.SECRET_TOKEN);
 
-  consoleLog("Logged in!");
+    consoleLog("Logged in!");
 
-  setup(client);
+    setup(client);
+
+  } catch (error) {
+    consoleLog(error);
+  }
 }
 
-main().catch((err) => {
-  consoleLog(err);
-});
+main();
 
 export function consoleLog(message?: any, ...optionalParams: any[]) {
   console.log(new Date().toISOString() + ": " + message, ...optionalParams);
