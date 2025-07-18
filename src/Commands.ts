@@ -11,6 +11,7 @@ import { Remove } from "./commands/remove";
 import { SetPing } from "./commands/set_ping";
 import { WhoIs } from "./commands/whois";
 import { Configure } from "./commands/configure";
+import { Test } from "./commands/test";
 
 export const Commands: Command[] = [
   Auth,
@@ -23,6 +24,7 @@ export const Commands: Command[] = [
   Remove,
   Reload,
   SetPing,
+  Test,
   DebugReprocess,
   WhoIs,
 ];

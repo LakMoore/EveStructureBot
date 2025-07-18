@@ -3,6 +3,7 @@ import {
   CharacterApiFactory,
   Configuration,
   CorporationApiFactory,
+  GetCharactersCharacterIdNotifications200Ok,
   GetCharactersCharacterIdRolesOk,
 } from "eve-client-ts";
 import SingleSignOn, { HTTPFetchError } from "@after_ice/eve-sso";
@@ -409,14 +410,33 @@ export async function checkNotificationsForCorp(
     config
   ).getCharactersCharacterIdNotifications(thisChar.characterId);
 
-  //consoleLog("notifications", notifications);
+  consoleLog("notifications", notifications);
+
+  // // save the notification to a temporary file
+  // const fs = require("fs");
+  // fs.writeFileSync(
+  //   "notifications.json",
+  //   JSON.stringify(notifications, null, 2)
+  // );
 
   // Get the notifications that we have not seen previously
   const selectedNotifications = notifications.filter(
     (note) => new Date(note.timestamp) > new Date(corp.mostRecentNotification)
   );
 
-  // Iterate through each notification
+  const newDate = await processNotifications(selectedNotifications, client, corp);
+  corp.mostRecentNotification = newDate;
+
+  await data.save();
+}
+
+export async function processNotifications(
+  selectedNotifications: GetCharactersCharacterIdNotifications200Ok[],
+  client: Client<boolean>,
+  corp: AuthenticatedCorp
+) {
+  let mostRecentNotification = new Date(corp.mostRecentNotification);
+
   for (const notification of selectedNotifications) {
     const data = messageTypes.get(notification.type);
     if (data) {
@@ -439,12 +459,12 @@ export async function checkNotificationsForCorp(
     }
 
     const thisDate = new Date(notification.timestamp);
-    if (thisDate > new Date(corp.mostRecentNotification)) {
-      corp.mostRecentNotification = thisDate;
+    if (thisDate > mostRecentNotification) {
+      mostRecentNotification = thisDate;
     }
   }
 
-  await data.save();
+  return mostRecentNotification;
 }
 
 async function findAsyncSequential<T>(
