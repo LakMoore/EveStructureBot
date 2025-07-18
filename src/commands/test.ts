@@ -20,21 +20,25 @@ export const Test: Command = {
     if (channel instanceof TextChannel) {
       await sendMessage(channel, `Testing...`, "Test");
 
-      const fs = require("fs");
-      const notifications = JSON.parse(
-        fs.readFileSync("notifications.json", "utf8")
-      );
+      try {
+        const fs = require("fs");
+        const notifications = JSON.parse(
+          fs.readFileSync("notifications.json", "utf8")
+        );
 
-      const corp = data.authenticatedCorps.findLast(
-        (ac) => ac.corpId == 98691522
-      );
+        const corp = data.authenticatedCorps.findLast(
+          (ac) => ac.corpId == 98691522
+        );
 
-      if (!corp) {
-        await sendMessage(channel, `No data found for this channel.`, "No data found for this channel.");
-        return;
+        if (!corp) {
+          await sendMessage(channel, `No data found for this channel.`, "No data found for this channel.");
+          return;
+        }
+
+        await processNotifications(notifications, client, corp);
+      } catch (error) {
+        await sendMessage(channel, `Failed to process test notifications.`, "Failed to process test notifications.");
       }
-
-      await processNotifications(notifications, client, corp);
     }
   },
 };
