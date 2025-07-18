@@ -38,6 +38,23 @@ export const CheckAuth: Command = {
         }
       }
 
+      const emptyCorps = channelCorps.filter((ac) => ac.members.length == 0);
+      for (const corp of emptyCorps) {
+        await sendMessage(
+          channel,
+          `Deleting empty corporation from this channel.`,
+          `Deleting empty corporation from this channel.`
+        );
+
+        // remove this corp from the array
+        var index = data.authenticatedCorps.indexOf(corp);
+        data.authenticatedCorps.splice(index, 1);
+        data.save();
+
+        var index2 = channelCorps.indexOf(corp);
+        channelCorps.splice(index2, 1);
+      }
+
       if (channelCorps.length == 0) {
         await sendMessage(
           channel,
