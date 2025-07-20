@@ -551,7 +551,7 @@ export function getWorkingChars(
       !c.needsReAuth
       && (requiredRole == undefined || c.roles?.includes(requiredRole))
     )
-    .sort((a, b) => getNextCheck(a).getTime() - getNextCheck(b).getTime());
+    .sort((a, b) => new Date(getNextCheck(a)).getTime() - new Date(getNextCheck(b)).getTime());
 
   return workingChars;
 }
