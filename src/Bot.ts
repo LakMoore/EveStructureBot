@@ -17,7 +17,7 @@ export const LOW_FUEL_WARNING = 7 * 24 * 60 * 60 * 1000; //7 days
 export const SUPER_LOW_FUEL_WARNING = 2 * 24 * 60 * 60 * 1000; //2 days
 export const STRUCTURE_CHECK_DELAY = 1000 * 60 * 60; // 1 hour
 export const NOTIFICATION_CHECK_DELAY = 1000 * 60 * 10; // 10 mins
-export const NO_ROLE_DELAY = 1000 * 60 * 60 * 24; // 1 day
+export const GET_ROLES_DELAY = 1000 * 60 * 60 * 24; // 1 day
 
 export const colours = {
   green: 0x00ff00,

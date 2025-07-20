@@ -11,7 +11,7 @@ import Koa from "koa";
 import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
 import {
   NOTIFICATION_CHECK_DELAY,
-  NO_ROLE_DELAY,
+  GET_ROLES_DELAY,
   consoleLog,
   data,
   sendMessage,
@@ -145,9 +145,11 @@ export function setup(client: Client) {
                   authToken: info.access_token,
                   tokenExpires: expires,
                   refreshToken: info.refresh_token,
-                  nextStarbaseCheck: new Date(),
-                  nextStructureCheck: new Date(),
-                  nextNotificationCheck: new Date(),
+                  nextStarbaseCheck: new Date(0),
+                  nextStructureCheck: new Date(0),
+                  nextNotificationCheck: new Date(0),
+                  nextRolesCheck: new Date(0),
+                  roles: [],
                   needsReAuth: false,
                 };
 
@@ -287,28 +289,47 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
           // TODO:Let's check all the other corps that are authenticated to see if
           // we can figure out which corp this character is really in.
         }
-      }
-    }
+        else {
+          // let's see if the roles need checking
+          if (!char.nextRolesCheck || new Date(char.nextRolesCheck) < new Date()) {
+            try {
+              consoleLog("checking roles for character:", char.characterName);
+              const roles = await CharacterApiFactory(
+                await getAccessToken(char)
+              ).getCharactersCharacterIdRoles(char.characterId);
 
-    if (corp.setDiscordRoles) {
-      const guild = client.guilds.cache.get(corp.serverId);
-      if (guild) {
-        // confirmed membership may have changed
-        // update the roles in Discord
-        await setDiscordRoles(guild, corpMember.discordId);
+              if (roles.roles) {
+                char.roles = roles.roles;
+                char.nextRolesCheck = new Date(Date.now() + GET_ROLES_DELAY + 5000);
+                await data.save();
+              }
+            } catch (error) {
+              consoleLog("error getting roles for character:", error);
+            }
+          }
+        }
       }
-    }
 
-    // if this member has no characters, remove it
-    if (corpMember.characters.length == 0) {
-      consoleLog("Removing member with no characters: ", corpMember.discordId);
-      var index = corp.members.findIndex(
-        (ac) => ac.discordId == corpMember.discordId && ac.characters.length == 0
-      );
-      if (index > -1) {
-        corp.members.splice(index, 1);
+      if (corp.setDiscordRoles) {
+        const guild = client.guilds.cache.get(corp.serverId);
+        if (guild) {
+          // confirmed membership may have changed
+          // update the roles in Discord
+          await setDiscordRoles(guild, corpMember.discordId);
+        }
       }
-      await data.save();
+
+      // if this member has no characters, remove it
+      if (corpMember.characters.length == 0) {
+        consoleLog("Removing member with no characters: ", corpMember.discordId);
+        var index = corp.members.findIndex(
+          (ac) => ac.discordId == corpMember.discordId && ac.characters.length == 0
+        );
+        if (index > -1) {
+          corp.members.splice(index, 1);
+        }
+        await data.save();
+      }
     }
   }
 
@@ -421,29 +442,40 @@ export async function checkNotificationsForCorp(
 
   consoleLog("Status", "\n" + status);
 
-  const result = await getConfig(
-    Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
+  // POS notifications are only sent to Directors so checking other roles actually slows down POS checks
+  const workingChars = getWorkingChars(
+    corp,
     corp.nextNotificationCheck,
-    NOTIFICATION_CHECK_DELAY,
     (c) => c.nextNotificationCheck,
-    (c, next) => (c.nextNotificationCheck = next),
-    "notifications",
-    undefined
+    GetCharactersCharacterIdRolesOk.RolesEnum.Director
   );
 
-  if (!result || !result.config || !result.config.accessToken) {
+  if (!workingChars || workingChars.length == 0) {
+    consoleLog("No available characters to check notifications with!");
     return;
   }
 
-  const { config, workingChars, thisChar } = result;
+  const thisChar = workingChars[0];
 
-  corp.nextNotificationCheck = new Date(
-    Date.now() + NOTIFICATION_CHECK_DELAY / workingChars.length + 10000
-  );
+  if (!thisChar || new Date(thisChar.nextNotificationCheck) > new Date()) {
+    consoleLog("Only available character to check notifications with is not ready!");
+    return;
+  }
+
+  const config = await getAccessToken(thisChar);
+  if (!config) {
+    consoleLog("No access token for character " + thisChar.characterName);
+    return;
+  }
 
   const notifications = await CharacterApiFactory(
     config
   ).getCharactersCharacterIdNotifications(thisChar.characterId);
+
+  // mark this character so we don't use it to check again too soon
+  const nextCheck = Date.now() + (NOTIFICATION_CHECK_DELAY / workingChars.length) + 3000;
+  thisChar.nextNotificationCheck = new Date(nextCheck);
+  corp.nextNotificationCheck = new Date(nextCheck);
 
   // consoleLog("notifications", notifications);
 
@@ -502,79 +534,29 @@ export async function processNotifications(
   return mostRecentNotification;
 }
 
-async function findAsyncSequential<T>(
-  array: T[],
-  predicate: (t: T) => Promise<boolean>
-): Promise<T | undefined> {
-  for (const t of array) {
-    if (await predicate(t)) {
-      return t;
-    }
-  }
-  return undefined;
-}
-
-export async function getConfig(
-  chars: AuthenticatedCharacter[],
+export function getWorkingChars(
+  corp: AuthenticatedCorp,
   nextCheck: Date,
-  checkDelay: number,
   getNextCheck: (c: AuthenticatedCharacter) => Date,
-  setNextCheck: (c: AuthenticatedCharacter, next: Date) => void,
-  checkType: string,
   requiredRole: GetCharactersCharacterIdRolesOk.RolesEnum | undefined
 ) {
   if (new Date(nextCheck) > new Date()) {
     // checking this record too soon!
-    return;
+    return [];
   }
 
   // find all the chars that are currently authenticated
-  // and will be available to use within the checking period
-  const workingChars = chars.filter(
-    (c) =>
-      !c.needsReAuth &&
-      new Date(getNextCheck(c)) < new Date(Date.now() + checkDelay)
-  );
+  const workingChars = corp.members.flatMap((m) => m.characters)
+    .filter((c) =>
+      !c.needsReAuth
+      && (requiredRole == undefined || c.roles?.includes(requiredRole))
+    )
+    .sort((a, b) => getNextCheck(a).getTime() - getNextCheck(b).getTime());
 
-  // get the first authorised char that is able to make a fresh call to ESI
-  // and has any required roles
-  const thisChar = await findAsyncSequential(workingChars, async (c) => {
-    if (new Date(getNextCheck(c)) < new Date()) {
-      if (requiredRole) {
-        consoleLog("checking role", requiredRole);
-        const roles = await CharacterApiFactory(
-          await getAccessToken(c)
-        ).getCharactersCharacterIdRoles(c.characterId);
-
-        if (!roles.roles || !roles.roles.includes(requiredRole)) {
-          // This character does not have the required role
-          consoleLog("no role", requiredRole);
-
-          // mark this character so we don't use it to check this again today!
-          setNextCheck(c, new Date(Date.now() + NO_ROLE_DELAY + 5000));
-
-          return false;
-        }
-      }
-      return true;
-    }
-    return false;
-  });
-
-  if (!thisChar) {
-    consoleLog(`No available character to check ${checkType} with!`);
-    return;
-  }
-
-  const config = await getAccessToken(thisChar);
-
-  // mark this character so we don't use it to check again too soon
-  setNextCheck(thisChar, new Date(Date.now() + checkDelay + 1000));
-
-  return { config, workingChars, thisChar };
+  return workingChars;
 }
 
-async function getAccessToken(thisChar: AuthenticatedCharacter) {
+export async function getAccessToken(thisChar: AuthenticatedCharacter) {
   const config = new Configuration();
 
   try {
@@ -585,10 +567,9 @@ async function getAccessToken(thisChar: AuthenticatedCharacter) {
       thisChar.authToken = response.access_token;
       thisChar.refreshToken = response.refresh_token;
       thisChar.tokenExpires = getExpires(response.expires_in);
+      consoleLog("token refreshed");
     }
-
     config.accessToken = thisChar.authToken;
-    consoleLog("token refreshed");
   } catch (error) {
     if (error instanceof HTTPFetchError) {
       consoleLog(

@@ -16,7 +16,7 @@ import {
   STRUCTURE_CHECK_DELAY,
 } from "./Bot";
 import { AuthenticatedCorp } from "./data/data";
-import { getConfig } from "./EveSSO";
+import { getWorkingChars, getAccessToken } from "./EveSSO";
 
 export async function checkStarbasesForCorp(
   corp: AuthenticatedCorp,
@@ -24,25 +24,37 @@ export async function checkStarbasesForCorp(
 ) {
   consoleLog("checkStarbasesForCorp ", corp.corpName);
 
-  const result = await getConfig(
-    Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
+  const workingChars = getWorkingChars(
+    corp,
     corp.nextStarbaseCheck,
-    STRUCTURE_CHECK_DELAY,
     (c) => c.nextStarbaseCheck,
-    (c, next) => (c.nextStarbaseCheck = next),
-    "starbases",
     GetCharactersCharacterIdRolesOk.RolesEnum.Director
   );
 
-  if (!result || !result.config || !result.config.accessToken) {
+  if (!workingChars || workingChars.length == 0) {
+    consoleLog("No available characters to check starbases with!");
     return;
   }
 
-  const { config, workingChars, thisChar } = result;
+  const thisChar = workingChars[0];
+
+  if (!thisChar || new Date(thisChar.nextStarbaseCheck) > new Date()) {
+    consoleLog("Only available character to check starbases with is not ready!");
+    return;
+  }
+
+  const config = await getAccessToken(thisChar);
+  if (!config) {
+    consoleLog("No access token for character " + thisChar.characterName);
+    return;
+  }
 
   const starbases = await CorporationApiFactory(
     config
   ).getCorporationsCorporationIdStarbases(corp.corpId);
+
+  const nextCheck = Date.now() + (STRUCTURE_CHECK_DELAY / workingChars.length) + 3000;
+  thisChar.nextStarbaseCheck = new Date(nextCheck);
 
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
@@ -54,9 +66,7 @@ export async function checkStarbasesForCorp(
     characters: undefined,
     starbases: starbases,
     structures: corp.structures,
-    nextStarbaseCheck: new Date(
-      Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 10000
-    ),
+    nextStarbaseCheck: new Date(nextCheck),
     nextStructureCheck: corp.nextStructureCheck,
     nextNotificationCheck: corp.nextNotificationCheck,
     mostRecentNotification: corp.mostRecentNotification,

@@ -15,7 +15,7 @@ import {
   colours,
   sendMessage,
 } from "./Bot";
-import { getConfig } from "./EveSSO";
+import { getAccessToken, getWorkingChars } from "./EveSSO";
 import { AuthenticatedCorp } from "./data/data";
 
 export async function checkStructuresForCorp(
@@ -24,25 +24,37 @@ export async function checkStructuresForCorp(
 ) {
   consoleLog("checkStructuresForCorp ", corp.corpName);
 
-  const result = await getConfig(
-    Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
+  const workingChars = getWorkingChars(
+    corp,
     corp.nextStructureCheck,
-    STRUCTURE_CHECK_DELAY,
     (c) => c.nextStructureCheck,
-    (c, next) => (c.nextStructureCheck = next),
-    "structures",
     GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
   );
 
-  if (!result || !result.config || !result.config.accessToken) {
+  if (!workingChars || workingChars.length == 0) {
+    consoleLog("No available characters to check structures with!");
     return;
   }
 
-  const { config, workingChars, thisChar } = result;
+  const thisChar = workingChars[0];
+
+  if (!thisChar || new Date(thisChar.nextStructureCheck) > new Date()) {
+    consoleLog("Only available character to check structures with is not ready!");
+    return;
+  }
+
+  const config = await getAccessToken(thisChar);
+  if (!config) {
+    consoleLog("No access token for character " + thisChar.characterName);
+    return;
+  }
 
   const structures = await CorporationApiFactory(
     config
   ).getCorporationsCorporationIdStructures(corp.corpId);
+
+  const nextCheck = Date.now() + (STRUCTURE_CHECK_DELAY / workingChars.length) + 3000;
+  thisChar.nextStructureCheck = new Date(nextCheck);
 
   //consoleLog("structs", structures);
 
@@ -57,9 +69,7 @@ export async function checkStructuresForCorp(
     starbases: corp.starbases,
     structures: structures,
     nextStarbaseCheck: corp.nextStarbaseCheck,
-    nextStructureCheck: new Date(
-      Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 10000
-    ),
+    nextStructureCheck: new Date(nextCheck),
     nextNotificationCheck: corp.nextNotificationCheck,
     mostRecentNotification: corp.mostRecentNotification,
     setDiscordRoles: corp.setDiscordRoles,

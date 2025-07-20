@@ -39,12 +39,15 @@ async function startPolling(client: Client) {
         // Use Corp members list rather than player's corp
         await checkMembership(client, thisCorp);
 
-        if (thisCorp) {
-          await checkStructuresForCorp(thisCorp, client);
-          await checkStarbasesForCorp(thisCorp, client);
+        if (thisCorp.members.length == 0) {
+          continue;
         }
+
         const updatedCorp = data.authenticatedCorps[corpIndex];
+
         if (updatedCorp) {
+          await checkStructuresForCorp(updatedCorp, client);
+          await checkStarbasesForCorp(updatedCorp, client);
           await checkNotificationsForCorp(updatedCorp, client);
         }
 

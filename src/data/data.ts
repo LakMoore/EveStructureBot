@@ -1,4 +1,5 @@
 import {
+  GetCharactersCharacterIdRolesOk,
   GetCorporationsCorporationIdStarbases200Ok,
   GetCorporationsCorporationIdStructures200Ok,
 } from "eve-client-ts";
@@ -7,6 +8,7 @@ import { consoleLog, delay } from "../Bot";
 import { TextChannel } from "discord.js";
 
 export interface AuthenticatedCharacter {
+  roles: Array<GetCharactersCharacterIdRolesOk.RolesEnum>;
   discordId: string;
   characterId: number;
   characterName: string;
@@ -17,6 +19,7 @@ export interface AuthenticatedCharacter {
   nextStructureCheck: Date;
   nextStarbaseCheck: Date;
   nextNotificationCheck: Date;
+  nextRolesCheck: Date;
   needsReAuth: boolean;
 }
 
