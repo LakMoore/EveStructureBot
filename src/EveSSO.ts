@@ -421,7 +421,7 @@ export async function checkNotificationsForCorp(
     config
   ).getCharactersCharacterIdNotifications(thisChar.characterId);
 
-  consoleLog("notifications", notifications);
+  // consoleLog("notifications", notifications);
 
   // // save the notification to a temporary file
   // const fs = require("fs");
