@@ -298,12 +298,25 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
         await setDiscordRoles(guild, corpMember.discordId);
       }
     }
+
+    // if this member has no characters, remove it
+    if (corpMember.characters.length == 0) {
+      consoleLog("Removing member with no characters: ", corpMember.discordId);
+      var index = corp.members.findIndex(
+        (ac) => ac.discordId == corpMember.discordId && ac.characters.length == 0
+      );
+      if (index > -1) {
+        corp.members.splice(index, 1);
+      }
+      await data.save();
+    }
   }
 
-  // if this corp has no authenticated chars, remove it
+  // if this corp has no members, remove it
   if (corp.members.length == 0) {
+    consoleLog("Removing corp with no members: ", corp.corpName);
     var index = data.authenticatedCorps.findIndex(
-      (ac) => ac.corpId == corp.corpId
+      (ac) => ac.corpId == corp.corpId && ac.members.length == 0
     );
     if (index > -1) {
       data.authenticatedCorps.splice(index, 1);
