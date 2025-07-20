@@ -26,8 +26,8 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
     value: authed,
   });
 
-  const directors = chars.filter((c) => c.roles.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director));
-  const stationManagers = chars.filter((c) => c.roles.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager));
+  const directors = chars.filter((c) => c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director));
+  const stationManagers = chars.filter((c) => c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager));
   const notificationTime = Math.round(NOTIFICATION_CHECK_DELAY / (6000 * directors.length)) / 10;
   const structureTime = Math.round(STRUCTURE_CHECK_DELAY / (6000 * stationManagers.length)) / 10;
   const posTime = Math.round(STRUCTURE_CHECK_DELAY / (6000 * directors.length)) / 10;
