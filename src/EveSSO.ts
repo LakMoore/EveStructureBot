@@ -386,6 +386,17 @@ export async function checkNotificationsForCorp(
 ) {
   consoleLog("checkNotificationsForCorp ", corp.corpName);
 
+  var status = corp.members.flatMap((m) => m.characters)
+    .sort((a, b) => new Date(a.nextNotificationCheck).getTime() - new Date(b.nextNotificationCheck).getTime())
+    .map((c) =>
+      c.characterName
+      + " in " + (new Date(c.nextNotificationCheck).getTime() - Date.now()) / 1000 + " seconds"
+    )
+
+    .join("\n");
+
+  consoleLog("Status", status);
+
   const result = await getConfig(
     Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
     corp.nextNotificationCheck,
