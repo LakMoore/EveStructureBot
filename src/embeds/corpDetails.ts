@@ -9,6 +9,8 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
   );
   const chars = allChars.filter((c) => !c.needsReAuth);
   const needReauth = allChars.filter((c) => c.needsReAuth);
+  const directors = chars.filter((c) => c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director));
+  const stationManagers = chars.filter((c) => c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager));
 
   const fields = [];
 
@@ -17,7 +19,7 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
 
   if (chars.length > 0) {
     for (const c of chars) {
-      authed += `\n${c.characterName}`;
+      authed += `\n${c.characterName}${directors.includes(c) ? " (Director)" : stationManagers.includes(c) ? " (Station Manager)" : ""}`;
     }
   }
 
@@ -26,8 +28,6 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
     value: authed,
   });
 
-  const directors = chars.filter((c) => c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director));
-  const stationManagers = chars.filter((c) => c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager));
   const notificationTime = Math.round(NOTIFICATION_CHECK_DELAY / (6000 * directors.length)) / 10;
   const structureTime = Math.round(STRUCTURE_CHECK_DELAY / (6000 * stationManagers.length)) / 10;
   const posTime = Math.round(STRUCTURE_CHECK_DELAY / (6000 * directors.length)) / 10;
