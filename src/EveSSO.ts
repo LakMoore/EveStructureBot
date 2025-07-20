@@ -299,6 +299,17 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
       }
     }
   }
+
+  // if this corp has no authenticated chars, remove it
+  if (corp.members.length == 0) {
+    var index = data.authenticatedCorps.findIndex(
+      (ac) => ac.corpId == corp.corpId
+    );
+    if (index > -1) {
+      data.authenticatedCorps.splice(index, 1);
+    }
+    await data.save();
+  }
 }
 
 async function setDiscordRoles(guild: Guild, userId: string) {

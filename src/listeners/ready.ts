@@ -5,7 +5,7 @@ import { checkMembership, checkNotificationsForCorp } from "../EveSSO";
 import { checkStarbasesForCorp } from "../starbases";
 import { checkStructuresForCorp } from "../structures";
 
-const POLL_ATTEMPT_DELAY = 5000;
+const POLL_ATTEMPT_DELAY = 2000;
 let corpIndex = 0;
 
 export default (client: Client): void => {
