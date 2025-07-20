@@ -395,7 +395,7 @@ export async function checkNotificationsForCorp(
 
     .join("\n");
 
-  consoleLog("Status", status);
+  consoleLog("Status", "\n" + status);
 
   const result = await getConfig(
     Array.prototype.concat(corp.members.flatMap((m) => m.characters)),
