@@ -66,9 +66,9 @@ export async function checkNotificationsForCorp(
         corp.mostRecentNotification = newDate;
 
         await data.save();
-    } catch (error) {
+    } catch (error: any) {
         // if 401 Unauthorized then mark this character as needing reauth
-        if (error instanceof HTTPError && error.status === 401) {
+        if (error.status === 401) {
             thisChar.needsReAuth = true;
             await data.save();
             consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
