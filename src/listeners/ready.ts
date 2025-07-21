@@ -1,7 +1,8 @@
 import { Client } from "discord.js";
 import { Commands } from "../Commands";
 import { consoleLog, data, delay } from "../Bot";
-import { checkMembership, checkNotificationsForCorp } from "../EveSSO";
+import { checkMembership } from "../EveSSO";
+import { checkNotificationsForCorp } from "../notifications";
 import { checkStarbasesForCorp } from "../starbases";
 import { checkStructuresForCorp } from "../structures";
 
@@ -39,6 +40,7 @@ async function startPolling(client: Client) {
         // Use Corp members list rather than player's corp
         await checkMembership(client, thisCorp);
 
+        // checkMembership could delete the corp if it has no members!!
         if (thisCorp.members.length == 0) {
           continue;
         }

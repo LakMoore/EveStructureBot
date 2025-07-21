@@ -28,7 +28,7 @@ export const DebugReprocess: Command = {
 
     if (channel?.isTextBased()) {
       const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelId == channel.id
+        (ac) => ac.channelIds.includes(channel.id)
       );
 
       let newDate = new Date(0);

@@ -31,7 +31,7 @@ export const Refuel: Command = {
 
     if (channel?.isTextBased()) {
       const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelId == channel.id
+        (ac) => ac.channelIds.includes(channel.id)
       );
 
       const systems = await Promise.all(
@@ -75,7 +75,7 @@ export const Refuel: Command = {
 
     if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelId == channel.id
+        (ac) => ac.channelIds.includes(channel.id)
       );
 
       const structures = channelCorps

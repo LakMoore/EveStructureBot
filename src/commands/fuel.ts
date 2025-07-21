@@ -32,7 +32,7 @@ export const Fuel: Command = {
 
     if (channel?.isTextBased()) {
       const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelId == channel.id
+        (ac) => ac.channelIds.includes(channel.id)
       );
 
       const choices = channelCorps
@@ -67,7 +67,7 @@ export const Fuel: Command = {
 
     if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelId == channel.id
+        (ac) => ac.channelIds.includes(channel.id)
       );
 
       const result = channelCorps

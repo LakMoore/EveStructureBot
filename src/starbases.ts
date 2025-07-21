@@ -39,7 +39,7 @@ export async function checkStarbasesForCorp(
   const thisChar = workingChars[0];
 
   if (!thisChar || new Date(thisChar.nextStarbaseCheck) > new Date()) {
-    consoleLog("Only available character to check starbases with is not ready!");
+    consoleLog(thisChar.characterName + " is not ready to check starbases!");
     return;
   }
 
@@ -48,6 +48,8 @@ export async function checkStarbasesForCorp(
     consoleLog("No access token for character " + thisChar.characterName);
     return;
   }
+
+  consoleLog("Using " + thisChar.characterName);
 
   const starbases = await CorporationApiFactory(
     config
@@ -59,7 +61,8 @@ export async function checkStarbasesForCorp(
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
     serverId: corp.serverId,
-    channelId: corp.channelId,
+    channelId: undefined,
+    channelIds: corp.channelIds,
     corpId: corp.corpId,
     corpName: corp.corpName,
     members: corp.members,
@@ -81,123 +84,137 @@ async function checkForStarbaseChangeAndPersist(
   client: Client<boolean>,
   corp: AuthenticatedCorp
 ) {
-  let message = "";
-
   // find the user in our persisted storage
   const idx = data.authenticatedCorps.findIndex((thisCorp) => {
     return (
-      thisCorp.channelId == corp.channelId && thisCorp.corpId == corp.corpId
+      thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId
     );
   });
 
-  const channel = client.channels.cache.get(corp.channelId);
-  if (channel instanceof TextChannel) {
-    if (idx > -1) {
-      // seen this before, check each starbase for changes.
-      const oldCorp = data.authenticatedCorps[idx];
+  if (idx > -1) {
+    // seen this before, check each starbase for changes.
+    const oldCorp = data.authenticatedCorps[idx];
 
-      // check for new starbase
-      const addedStarbase = corp.starbases.filter(
-        (s1) =>
-          !oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
-      );
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
 
-      for (const s of addedStarbase) {
-        await sendMessage(
-          channel,
-          {
-            embeds: [await generateNewStarbaseEmbed(s, corp)],
-          },
-          "removed starbase"
-        );
-      }
+        var channelConfig = data.channelFor(channel);
+        let message = "";
+        let fuelMessage = false;
+        let statusMessage = false;
 
-      // check for removed starbases
-      const removedStarbases = oldCorp.starbases.filter(
-        (s1) => !corp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
-      );
+        if (channelConfig.starbaseStatus) {
 
-      // max embeds per message is 10
-      for (const s of removedStarbases) {
-        await sendMessage(
-          channel,
-          {
-            embeds: [await generateDeletedStarbasesEmbed(s, corp)],
-          },
-          "removed starbase"
-        );
-      }
+          // check for new starbase
+          const addedStarbase = corp.starbases.filter(
+            (s1) =>
+              !oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+          );
 
-      const matchingStarbases = corp.starbases.filter((s1) =>
-        oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
-      );
-      for (const s of matchingStarbases) {
-        const oldStarbase = oldCorp.starbases.find(
-          (o) => o.starbase_id === s.starbase_id
-        );
-        if (oldStarbase) {
-          let thisMessage = "";
-          // check for starbase status changes
-          if (s.state != oldStarbase?.state) {
-            thisMessage += `\nStatus has changed from ${oldStarbase.state} to ${s.state}`;
-          }
-          if (s.reinforced_until !== oldStarbase.reinforced_until) {
-            if (s.reinforced_until) {
-              thisMessage += `\nStarbase has a reinforcement timer that ends ${getRelativeDiscordTime(
-                s.reinforced_until
-              )}`;
-            } else {
-              thisMessage += `\nStarbase reinforcement timer has reset`;
-            }
-          }
-          if (s.unanchor_at !== oldStarbase.unanchor_at) {
-            if (s.unanchor_at) {
-              thisMessage += `\nStarbase has an unanchor timer that started ${getRelativeDiscordTime(
-                s.unanchor_at
-              )}`;
-            } else {
-              thisMessage += `\nStarbase unanchor timer has reset`;
-            }
+          for (const s of addedStarbase) {
+            await sendMessage(
+              channel,
+              {
+                embeds: [await generateNewStarbaseEmbed(s, corp)],
+              },
+              "added starbase"
+            );
           }
 
-          const starbaseName = await getStarbaseName(s.system_id, s.moon_id);
+          // check for removed starbases
+          const removedStarbases = oldCorp.starbases.filter(
+            (s1) => !corp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+          );
 
-          if (thisMessage.length > 0) {
-            thisMessage = `ALERT on Starbase ${starbaseName}` + thisMessage;
-          }
-
-          if (thisMessage.length > 0) {
-            message += thisMessage + "\n\n";
+          // max embeds per message is 10
+          for (const s of removedStarbases) {
+            await sendMessage(
+              channel,
+              {
+                embeds: [await generateDeletedStarbasesEmbed(s, corp)],
+              },
+              "removed starbase"
+            );
           }
         }
-      }
 
-      // replace the data in storage
-      data.authenticatedCorps[idx] = corp;
-    } else {
-      // tracking new starbases!
-
-      // send individually to avoid max embed per message limit (10)
-      for (const s of corp.starbases) {
-        await sendMessage(
-          channel,
-          {
-            embeds: [await generateNewStarbaseEmbed(s, corp)],
-          },
-          "New Starbase"
+        const matchingStarbases = corp.starbases.filter((s1) =>
+          oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
         );
+        for (const s of matchingStarbases) {
+          const oldStarbase = oldCorp.starbases.find(
+            (o) => o.starbase_id === s.starbase_id
+          );
+          if (oldStarbase) {
+            let thisMessage = "";
+            // check for starbase status changes
+            if (s.state != oldStarbase?.state) {
+              thisMessage += `\nStatus has changed from ${oldStarbase.state} to ${s.state}`;
+            }
+            if (s.reinforced_until !== oldStarbase.reinforced_until) {
+              if (s.reinforced_until) {
+                thisMessage += `\nStarbase has a reinforcement timer that ends ${getRelativeDiscordTime(
+                  s.reinforced_until
+                )}`;
+              } else {
+                thisMessage += `\nStarbase reinforcement timer has reset`;
+              }
+            }
+            if (s.unanchor_at !== oldStarbase.unanchor_at) {
+              if (s.unanchor_at) {
+                thisMessage += `\nStarbase has an unanchor timer that started ${getRelativeDiscordTime(
+                  s.unanchor_at
+                )}`;
+              } else {
+                thisMessage += `\nStarbase unanchor timer has reset`;
+              }
+            }
+
+            const starbaseName = await getStarbaseName(s.system_id, s.moon_id);
+
+            if (thisMessage.length > 0) {
+              thisMessage = `ALERT on Starbase ${starbaseName}` + thisMessage;
+            }
+
+            if (thisMessage.length > 0) {
+              message += thisMessage + "\n\n";
+            }
+          }
+        }
+
+        if (message.length > 0) {
+          await sendMessage(channel, message, "Starbases");
+        }
       }
-
-      // add the data to storage
-      data.authenticatedCorps.push(corp);
     }
 
-    if (message.length > 0) {
-      await sendMessage(channel, message, "Starbases");
-    }
+    // replace the data in storage
+    data.authenticatedCorps[idx] = corp;
+  } else {
+    // tracking new starbases!
 
-    await data.save();
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        // send individually to avoid max embed per message limit (10)
+        for (const s of corp.starbases) {
+          await sendMessage(
+            channel,
+            {
+              embeds: [await generateNewStarbaseEmbed(s, corp)],
+            },
+            "New Starbase"
+          );
+        }
+
+        // add the data to storage
+        data.authenticatedCorps.push(corp);
+      }
+    }
   }
+
+  await data.save();
 }
 
 async function generateNewStarbaseEmbed(

@@ -1,7 +1,7 @@
 import { CommandInteraction, Client, TextChannel } from "discord.js";
 import { Command } from "../Command";
 import { data, sendMessage } from "../Bot";
-import { processNotifications } from "../EveSSO";
+import { processNotifications } from "../notifications";
 
 export const Test: Command = {
   name: "test",

@@ -488,42 +488,45 @@ async function handleStructureNotification(
   miningUpdatesMessage: boolean,
 ) {
   try {
-    const channel = client.channels.cache.get(corp.channelId);
-    if (channel instanceof TextChannel) {
-      const structId = getStructureIdFromGenericNotificationText(note.text);
-      const thisStruct = corp.structures.find(
-        (struct) => struct.structure_id === structId
-      );
+    const structId = getStructureIdFromGenericNotificationText(note.text);
+    const thisStruct = corp.structures.find(
+      (struct) => struct.structure_id === structId
+    );
 
-      const thisChannel = data.channelFor(channel);
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
 
-      if (
-        (structureStateMessage && thisChannel.structureStatus)
-        || (structureFuelMessage && thisChannel.structureFuel)
-        || (miningUpdatesMessage && thisChannel.miningUpdates)
-      ) {
-        let content;
-        const role = role_to_mention(thisChannel);
-        if (role) {
-          content = `<@&${role}>`;
+        const thisChannel = data.channelFor(channel);
+
+        if (
+          (structureStateMessage && thisChannel.structureStatus)
+          || (structureFuelMessage && thisChannel.structureFuel)
+          || (miningUpdatesMessage && thisChannel.miningUpdates)
+        ) {
+          let content;
+          const role = role_to_mention(thisChannel);
+          if (role) {
+            content = `<@&${role}>`;
+          }
+
+          await sendMessage(
+            channel,
+            {
+              content,
+              embeds: [
+                generateStructureNotificationEmbed(
+                  colour,
+                  message,
+                  note.timestamp,
+                  thisStruct,
+                  corp.corpName
+                ),
+              ],
+            },
+            `Structure Notification: ${message}`
+          );
         }
-
-        await sendMessage(
-          channel,
-          {
-            content,
-            embeds: [
-              generateStructureNotificationEmbed(
-                colour,
-                message,
-                note.timestamp,
-                thisStruct,
-                corp.corpName
-              ),
-            ],
-          },
-          `Structure Notification: ${message}`
-        );
       }
     }
   } catch (error) {
@@ -546,71 +549,73 @@ async function handleTowerNotification(
   miningUpdatesMessage: boolean,
 ) {
   try {
-    const channel = client.channels.cache.get(corp.channelId);
-    if (channel instanceof TextChannel) {
-      const details = getTowerDetailsFromNotificationText(note.text);
+    const details = getTowerDetailsFromNotificationText(note.text);
 
-      const starbaseName = await getStarbaseName(
-        details.system_id,
-        details.moon_id
-      );
+    const starbaseName = await getStarbaseName(
+      details.system_id,
+      details.moon_id
+    );
 
-      let builtMessage = message;
-      let fuelMessage = false;
-      let statusMessage = false;
+    let builtMessage = message;
+    let fuelMessage = false;
+    let statusMessage = false;
 
-      if (details.quantity && details.type_id) {
-        // POS wants something
-        const itemName = await getItemName(details.type_id);
-        builtMessage += `\n${details.quantity} ${itemName}${details.quantity === 1 ? "" : "s"
-          } remain${details.quantity === 1 ? "s" : ""}`;
-        fuelMessage = true;
-      }
+    if (details.quantity && details.type_id) {
+      // POS wants something
+      const itemName = await getItemName(details.type_id);
+      builtMessage += `\n${details.quantity} ${itemName}${details.quantity === 1 ? "" : "s"
+        } remain${details.quantity === 1 ? "s" : ""}`;
+      fuelMessage = true;
+    }
 
-      if (details.aggressor_id) {
-        // POS under attack
-        const corpName = await getCorpName(details.aggressor_corp_id);
-        const aggressorName = await getCharacterName(details.aggressor_id);
-        builtMessage +=
-          `\nUnder attack by [${aggressorName}](https://zkillboard.com/character/${details.aggressor_id}/) ([${corpName}](https://zkillboard.com/corporation/${details.aggressor_corp_id}/))\n` +
-          `Shields: ${formatNumberToPercent1DP(details.shield_value)}\n` +
-          `Armor: ${formatNumberToPercent1DP(details.armor_value)}\n` +
-          `Hull: ${formatNumberToPercent1DP(details.hull_value)}\n`;
-        statusMessage = true;
-      }
+    if (details.aggressor_id) {
+      // POS under attack
+      const corpName = await getCorpName(details.aggressor_corp_id);
+      const aggressorName = await getCharacterName(details.aggressor_id);
+      builtMessage +=
+        `\nUnder attack by [${aggressorName}](https://zkillboard.com/character/${details.aggressor_id}/) ([${corpName}](https://zkillboard.com/corporation/${details.aggressor_corp_id}/))\n` +
+        `Shields: ${formatNumberToPercent1DP(details.shield_value)}\n` +
+        `Armor: ${formatNumberToPercent1DP(details.armor_value)}\n` +
+        `Hull: ${formatNumberToPercent1DP(details.hull_value)}\n`;
+      statusMessage = true;
+    }
 
-      consoleLog("note", note);
-      consoleLog("details", details);
+    consoleLog("note", note);
+    consoleLog("details", details);
 
-      const thisChannel = data.channelFor(channel);
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
 
-      if (
-        (thisChannel.starbaseFuel && fuelMessage)
-        || (thisChannel.starbaseStatus && statusMessage)
-      ) {
-        let content;
-        const role = role_to_mention(thisChannel);
-        if (role) {
-          content = `<@&${role}>`;
+        if (
+          (thisChannel.starbaseFuel && fuelMessage)
+          || (thisChannel.starbaseStatus && statusMessage)
+        ) {
+          let content;
+          const role = role_to_mention(thisChannel);
+          if (role) {
+            content = `<@&${role}>`;
+          }
+
+          await sendMessage(
+            channel,
+            {
+              content,
+              embeds: [
+                generateStarbaseNotificationEmbed(
+                  colour,
+                  builtMessage,
+                  note.timestamp,
+                  starbaseName,
+                  corp.corpName,
+                  details.starbase_type_id
+                ),
+              ],
+            },
+            `Structure Notification: ${builtMessage}`
+          );
         }
-
-        await sendMessage(
-          channel,
-          {
-            content,
-            embeds: [
-              generateStarbaseNotificationEmbed(
-                colour,
-                builtMessage,
-                note.timestamp,
-                starbaseName,
-                corp.corpName,
-                details.starbase_type_id
-              ),
-            ],
-          },
-          `Structure Notification: ${builtMessage}`
-        );
       }
     }
   } catch (error) {

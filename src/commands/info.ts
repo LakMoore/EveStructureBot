@@ -19,7 +19,7 @@ export const Info: Command = {
 
     if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelId == channel.id
+        (ac) => ac.channelIds.includes(channel.id)
       );
 
       for (const corp of channelCorps) {

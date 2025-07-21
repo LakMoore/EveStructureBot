@@ -39,7 +39,7 @@ export async function checkStructuresForCorp(
   const thisChar = workingChars[0];
 
   if (!thisChar || new Date(thisChar.nextStructureCheck) > new Date()) {
-    consoleLog("Only available character to check structures with is not ready!");
+    consoleLog(thisChar.characterName + " is not ready to check structures!");
     return;
   }
 
@@ -48,6 +48,8 @@ export async function checkStructuresForCorp(
     consoleLog("No access token for character " + thisChar.characterName);
     return;
   }
+
+  consoleLog("Using " + thisChar.characterName);
 
   const structures = await CorporationApiFactory(
     config
@@ -61,7 +63,8 @@ export async function checkStructuresForCorp(
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
     serverId: corp.serverId,
-    channelId: corp.channelId,
+    channelId: undefined,
+    channelIds: corp.channelIds,
     corpId: corp.corpId,
     corpName: corp.corpName,
     members: corp.members,
@@ -83,187 +86,197 @@ async function checkForStructureChangeAndPersist(
   client: Client<boolean>,
   corp: AuthenticatedCorp
 ) {
-  let message = "";
 
   // find the user in our persisted storage
   const idx = data.authenticatedCorps.findIndex((thisCorp) => {
     return (
-      thisCorp.channelId == corp.channelId && thisCorp.corpId == corp.corpId
+      thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId
     );
   });
 
-  const channel = client.channels.cache.get(corp.channelId);
-  if (channel instanceof TextChannel) {
-    var channelConfig = data.channelFor(channel);
-    let fuelMessage = false;
-    let statusMessage = false;
+  if (idx > -1) {
+    // seen this before, check each structure for changes.
+    const oldCorp = data.authenticatedCorps[idx];
 
-    if (idx > -1) {
-      // seen this before, check each structure for changes.
-      const oldCorp = data.authenticatedCorps[idx];
+    // check for new structures
+    const addedStructs = corp.structures.filter(
+      (s1) =>
+        !oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
+    );
 
-      // check for new structures
-      const addedStructs = corp.structures.filter(
-        (s1) =>
-          !oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
-      );
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        var channelConfig = data.channelFor(channel);
+        let message = "";
+        let fuelMessage = false;
+        let statusMessage = false;
 
-      if (channelConfig.structureStatus) {
-        for (const s of addedStructs) {
-          await sendMessage(
-            channel,
-            { embeds: [generateNewStructureEmbed(s)] },
-            "new structure"
-          );
+        if (channelConfig.structureStatus) {
+          for (const s of addedStructs) {
+            await sendMessage(
+              channel,
+              { embeds: [generateNewStructureEmbed(s)] },
+              "new structure"
+            );
+          }
         }
-      }
 
-      // check for removed structures
-      const removedStructs = oldCorp.structures.filter(
-        (s1) =>
-          !corp.structures.some((s2) => s1.structure_id === s2.structure_id)
-      );
 
-      if (channelConfig.structureStatus) {
-        // max embeds per message is 10
-        for (const s of removedStructs) {
-          await sendMessage(
-            channel,
-            {
-              embeds: [generateDeletedStructureEmbed(s)],
-            },
-            "deleted structure"
-          );
-        }
-      }
-
-      const matchingStructs = corp.structures.filter((s1) =>
-        oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
-      );
-      for (const s of matchingStructs) {
-        const oldStruct = oldCorp.structures.find(
-          (o) => o.structure_id === s.structure_id
+        // check for removed structures
+        const removedStructs = oldCorp.structures.filter(
+          (s1) =>
+            !corp.structures.some((s2) => s1.structure_id === s2.structure_id)
         );
-        if (oldStruct) {
-          let thisMessage = "";
-          // check for structure status changes
-          if (s.state != oldStruct?.state) {
-            thisMessage += `\nStatus has changed from ${formatState(
-              oldStruct.state
-            )} to ${formatState(s.state)}`;
-            statusMessage = true;
-          }
-          if (s.state_timer_end !== oldStruct.state_timer_end) {
-            if (s.state_timer_end) {
-              thisMessage += `\nStructure has a timer that ends ${getRelativeDiscordTime(
-                s.state_timer_end
-              )}`;
-            } else {
-              thisMessage += `\nStructure timer has reset`;
-            }
-            statusMessage = true;
-          }
-          // check for change of fuel (up or down!)
-          if (oldStruct.fuel_expires != s.fuel_expires) {
-            if (oldStruct.fuel_expires && s.fuel_expires) {
-              thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
-                oldStruct.fuel_expires
-              )} now expiring ${getRelativeDiscordTime(s.fuel_expires)}`;
-            } else if (oldStruct.fuel_expires) {
-              thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
-                oldStruct.fuel_expires
-              )}. Now has "unknown expiry"`;
-            } else if (s.fuel_expires) {
-              thisMessage += `\nFuel level has changed from "unknown expiry". Now expiring ${getRelativeDiscordTime(
-                s.fuel_expires
-              )}`;
-            }
-            fuelMessage = true;
-          }
 
-          // check for low fuel
-          if (s.fuel_expires != undefined) {
-            const expires = new Date(s.fuel_expires);
-
-            const authedCharCount =
-              Array.prototype
-                .concat(corp.members.flatMap((m) => m.characters))
-                .filter((c) => !c.needsReAuth).length ?? 1;
-
-            if (
-              // fuel expiry is within one check delay of the super low warning
-              expires <= new Date(Date.now() + SUPER_LOW_FUEL_WARNING) &&
-              expires >=
-              new Date(
-                Date.now() +
-                SUPER_LOW_FUEL_WARNING -
-                1000 -
-                NOTIFICATION_CHECK_DELAY / authedCharCount
-              )
-            ) {
-              thisMessage += `\n@hereURGENT: Fuel will be depleated very soon ${getRelativeDiscordTime(
-                expires
-              )}`;
-              fuelMessage = true;
-            } else if (
-              // fuel expiry is within one check delay of the low warning
-              expires <= new Date(Date.now() + LOW_FUEL_WARNING) &&
-              expires >=
-              new Date(
-                Date.now() +
-                LOW_FUEL_WARNING -
-                1000 -
-                NOTIFICATION_CHECK_DELAY / authedCharCount
-              )
-            ) {
-              thisMessage += `\nWarning: Fuel will be depleated ${getRelativeDiscordTime(
-                expires
-              )}`;
-              fuelMessage = true;
-            }
-          }
-
-          if (thisMessage.length > 0) {
-            thisMessage = `ALERT on ${s.name}` + thisMessage;
-          }
-          if (thisMessage.length > 0) {
-            message += thisMessage + "\n\n";
+        if (channelConfig.structureStatus) {
+          // max embeds per message is 10
+          for (const s of removedStructs) {
+            await sendMessage(
+              channel,
+              {
+                embeds: [generateDeletedStructureEmbed(s)],
+              },
+              "deleted structure"
+            );
           }
         }
-      }
 
-      // replace the data in storage
-      data.authenticatedCorps[idx] = corp;
-    } else {
-      // tracking new structures!
-
-      if (channelConfig.structureStatus) {
-        // send individually to avoid max embed per message limit (10)
-        for (const s of corp.structures) {
-          await sendMessage(
-            channel,
-            { embeds: [generateNewStructureEmbed(s)] },
-            "new structure"
+        const matchingStructs = corp.structures.filter((s1) =>
+          oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
+        );
+        for (const s of matchingStructs) {
+          const oldStruct = oldCorp.structures.find(
+            (o) => o.structure_id === s.structure_id
           );
+          if (oldStruct) {
+            let thisMessage = "";
+            // check for structure status changes
+            if (s.state != oldStruct?.state) {
+              thisMessage += `\nStatus has changed from ${formatState(
+                oldStruct.state
+              )} to ${formatState(s.state)}`;
+              statusMessage = true;
+            }
+            if (s.state_timer_end !== oldStruct.state_timer_end) {
+              if (s.state_timer_end) {
+                thisMessage += `\nStructure has a timer that ends ${getRelativeDiscordTime(
+                  s.state_timer_end
+                )}`;
+              } else {
+                thisMessage += `\nStructure timer has reset`;
+              }
+              statusMessage = true;
+            }
+            // check for change of fuel (up or down!)
+            if (oldStruct.fuel_expires != s.fuel_expires) {
+              if (oldStruct.fuel_expires && s.fuel_expires) {
+                thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
+                  oldStruct.fuel_expires
+                )} now expiring ${getRelativeDiscordTime(s.fuel_expires)}`;
+              } else if (oldStruct.fuel_expires) {
+                thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
+                  oldStruct.fuel_expires
+                )}. Now has "unknown expiry"`;
+              } else if (s.fuel_expires) {
+                thisMessage += `\nFuel level has changed from "unknown expiry". Now expiring ${getRelativeDiscordTime(
+                  s.fuel_expires
+                )}`;
+              }
+              fuelMessage = true;
+            }
+
+            // check for low fuel
+            if (s.fuel_expires != undefined) {
+              const expires = new Date(s.fuel_expires);
+
+              const authedCharCount =
+                Array.prototype
+                  .concat(corp.members.flatMap((m) => m.characters))
+                  .filter((c) => !c.needsReAuth).length ?? 1;
+
+              if (
+                // fuel expiry is within one check delay of the super low warning
+                expires <= new Date(Date.now() + SUPER_LOW_FUEL_WARNING) &&
+                expires >=
+                new Date(
+                  Date.now() +
+                  SUPER_LOW_FUEL_WARNING -
+                  1000 -
+                  NOTIFICATION_CHECK_DELAY / authedCharCount
+                )
+              ) {
+                thisMessage += `\n@hereURGENT: Fuel will be depleated very soon ${getRelativeDiscordTime(
+                  expires
+                )}`;
+                fuelMessage = true;
+              } else if (
+                // fuel expiry is within one check delay of the low warning
+                expires <= new Date(Date.now() + LOW_FUEL_WARNING) &&
+                expires >=
+                new Date(
+                  Date.now() +
+                  LOW_FUEL_WARNING -
+                  1000 -
+                  NOTIFICATION_CHECK_DELAY / authedCharCount
+                )
+              ) {
+                thisMessage += `\nWarning: Fuel will be depleated ${getRelativeDiscordTime(
+                  expires
+                )}`;
+                fuelMessage = true;
+              }
+            }
+
+            if (thisMessage.length > 0) {
+              thisMessage = `ALERT on ${s.name}` + thisMessage;
+            }
+            if (thisMessage.length > 0) {
+              message += thisMessage + "\n\n";
+            }
+          }
+        }
+
+        if (
+          message.length > 0
+          && (
+            (channelConfig.structureStatus && statusMessage)
+            || (channelConfig.structureFuel && fuelMessage)
+          )
+        ) {
+          await sendMessage(channel, message, "structures: " + message);
         }
       }
-
-      // add the data to storage
-      data.authenticatedCorps.push(corp);
     }
 
-    if (
-      message.length > 0
-      && (
-        (channelConfig.structureStatus && statusMessage)
-        || (channelConfig.structureFuel && fuelMessage)
-      )
-    ) {
-      await sendMessage(channel, message, "structures: " + message);
+    // replace the data in storage
+    data.authenticatedCorps[idx] = corp;
+  } else {
+    // tracking new structures!
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        var channelConfig = data.channelFor(channel);
+
+        if (channelConfig.structureStatus) {
+          // send individually to avoid max embed per message limit (10)
+          for (const s of corp.structures) {
+            await sendMessage(
+              channel,
+              { embeds: [generateNewStructureEmbed(s)] },
+              "new structure"
+            );
+          }
+        }
+      }
     }
 
-    await data.save();
+    // add the data to storage
+    data.authenticatedCorps.push(corp);
   }
+
+  await data.save();
 }
 
 function generateNewStructureEmbed(
