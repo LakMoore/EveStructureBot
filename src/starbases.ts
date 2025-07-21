@@ -61,6 +61,7 @@ export async function checkStarbasesForCorp(
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
     serverId: corp.serverId,
+    serverName: corp.serverName,
     channelId: undefined,
     channelIds: corp.channelIds,
     corpId: corp.corpId,

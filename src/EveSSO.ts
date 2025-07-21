@@ -110,13 +110,38 @@ export function setup(client: Client) {
                 config.accessToken = info.access_token;
 
                 let thisCorp = data.authenticatedCorps.find(
-                  (ac) => ac.channelIds.includes(channelId) && ac.corpId == corpId
+                  (ac) => ac.corpId == corpId
                 );
+
+                // only Directors can add new corps to new channels 
+                if (!thisCorp || !thisCorp.channelIds.includes(channelId)) {
+                  const roles = await CharacterApiFactory(config).getCharactersCharacterIdRoles(charId);
+                  if (!roles?.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director)) {
+                    await sendMessage(
+                      channel,
+                      `Only Directors can add new Corporations to new channels.`,
+                      `Only Directors can add new Corporations to new channels.`
+                    );
+                    return;
+                  }
+                }
+
+                // a corp can only be in one Discord server at a time!
+                if (thisCorp && thisCorp.serverId && thisCorp.serverId != channel.guildId) {
+                  await sendMessage(
+                    channel,
+                    `This Corporation is already being monitored in another Discord server.`,
+                    `This Corporation is already being monitored in another Discord server.`
+                  );
+                  return;
+                }
+
                 if (!thisCorp) {
                   thisCorp = {
                     serverId: channel.guildId,
+                    serverName: channel.guild.name,
                     channelId: undefined,
-                    channelIds: [channelId],
+                    channelIds: [],
                     corpId: corpId,
                     corpName: corp.name,
                     members: [],
@@ -132,7 +157,16 @@ export function setup(client: Client) {
                   data.authenticatedCorps.push(thisCorp);
                 }
 
-                if (!thisCorp.serverId) thisCorp.serverId = channel.guildId;
+                // this used to be nullable so just set it
+                thisCorp.serverId = channel.guildId;
+                // server names can change so get the current name
+                thisCorp.serverName = channel.guild.name;
+                if (!thisCorp.channelIds.includes(channelId)) thisCorp.channelIds.push(channelId);
+
+                // search for the Corp member
+                const memberIdx = thisCorp.members.findIndex(
+                  (corpMember) => corpMember.discordId === userId
+                );
 
                 // make a new version of the character that just got authenticated
                 const character: AuthenticatedCharacter = {
@@ -151,11 +185,6 @@ export function setup(client: Client) {
                   needsReAuth: false,
                 };
 
-                // search for the Corp member
-                const memberIdx = thisCorp.members.findIndex(
-                  (corpMember) => corpMember.discordId === userId
-                );
-
                 if (memberIdx > -1) {
                   // if the member is already known
                   const corpMember = thisCorp.members[memberIdx];
@@ -165,8 +194,15 @@ export function setup(client: Client) {
                   );
 
                   if (idx > -1) {
-                    // if the character is already known, overwrite
-                    corpMember.characters[idx] = character;
+                    // if the character is already known, reset the fields (but not the dates)
+                    const oldCharacter = corpMember.characters[idx];
+                    oldCharacter.characterId = charId;
+                    oldCharacter.characterName = char.name;
+                    oldCharacter.corpId = char.corporation_id;
+                    oldCharacter.authToken = info.access_token;
+                    oldCharacter.tokenExpires = expires;
+                    oldCharacter.refreshToken = info.refresh_token;
+                    oldCharacter.needsReAuth = false;
                   } else {
                     // if the character is new, add it
                     corpMember.characters.push(character);

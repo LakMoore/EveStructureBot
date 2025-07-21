@@ -30,6 +30,7 @@ export interface CorpMember {
 
 export interface AuthenticatedCorp {
   serverId: string;
+  serverName: string;
   /** @deprecated use channelIds instead */
   channelId: string | undefined;
   channelIds: string[];
@@ -208,11 +209,20 @@ export class Data {
         upgraded = true;
       }
 
-      const sameCorpDifferentServer = this._authenticatedCorps
-        .find((c) => c.corpId == thisCorp.corpId && c.serverId != thisCorp.serverId);
+      if (!thisCorp.serverName) {
+        thisCorp.serverName = "";
+        upgraded = true;
+      }
 
-      if (sameCorpDifferentServer) {
-        consoleLog("!!! Found a duplicate corp across multiple servers: " + thisCorp.corpName);
+      const serverCountForCorp = this._authenticatedCorps
+        .filter((c) => c.corpId == thisCorp.corpId).length;
+
+      if (serverCountForCorp > 1) {
+        consoleLog("!!! Found a duplicate corp across " + serverCountForCorp + " servers: " + thisCorp.corpName);
+        const allServerNames = this._authenticatedCorps
+          .filter((c) => c.corpId == thisCorp.corpId && c.serverName)
+          .map((c) => c.serverName);
+        consoleLog("Servers:\n" + allServerNames.join("\n"));
       }
 
       if (thisCorp.setDiscordRoles == undefined) {
