@@ -287,8 +287,11 @@ export class Data {
   public async removeChannel(channelId: string) {
     consoleLog("Removing channel " + channelId);
 
+    await this.backup();
+
     // update the authenticated corps to remove this channel from them
     const corpsInChannel = this._authenticatedCorps.filter((c) => c.channelIds.includes(channelId));
+    consoleLog("Found " + corpsInChannel.length + " corps in channel " + channelId);
     if (corpsInChannel.length > 0) {
       corpsInChannel.forEach((c) => {
         c.channelIds = c.channelIds.filter((c) => c != channelId);
@@ -297,11 +300,13 @@ export class Data {
 
     // clean up any corps with no channels
     const corpsWithNoChannels = this._authenticatedCorps.filter((c) => c.channelIds.length == 0);
-    if (corpsWithNoChannels.length > 0) {
-      corpsWithNoChannels.forEach((c) => {
-        this._authenticatedCorps = this._authenticatedCorps.filter((c) => c.corpId != c.corpId);
-      });
-    }
+    consoleLog("Found " + corpsWithNoChannels.length + " corps with no channels - need to remove them!");
+
+    // if (corpsWithNoChannels.length > 0) {
+    //   corpsWithNoChannels.forEach((c) => {
+    //     this._authenticatedCorps = this._authenticatedCorps.filter((c) => c.corpId != c.corpId);
+    //   });
+    // }
 
     // remove the channel from the channels list    
     this._channels = this._channels.filter((c) => c.channelId != channelId);
