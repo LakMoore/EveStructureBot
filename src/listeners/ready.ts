@@ -46,6 +46,11 @@ async function startPolling(client: Client) {
           continue;
         }
 
+        if (!thisCorp.serverName) {
+          const guild = await client.guilds.fetch(thisCorp.serverId);
+          thisCorp.serverName = guild.name;
+        }
+
         const updatedCorp = data.authenticatedCorps[corpIndex];
 
         if (updatedCorp) {
