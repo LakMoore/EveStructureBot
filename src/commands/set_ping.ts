@@ -48,7 +48,7 @@ export const SetPing: Command = {
         thisChannel.low_fuel_role = role?.toString();
       }
 
-      data.save();
+      await data.save();
 
       if (role) {
         await interaction.followUp(`Pings for ${type} set to <@&${role}>`);
