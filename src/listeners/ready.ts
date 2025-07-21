@@ -5,6 +5,7 @@ import { checkMembership } from "../EveSSO";
 import { checkNotificationsForCorp } from "../notifications";
 import { checkStarbasesForCorp } from "../starbases";
 import { checkStructuresForCorp } from "../structures";
+import { GetCharactersCharacterIdRolesOk } from "eve-client-ts";
 
 const POLL_ATTEMPT_DELAY = 2000;
 let corpIndex = 0;
@@ -48,6 +49,26 @@ async function startPolling(client: Client) {
         const updatedCorp = data.authenticatedCorps[corpIndex];
 
         if (updatedCorp) {
+
+          const notAuthedChars = updatedCorp.members.flatMap((m) => m.characters.filter((c) => c.needsReAuth))
+            .map((c) => c.characterName);
+
+          if (notAuthedChars.length > 0) {
+            consoleLog("Not Authed", "\n" + notAuthedChars.join("\n"));
+          }
+
+          var authedChars = updatedCorp.members.flatMap((m) => m.characters.filter((c) => !c.needsReAuth))
+            .sort((a, b) => new Date(a.nextNotificationCheck).getTime() - new Date(b.nextNotificationCheck).getTime())
+            .map((c) => c.characterName
+              + " " + (c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director) ? " (Director)" :
+                c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager) ? " (Manager)" :
+                  "")
+              + " in " + (new Date(c.nextNotificationCheck).getTime() - Date.now()) / 1000 + " seconds"
+            )
+            .join("\n");
+
+          consoleLog("Authed Chars", "\n" + authedChars);
+
           await checkStructuresForCorp(updatedCorp, client);
           await checkStarbasesForCorp(updatedCorp, client);
           await checkNotificationsForCorp(updatedCorp, client);

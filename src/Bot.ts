@@ -1,9 +1,11 @@
 import dotenv from "dotenv";
 import {
   Client,
+  CommandInteraction,
   IntentsBitField,
   MessageCreateOptions,
   MessagePayload,
+  PermissionsBitField,
   TextChannel,
 } from "discord.js";
 import ready from "./listeners/ready";
@@ -77,5 +79,28 @@ export async function sendMessage(
     await channel.send(message);
   } catch (error) {
     consoleLog("An error occured in sendMessage", error);
+  }
+}
+
+export async function checkBotHasPermissions(
+  interaction: CommandInteraction
+) {
+  //check whether the bot has permission to post in this channel
+  const channel = interaction.client.channels.cache.get(interaction.channelId);
+  if (channel instanceof TextChannel) {
+    const guildMember = channel.members.get(interaction.client.user!.id);
+    if (
+      !guildMember?.permissions.has([
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.SendMessages,
+      ])
+    ) {
+      await interaction.followUp({
+        content: "Please grant me permission to post in this channel and try again.",
+        ephemeral: true,
+      });
+      return false;
+    }
+    return true;
   }
 }

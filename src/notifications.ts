@@ -12,18 +12,6 @@ export async function checkNotificationsForCorp(
 ) {
     consoleLog("checkNotificationsForCorp ", corp.corpName);
 
-    var status = corp.members.flatMap((m) => m.characters)
-        .sort((a, b) => new Date(a.nextNotificationCheck).getTime() - new Date(b.nextNotificationCheck).getTime())
-        .map((c) => c.characterName
-            + " " + (c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director) ? " (Director)" :
-                c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager) ? " (Manager)" :
-                    "")
-            + " in " + (new Date(c.nextNotificationCheck).getTime() - Date.now()) / 1000 + " seconds"
-        )
-        .join("\n");
-
-    consoleLog("Status", "\n" + status);
-
     // POS notifications are only sent to Directors so checking other roles actually slows down POS checks
     const workingChars = getWorkingChars(
         corp,

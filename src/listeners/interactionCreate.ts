@@ -7,7 +7,7 @@ import {
   ButtonInteraction,
 } from "discord.js";
 import { Commands } from "../Commands";
-import { consoleLog } from "../Bot";
+import { checkBotHasPermissions, consoleLog } from "../Bot";
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
@@ -42,6 +42,10 @@ const handleSlashCommand = async (
       consoleLog(
         `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`
       );
+
+      if (!await checkBotHasPermissions(interaction)) {
+        return;
+      }
 
       await slashCommand.run(client, interaction);
     } catch (error) {
