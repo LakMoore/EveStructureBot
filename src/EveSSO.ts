@@ -236,7 +236,7 @@ export function setup(client: Client) {
 
 export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
   for (const corpMember of corp.members) {
-    for (const char of corpMember.characters) {
+    for (const char of corpMember.characters.filter((c) => !c.needsReAuth)) {
       let corpConfirmed = true;
       const config = await getAccessToken(char);
 
