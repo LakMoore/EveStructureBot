@@ -1,4 +1,4 @@
-import { Client } from "discord.js";
+import { Client, HTTPError } from "discord.js";
 import { GetCharactersCharacterIdRolesOk, CharacterApiFactory, GetCharactersCharacterIdNotifications200Ok } from "eve-client-ts";
 import { consoleLog, NOTIFICATION_CHECK_DELAY, data } from "./Bot";
 import { AuthenticatedCorp } from "./data/data";
@@ -40,31 +40,43 @@ export async function checkNotificationsForCorp(
 
     consoleLog("Using " + thisChar.characterName);
 
-    const notifications = await CharacterApiFactory(
-        config
-    ).getCharactersCharacterIdNotifications(thisChar.characterId);
+    try {
+        const notifications = await CharacterApiFactory(
+            config
+        ).getCharactersCharacterIdNotifications(thisChar.characterId);
 
-    // mark this character so we don't use it to check again too soon
-    const nextCheck = Date.now() + (NOTIFICATION_CHECK_DELAY / workingChars.length) + 3000;
-    thisChar.nextNotificationCheck = new Date(nextCheck);
-    corp.nextNotificationCheck = new Date(nextCheck);
+        // mark this character so we don't use it to check again too soon
+        const nextCheck = Date.now() + (NOTIFICATION_CHECK_DELAY / workingChars.length) + 3000;
+        thisChar.nextNotificationCheck = new Date(nextCheck);
+        corp.nextNotificationCheck = new Date(nextCheck);
 
-    // consoleLog("notifications", notifications);
-    // // save the notification to a temporary file
-    // const fs = require("fs");
-    // fs.writeFileSync(
-    //   "notifications.json",
-    //   JSON.stringify(notifications, null, 2)
-    // );
-    // Get the notifications that we have not seen previously
-    const selectedNotifications = notifications.filter(
-        (note) => new Date(note.timestamp) > new Date(corp.mostRecentNotification)
-    );
+        // consoleLog("notifications", notifications);
+        // // save the notification to a temporary file
+        // const fs = require("fs");
+        // fs.writeFileSync(
+        //   "notifications.json",
+        //   JSON.stringify(notifications, null, 2)
+        // );
+        // Get the notifications that we have not seen previously
+        const selectedNotifications = notifications.filter(
+            (note) => new Date(note.timestamp) > new Date(corp.mostRecentNotification)
+        );
 
-    const newDate = await processNotifications(selectedNotifications, client, corp);
-    corp.mostRecentNotification = newDate;
+        const newDate = await processNotifications(selectedNotifications, client, corp);
+        corp.mostRecentNotification = newDate;
 
-    await data.save();
+        await data.save();
+    } catch (error) {
+        // if 401 Unauthorized then mark this character as needing reauth
+        if (error instanceof HTTPError && error.status === 401) {
+            thisChar.needsReAuth = true;
+            await data.save();
+            consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
+        }
+        else {
+            throw error;
+        }
+    }
 }
 
 export async function processNotifications(

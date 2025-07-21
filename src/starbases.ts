@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, TextChannel } from "discord.js";
+import { Client, EmbedBuilder, HTTPError, TextChannel } from "discord.js";
 import {
   GetCharactersCharacterIdRolesOk,
   CorporationApiFactory,
@@ -51,34 +51,47 @@ export async function checkStarbasesForCorp(
 
   consoleLog("Using " + thisChar.characterName);
 
-  const starbases = await CorporationApiFactory(
-    config
-  ).getCorporationsCorporationIdStarbases(corp.corpId);
+  try {
+    const starbases = await CorporationApiFactory(
+      config
+    ).getCorporationsCorporationIdStarbases(corp.corpId);
 
-  const nextCheck = Date.now() + (STRUCTURE_CHECK_DELAY / workingChars.length) + 3000;
-  thisChar.nextStarbaseCheck = new Date(nextCheck);
+    const nextCheck = Date.now() + (STRUCTURE_CHECK_DELAY / workingChars.length) + 3000;
+    thisChar.nextStarbaseCheck = new Date(nextCheck);
 
-  // make a new object so we can compare it to the old one
-  const c: AuthenticatedCorp = {
-    serverId: corp.serverId,
-    serverName: corp.serverName,
-    channelId: undefined,
-    channelIds: corp.channelIds,
-    corpId: corp.corpId,
-    corpName: corp.corpName,
-    members: corp.members,
-    characters: undefined,
-    starbases: starbases,
-    structures: corp.structures,
-    nextStarbaseCheck: new Date(nextCheck),
-    nextStructureCheck: corp.nextStructureCheck,
-    nextNotificationCheck: corp.nextNotificationCheck,
-    mostRecentNotification: corp.mostRecentNotification,
-    setDiscordRoles: corp.setDiscordRoles,
-  };
+    // make a new object so we can compare it to the old one
+    const c: AuthenticatedCorp = {
+      serverId: corp.serverId,
+      serverName: corp.serverName,
+      channelId: undefined,
+      channelIds: corp.channelIds,
+      corpId: corp.corpId,
+      corpName: corp.corpName,
+      members: corp.members,
+      characters: undefined,
+      starbases: starbases,
+      structures: corp.structures,
+      nextStarbaseCheck: new Date(nextCheck),
+      nextStructureCheck: corp.nextStructureCheck,
+      nextNotificationCheck: corp.nextNotificationCheck,
+      mostRecentNotification: corp.mostRecentNotification,
+      setDiscordRoles: corp.setDiscordRoles,
+    };
 
-  // check for change
-  await checkForStarbaseChangeAndPersist(client, c);
+    // check for change
+    await checkForStarbaseChangeAndPersist(client, c);
+
+  } catch (error) {
+    // if 401 Unauthorized then mark this character as needing reauth
+    if (error instanceof HTTPError && error.status === 401) {
+      thisChar.needsReAuth = true;
+      await data.save();
+      consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
+    }
+    else {
+      throw error;
+    }
+  }
 }
 
 async function checkForStarbaseChangeAndPersist(
