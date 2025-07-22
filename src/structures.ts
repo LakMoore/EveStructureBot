@@ -91,6 +91,7 @@ export async function checkStructuresForCorp(
     // if 401 Unauthorized then mark this character as needing reauth
     if (error.status === 401) {
       thisChar.needsReAuth = true;
+      thisChar.authFailedAt = new Date();
       await data.save();
       consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
     }
