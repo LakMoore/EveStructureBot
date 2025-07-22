@@ -397,7 +397,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
 
   // update some stats
   corp.maxCharacters = Math.max(corp.members.reduce((acc, member) => acc + member.characters.length, 0), corp.maxCharacters);
-  corp.maxDirectors = Math.max(corp.members.reduce((acc, member) => acc + member.characters.filter((c) => c.roles.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director)).length, 0), corp.maxDirectors);
+  corp.maxDirectors = Math.max(corp.members.reduce((acc, member) => acc + member.characters.filter((c) => c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director)).length, 0), corp.maxDirectors);
   await data.save();
 
   // if this corp has no members, remove it
