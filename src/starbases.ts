@@ -76,6 +76,10 @@ export async function checkStarbasesForCorp(
       nextNotificationCheck: corp.nextNotificationCheck,
       mostRecentNotification: corp.mostRecentNotification,
       setDiscordRoles: corp.setDiscordRoles,
+      addedAt: corp.addedAt,
+      maxCharacters: corp.maxCharacters,
+      maxDirectors: corp.maxDirectors,
+      mostRecentAuthAt: corp.mostRecentAuthAt,
     };
 
     // check for change
@@ -85,6 +89,7 @@ export async function checkStarbasesForCorp(
     // if 401 Unauthorized then mark this character as needing reauth
     if (error.status === 401) {
       thisChar.needsReAuth = true;
+      thisChar.authFailedAt = new Date();
       await data.save();
       consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
     }

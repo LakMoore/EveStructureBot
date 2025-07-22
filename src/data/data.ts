@@ -21,6 +21,9 @@ export interface AuthenticatedCharacter {
   nextNotificationCheck: Date;
   nextRolesCheck: Date;
   needsReAuth: boolean;
+  addedAt: Date;
+  mostRecentAuthAt: Date;
+  authFailedAt: Date;
 }
 
 export interface CorpMember {
@@ -46,6 +49,10 @@ export interface AuthenticatedCorp {
   nextNotificationCheck: Date;
   mostRecentNotification: Date;
   setDiscordRoles: boolean;
+  addedAt: Date;
+  maxCharacters: number;
+  maxDirectors: number;
+  mostRecentAuthAt: Date;
 }
 
 export interface DiscordChannel {
@@ -225,9 +232,57 @@ export class Data {
         consoleLog("Servers:\n" + allServerNames.join("\n"));
       }
 
+      if (!thisCorp.addedAt) {
+        thisCorp.addedAt = new Date();
+        upgraded = true;
+      }
+
+      if (!thisCorp.mostRecentAuthAt) {
+        thisCorp.mostRecentAuthAt = new Date();
+        upgraded = true;
+      }
+
+      if (!thisCorp.maxCharacters) {
+        thisCorp.maxCharacters = 0;
+        upgraded = true;
+      }
+
+      if (!thisCorp.maxDirectors) {
+        thisCorp.maxDirectors = 0;
+        upgraded = true;
+      }
+
       if (thisCorp.setDiscordRoles == undefined) {
         thisCorp.setDiscordRoles = false;
         upgraded = true;
+      }
+
+      for (const member of thisCorp.members) {
+        // for each character, initialise the lastAuth and authfailed
+        member.characters.forEach((character) => {
+          if (!character.addedAt) {
+            character.addedAt = new Date();
+            upgraded = true;
+          }
+          if (!character.mostRecentAuthAt) {
+            if (character.needsReAuth) {
+              character.mostRecentAuthAt = new Date(0);
+            }
+            else {
+              character.mostRecentAuthAt = new Date();
+            }
+            upgraded = true;
+          }
+          if (!character.authFailedAt) {
+            if (character.needsReAuth) {
+              character.authFailedAt = new Date();
+            }
+            else {
+              character.authFailedAt = new Date(0);
+            }
+            upgraded = true;
+          }
+        });
       }
     }
 
@@ -308,15 +363,11 @@ export class Data {
       });
     }
 
-    // clean up any corps with no channels
+    // report on corps with no channels
     const corpsWithNoChannels = this._authenticatedCorps.filter((c) => c.channelIds.length == 0);
-    consoleLog("Found " + corpsWithNoChannels.length + " corps with no channels - need to remove them!");
+    consoleLog("Found " + corpsWithNoChannels.length + " corps with no channels!");
 
-    // if (corpsWithNoChannels.length > 0) {
-    //   corpsWithNoChannels.forEach((c) => {
-    //     this._authenticatedCorps = this._authenticatedCorps.filter((c) => c.corpId != c.corpId);
-    //   });
-    // }
+    // No need to actually delete the corp
 
     // remove the channel from the channels list    
     this._channels = this._channels.filter((c) => c.channelId != channelId);

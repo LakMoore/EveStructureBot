@@ -148,11 +148,15 @@ export function setup(client: Client) {
                     characters: undefined,
                     starbases: [],
                     structures: [],
-                    nextStarbaseCheck: new Date(),
-                    nextStructureCheck: new Date(),
-                    nextNotificationCheck: new Date(),
-                    mostRecentNotification: new Date(),
+                    nextStarbaseCheck: new Date(0),
+                    nextStructureCheck: new Date(0),
+                    nextNotificationCheck: new Date(0),
+                    mostRecentNotification: new Date(0),
                     setDiscordRoles: false,
+                    addedAt: new Date(),
+                    maxCharacters: 1,
+                    maxDirectors: 1,
+                    mostRecentAuthAt: new Date(),
                   };
                   data.authenticatedCorps.push(thisCorp);
                 }
@@ -183,6 +187,9 @@ export function setup(client: Client) {
                   nextRolesCheck: new Date(0),
                   roles: [],
                   needsReAuth: false,
+                  addedAt: new Date(),
+                  mostRecentAuthAt: new Date(),
+                  authFailedAt: new Date(0),
                 };
 
                 if (memberIdx > -1) {
@@ -194,7 +201,7 @@ export function setup(client: Client) {
                   );
 
                   if (idx > -1) {
-                    // if the character is already known, reset the fields (but not the dates)
+                    // if the character is already known, reset the fields (but not the check dates)
                     const oldCharacter = corpMember.characters[idx];
                     oldCharacter.characterId = charId;
                     oldCharacter.characterName = char.name;
@@ -203,6 +210,7 @@ export function setup(client: Client) {
                     oldCharacter.tokenExpires = expires;
                     oldCharacter.refreshToken = info.refresh_token;
                     oldCharacter.needsReAuth = false;
+                    oldCharacter.mostRecentAuthAt = new Date();
                   } else {
                     // if the character is new, add it
                     corpMember.characters.push(character);
@@ -311,19 +319,39 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
             (ac) => ac.serverId == corp.serverId && ac.corpId == char.corpId
           );
 
-          serverCorps.forEach((c) => {
+          for (const c of serverCorps) {
+
+            // send a PSA to all channels
+            for (const channel of c.channelIds) {
+              const channelObj = client.channels.cache.get(channel);
+              if (channelObj instanceof TextChannel) {
+                await sendMessage(
+                  channelObj,
+                  `Character ${char.characterName} is no longer a member of corp ${corp.corpName} and will be removed.`,
+                  `Character ${char.characterName} is no longer a member of corp ${corp.corpName}`
+                );
+              }
+            }
+
             // ensure the character is removed from this corp
             c.members.forEach((m) => {
               m.characters = m.characters.filter(
                 (c) => c.characterId != char.characterId
               );
             });
-          });
+          }
 
-          // TODO:Let's check all the other corps that are authenticated to see if
+          // incase the char is still in a corp somewhere
+          char.corpId = 0;
+          char.needsReAuth = true;
+          char.authFailedAt = new Date();
+          await data.save();
+
+          // TODO: We could check all the other corps that are authenticated to see if
           // we can figure out which corp this character is really in.
         }
         else {
+          // character is confirmed as a member of this corp
           // let's see if the roles need checking
           if (!char.nextRolesCheck || new Date(char.nextRolesCheck) < new Date()) {
             try {
@@ -345,7 +373,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
       }
 
       if (corp.setDiscordRoles) {
-        const guild = client.guilds.cache.get(corp.serverId);
+        const guild = await client.guilds.fetch(corp.serverId);
         if (guild) {
           // confirmed membership may have changed
           // update the roles in Discord
@@ -353,7 +381,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
         }
       }
 
-      // if this member has no characters, remove it
+      // if this discord member has no characters, remove it
       if (corpMember.characters.length == 0) {
         consoleLog("Removing member with no characters: ", corpMember.discordId);
         var index = corp.members.findIndex(
@@ -367,15 +395,29 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
     }
   }
 
+  // update some stats
+  corp.maxCharacters = Math.max(corp.members.reduce((acc, member) => acc + member.characters.length, 0), corp.maxCharacters);
+  corp.maxDirectors = Math.max(corp.members.reduce((acc, member) => acc + member.characters.filter((c) => c.roles.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director)).length, 0), corp.maxDirectors);
+  await data.save();
+
   // if this corp has no members, remove it
   if (corp.members.length == 0) {
-    consoleLog("Removing corp with no members: ", corp.corpName);
-    var index = data.authenticatedCorps.findIndex(
-      (ac) => ac.corpId == corp.corpId && ac.members.length == 0
-    );
-    if (index > -1) {
-      data.authenticatedCorps.splice(index, 1);
+
+    // send a PSA to all channels
+    for (const channel of corp.channelIds) {
+      const channelObj = client.channels.cache.get(channel);
+      if (channelObj instanceof TextChannel) {
+        await sendMessage(
+          channelObj,
+          `Corporation ${corp.corpName} has no authenticated members and will be removed from this channel and the server.`,
+          `Corporation ${corp.corpName} has no authenticated members and will be removed.`
+        );
+      }
     }
+
+    consoleLog("Removing channels and server from corp with no members: ", corp.corpName);
+    corp.channelIds = [];
+    corp.serverId = "";
     await data.save();
   }
 }
@@ -506,6 +548,8 @@ export async function getAccessToken(thisChar: AuthenticatedCharacter) {
         // unauthorised
         consoleLog("Marking character as needing re-authorisation");
         thisChar.needsReAuth = true;
+        thisChar.authFailedAt = new Date();
+        await data.save();
       }
     } else if (error instanceof Error) {
       consoleLog("Error while refreshing token", error.message);

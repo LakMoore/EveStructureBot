@@ -78,6 +78,10 @@ export async function checkStructuresForCorp(
       nextNotificationCheck: corp.nextNotificationCheck,
       mostRecentNotification: corp.mostRecentNotification,
       setDiscordRoles: corp.setDiscordRoles,
+      addedAt: corp.addedAt,
+      maxCharacters: corp.maxCharacters,
+      maxDirectors: corp.maxDirectors,
+      mostRecentAuthAt: corp.mostRecentAuthAt,
     };
 
     // check for change

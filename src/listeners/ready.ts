@@ -1,4 +1,4 @@
-import { Client } from "discord.js";
+import { Client, DiscordAPIError, PermissionsBitField, TextChannel } from "discord.js";
 import { Commands } from "../Commands";
 import { consoleLog, data, delay } from "../Bot";
 import { checkMembership } from "../EveSSO";
@@ -28,30 +28,62 @@ async function startPolling(client: Client) {
   // infinite loop required
   do {
     try {
-      if (corpIndex < 0 || corpIndex > data.authenticatedCorps.length - 1)
+      const availableCorps = data.authenticatedCorps.filter((c) => c.serverId && c.channelIds.length > 0);
+      if (corpIndex < 0 || corpIndex > availableCorps.length - 1)
         corpIndex = 0;
 
       consoleLog(
-        `Poll index: ${corpIndex} - Corp Count: ${data.authenticatedCorps.length}`
+        `Poll index: ${corpIndex} - Corp Count: ${availableCorps.length}`
       );
 
-      const thisCorp = data.authenticatedCorps[corpIndex];
+      const thisCorp = availableCorps[corpIndex];
 
       if (thisCorp) {
+        for (const channelId of thisCorp.channelIds) {
+          const channel = await client.channels.fetch(channelId);
+          if (channel instanceof TextChannel) {
+            if (client.user) {
+              const permissions = channel.permissionsFor(client.user);
+              if (!permissions?.has([
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.SendMessages
+              ])) {
+                consoleLog("No permission to post in " + channel.name);
+                thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
+              }
+            }
+          }
+        }
+
+        try {
+          const guild = await client.guilds.fetch(thisCorp.serverId);
+          thisCorp.serverName = guild.name;
+        } catch (error) {
+          if (error instanceof DiscordAPIError && error.code === 10004) {
+            consoleLog("Server not found for ID " + thisCorp.corpName);
+            consoleLog(thisCorp.channelIds.length + " channels found for server " + thisCorp.corpName);
+            thisCorp.serverId = "";
+            await data.save();
+            corpIndex++;
+            continue;
+          }
+        }
+
+        if (thisCorp.channelIds.length == 0) {
+          corpIndex++;
+          continue;
+        }
+
         // Use Corp members list rather than player's corp
         await checkMembership(client, thisCorp);
 
         // checkMembership could delete the corp if it has no members!!
         if (thisCorp.members.length == 0) {
+          corpIndex++;
           continue;
         }
 
-        if (!thisCorp.serverName) {
-          const guild = await client.guilds.fetch(thisCorp.serverId);
-          thisCorp.serverName = guild.name;
-        }
-
-        const updatedCorp = data.authenticatedCorps[corpIndex];
+        const updatedCorp = availableCorps[corpIndex];
 
         if (updatedCorp) {
 
