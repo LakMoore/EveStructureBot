@@ -303,12 +303,23 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
 
           const httpError = error as HTTPError;
           if (httpError?.status == 403) {
-            // if error code is 403 then this character is not a member
-            // of the corp specified
-            consoleLog(
-              `${char.characterName} is not authed for corp ${corp.corpName}!!!`
-            );
-            corpConfirmed = false;
+            // if error code is 403 then this character might not be in the corp
+            // or the auth token has expired
+
+            // ping the member that owns this character
+            for (const channel of corp.channelIds) {
+              const channelObj = client.channels.cache.get(channel);
+              if (channelObj instanceof TextChannel) {
+                await sendMessage(
+                  channelObj,
+                  `<@${corpMember.discordId}> The ESI token for ${char.characterName} in ${corp.corpName} has expired! Please re-authenticate using /auth.`,
+                  `<@${corpMember.discordId}> The ESI token for ${char.characterName} in ${corp.corpName} has expired! Please re-authenticate using /auth.`
+                );
+              }
+            }
+            char.needsReAuth = true;
+            char.authFailedAt = new Date();
+            await data.save();
           }
         }
 
