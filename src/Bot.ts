@@ -86,13 +86,13 @@ export async function checkBotHasPermissions(
   interaction: CommandInteraction
 ) {
   //check whether the bot has permission to post in this channel
-  const channel = interaction.client.channels.cache.get(interaction.channelId);
+  const channel = interaction.channel;
   if (channel instanceof TextChannel) {
-    const guildMember = channel.members.get(interaction.client.user!.id);
+    const permissions = channel.permissionsFor(interaction.client.user);
     if (
-      !guildMember?.permissions.has([
+      !permissions?.has([
         PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.SendMessages,
+        PermissionsBitField.Flags.SendMessages
       ])
     ) {
       await interaction.followUp({
