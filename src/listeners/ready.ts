@@ -40,17 +40,26 @@ async function startPolling(client: Client) {
 
       if (thisCorp) {
         for (const channelId of thisCorp.channelIds) {
-          const channel = await client.channels.fetch(channelId);
-          if (channel instanceof TextChannel) {
-            if (client.user) {
-              const permissions = channel.permissionsFor(client.user);
-              if (!permissions?.has([
-                PermissionsBitField.Flags.ViewChannel,
-                PermissionsBitField.Flags.SendMessages
-              ])) {
-                consoleLog("No permission to post in " + channel.name);
-                thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
+          try {
+            const channel = await client.channels.fetch(channelId);
+            if (channel instanceof TextChannel) {
+              if (client.user) {
+                const permissions = channel.permissionsFor(client.user);
+                if (!permissions?.has([
+                  PermissionsBitField.Flags.ViewChannel,
+                  PermissionsBitField.Flags.SendMessages
+                ])) {
+                  consoleLog("No permission to post in " + channel.name);
+                  thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
+                  await data.save();
+                }
               }
+            }
+          } catch (error) {
+            if (error instanceof DiscordAPIError && error.code === 50001) {
+              consoleLog("Failed to check permissions for channel " + channelId + ". Removing channel!");
+              thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
+              await data.save();
             }
           }
         }
