@@ -22,15 +22,15 @@ export const WhoIs: Command = {
   options: [characterNameOption],
   autocomplete: async (
     client: Client,
-    interaction: AutocompleteInteraction
+    interaction: AutocompleteInteraction,
   ) => {
     const focusedValue = interaction.options.getFocused();
 
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel?.isTextBased()) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       const choices = channelCorps
@@ -51,7 +51,7 @@ export const WhoIs: Command = {
             focusedValue.length == 0 ||
             char.name
               ?.toLocaleLowerCase()
-              .includes(focusedValue.toLocaleLowerCase())
+              .includes(focusedValue.toLocaleLowerCase()),
         );
 
       await interaction.respond(choices);
@@ -63,8 +63,8 @@ export const WhoIs: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel instanceof TextChannel) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       if (channelCorps.length == 0) {
@@ -72,7 +72,7 @@ export const WhoIs: Command = {
           "No data found for this channel.  Use /auth command to begin.";
       } else {
         const charId = Number(
-          interaction.options.get("name")?.value?.toString()
+          interaction.options.get("name")?.value?.toString(),
         );
 
         if (charId) {

@@ -7,7 +7,7 @@ export function generateStarbaseNotificationEmbed(
   timestamp: Date,
   starbaseName: string,
   corpName: string,
-  starbase_type_id?: number
+  starbase_type_id?: number,
 ) {
   const embed = new EmbedBuilder()
     .setColor(colour)
@@ -17,7 +17,7 @@ export function generateStarbaseNotificationEmbed(
 
   if (starbase_type_id) {
     embed.setThumbnail(
-      `https://images.evetech.net/types/${starbase_type_id}/render?size=64`
+      `https://images.evetech.net/types/${starbase_type_id}/render?size=64`,
     );
   }
 

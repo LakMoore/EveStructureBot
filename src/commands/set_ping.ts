@@ -19,7 +19,7 @@ const pingType = new SlashCommandStringOption()
   .setRequired(true)
   .addChoices(
     { name: "Fuel", value: "fuel" },
-    { name: "Attack", value: "attack" }
+    { name: "Attack", value: "attack" },
   );
 
 export const SetPing: Command = {

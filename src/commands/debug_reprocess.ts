@@ -12,7 +12,7 @@ const reprocessOption = new SlashCommandStringOption()
   .setRequired(true)
   .addChoices(
     { name: "all", value: "all" },
-    { name: "one-week", value: "week" }
+    { name: "one-week", value: "week" },
   );
 
 export const DebugReprocess: Command = {
@@ -27,8 +27,8 @@ export const DebugReprocess: Command = {
     let response = "Something went wrong!";
 
     if (channel?.isTextBased()) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       let newDate = new Date(0);

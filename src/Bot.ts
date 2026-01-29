@@ -48,7 +48,6 @@ async function main() {
     consoleLog("Logged in!");
 
     setup(client);
-
   } catch (error) {
     consoleLog(error);
   }
@@ -70,11 +69,11 @@ export function getRelativeDiscordTime(time: Date): string {
 export async function sendMessage(
   channel: TextChannel,
   message: string | MessagePayload | MessageCreateOptions,
-  type: string
+  type: string,
 ) {
   try {
     consoleLog(
-      `sending "${type}" message to ${channel.name} in ${channel.guild.name}`
+      `sending "${type}" message to ${channel.name} in ${channel.guild.name}`,
     );
     await channel.send(message);
   } catch (error) {
@@ -82,9 +81,7 @@ export async function sendMessage(
   }
 }
 
-export async function checkBotHasPermissions(
-  interaction: CommandInteraction
-) {
+export async function checkBotHasPermissions(interaction: CommandInteraction) {
   //check whether the bot has permission to post in this channel
   const channel = interaction.channel;
   if (channel instanceof TextChannel) {
@@ -92,11 +89,12 @@ export async function checkBotHasPermissions(
     if (
       !permissions?.has([
         PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.SendMessages
+        PermissionsBitField.Flags.SendMessages,
       ])
     ) {
       await interaction.followUp({
-        content: "Please grant me permission to post in this channel and try again.",
+        content:
+          "Please grant me permission to post in this channel and try again.",
         ephemeral: true,
       });
       return false;

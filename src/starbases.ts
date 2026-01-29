@@ -20,7 +20,7 @@ import { getWorkingChars, getAccessToken } from "./EveSSO";
 
 export async function checkStarbasesForCorp(
   corp: AuthenticatedCorp,
-  client: Client
+  client: Client,
 ) {
   consoleLog("checkStarbasesForCorp ", corp.corpName);
 
@@ -28,7 +28,7 @@ export async function checkStarbasesForCorp(
     corp,
     corp.nextStarbaseCheck,
     (c) => c.nextStarbaseCheck,
-    GetCharactersCharacterIdRolesOk.RolesEnum.Director
+    GetCharactersCharacterIdRolesOk.RolesEnum.Director,
   );
 
   if (!workingChars || workingChars.length == 0) {
@@ -53,10 +53,11 @@ export async function checkStarbasesForCorp(
 
   try {
     const starbases = await CorporationApiFactory(
-      config
+      config,
     ).getCorporationsCorporationIdStarbases(corp.corpId);
 
-    const nextCheck = Date.now() + (STRUCTURE_CHECK_DELAY / workingChars.length) + 3000;
+    const nextCheck =
+      Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
     thisChar.nextStarbaseCheck = new Date(nextCheck);
 
     // make a new object so we can compare it to the old one
@@ -84,16 +85,18 @@ export async function checkStarbasesForCorp(
 
     // check for change
     await checkForStarbaseChangeAndPersist(client, c);
-
   } catch (error: any) {
     // if 401 Unauthorized then mark this character as needing reauth
     if (error.status === 401) {
       thisChar.needsReAuth = true;
       thisChar.authFailedAt = new Date();
       await data.save();
-      consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
-    }
-    else {
+      consoleLog(
+        "Unauthorised! Marked " +
+          thisChar.characterName +
+          " as needing reauth.",
+      );
+    } else {
       throw error;
     }
   }
@@ -101,13 +104,11 @@ export async function checkStarbasesForCorp(
 
 async function checkForStarbaseChangeAndPersist(
   client: Client<boolean>,
-  corp: AuthenticatedCorp
+  corp: AuthenticatedCorp,
 ) {
   // find the user in our persisted storage
   const idx = data.authenticatedCorps.findIndex((thisCorp) => {
-    return (
-      thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId
-    );
+    return thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId;
   });
 
   if (idx > -1) {
@@ -117,18 +118,18 @@ async function checkForStarbaseChangeAndPersist(
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
-
         var channelConfig = data.channelFor(channel);
         let message = "";
         let fuelMessage = false;
         let statusMessage = false;
 
         if (channelConfig.starbaseStatus) {
-
           // check for new starbase
           const addedStarbase = corp.starbases.filter(
             (s1) =>
-              !oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+              !oldCorp.starbases.some(
+                (s2) => s1.starbase_id === s2.starbase_id,
+              ),
           );
 
           for (const s of addedStarbase) {
@@ -137,13 +138,14 @@ async function checkForStarbaseChangeAndPersist(
               {
                 embeds: [await generateNewStarbaseEmbed(s, corp)],
               },
-              "added starbase"
+              "added starbase",
             );
           }
 
           // check for removed starbases
           const removedStarbases = oldCorp.starbases.filter(
-            (s1) => !corp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+            (s1) =>
+              !corp.starbases.some((s2) => s1.starbase_id === s2.starbase_id),
           );
 
           // max embeds per message is 10
@@ -153,17 +155,17 @@ async function checkForStarbaseChangeAndPersist(
               {
                 embeds: [await generateDeletedStarbasesEmbed(s, corp)],
               },
-              "removed starbase"
+              "removed starbase",
             );
           }
         }
 
         const matchingStarbases = corp.starbases.filter((s1) =>
-          oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+          oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id),
         );
         for (const s of matchingStarbases) {
           const oldStarbase = oldCorp.starbases.find(
-            (o) => o.starbase_id === s.starbase_id
+            (o) => o.starbase_id === s.starbase_id,
           );
           if (oldStarbase) {
             let thisMessage = "";
@@ -174,7 +176,7 @@ async function checkForStarbaseChangeAndPersist(
             if (s.reinforced_until !== oldStarbase.reinforced_until) {
               if (s.reinforced_until) {
                 thisMessage += `\nStarbase has a reinforcement timer that ends ${getRelativeDiscordTime(
-                  s.reinforced_until
+                  s.reinforced_until,
                 )}`;
               } else {
                 thisMessage += `\nStarbase reinforcement timer has reset`;
@@ -183,7 +185,7 @@ async function checkForStarbaseChangeAndPersist(
             if (s.unanchor_at !== oldStarbase.unanchor_at) {
               if (s.unanchor_at) {
                 thisMessage += `\nStarbase has an unanchor timer that started ${getRelativeDiscordTime(
-                  s.unanchor_at
+                  s.unanchor_at,
                 )}`;
               } else {
                 thisMessage += `\nStarbase unanchor timer has reset`;
@@ -223,7 +225,7 @@ async function checkForStarbaseChangeAndPersist(
             {
               embeds: [await generateNewStarbaseEmbed(s, corp)],
             },
-            "New Starbase"
+            "New Starbase",
           );
         }
 
@@ -238,7 +240,7 @@ async function checkForStarbaseChangeAndPersist(
 
 async function generateNewStarbaseEmbed(
   s: GetCorporationsCorporationIdStarbases200Ok,
-  corp: AuthenticatedCorp
+  corp: AuthenticatedCorp,
 ) {
   let message = "";
 
@@ -266,13 +268,13 @@ async function generateNewStarbaseEmbed(
     .setTitle(starbaseName)
     .setDescription(`Type: ${starbaseType}\nStatus: ${s.state}${message}`)
     .setThumbnail(
-      `https://images.evetech.net/types/${s.type_id}/render?size=64`
+      `https://images.evetech.net/types/${s.type_id}/render?size=64`,
     );
 }
 
 async function generateDeletedStarbasesEmbed(
   s: GetCorporationsCorporationIdStarbases200Ok,
-  corp: AuthenticatedCorp
+  corp: AuthenticatedCorp,
 ) {
   const badgeUrl = `https://images.evetech.net/corporations/${corp.corpId}/logo?size=64`;
 
@@ -288,10 +290,10 @@ async function generateDeletedStarbasesEmbed(
     })
     .setTitle(starbaseName)
     .setDescription(
-      `Type: ${starbaseType}\nStarbase is no longer part of the corporation!`
+      `Type: ${starbaseType}\nStarbase is no longer part of the corporation!`,
     )
     .setThumbnail(
-      `https://images.evetech.net/types/${s.type_id}/render?size=64`
+      `https://images.evetech.net/types/${s.type_id}/render?size=64`,
     );
 }
 
@@ -316,9 +318,8 @@ export async function getStarbaseName(system_id?: number, moon_id?: number) {
 
 export async function getSystemName(system_id?: number) {
   if (system_id) {
-    const result = await UniverseApiFactory().getUniverseSystemsSystemId(
-      system_id
-    );
+    const result =
+      await UniverseApiFactory().getUniverseSystemsSystemId(system_id);
     if (result) {
       return result.name;
     }
@@ -349,9 +350,8 @@ async function getMoonName(moon_id?: number) {
 // Get Character name from ID
 export async function getCharacterName(character_id?: number) {
   if (character_id) {
-    const result = await CharacterApiFactory().getCharactersCharacterId(
-      character_id
-    );
+    const result =
+      await CharacterApiFactory().getCharactersCharacterId(character_id);
     if (result) {
       return result.name;
     }
@@ -362,9 +362,8 @@ export async function getCharacterName(character_id?: number) {
 // Get Corp Name from ID
 export async function getCorpName(corp_id?: number) {
   if (corp_id) {
-    const result = await CorporationApiFactory().getCorporationsCorporationId(
-      corp_id
-    );
+    const result =
+      await CorporationApiFactory().getCorporationsCorporationId(corp_id);
     if (result) {
       return result.name;
     }
@@ -375,9 +374,8 @@ export async function getCorpName(corp_id?: number) {
 // Get Alliance Name from ID
 export async function getAllianceName(alliance_id?: number) {
   if (alliance_id) {
-    const result = await AllianceApiFactory().getAlliancesAllianceId(
-      alliance_id
-    );
+    const result =
+      await AllianceApiFactory().getAlliancesAllianceId(alliance_id);
     if (result) {
       return result.name;
     }

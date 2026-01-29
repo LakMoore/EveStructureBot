@@ -24,15 +24,15 @@ export const Fuel: Command = {
   options: [stationNameOption],
   autocomplete: async (
     client: Client,
-    interaction: AutocompleteInteraction
+    interaction: AutocompleteInteraction,
   ) => {
     const focusedValue = interaction.options.getFocused();
 
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel?.isTextBased()) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       const choices = channelCorps
@@ -49,7 +49,7 @@ export const Fuel: Command = {
             focusedValue.length == 0 ||
             struct.name
               ?.toLocaleLowerCase()
-              .includes(focusedValue.toLocaleLowerCase())
+              .includes(focusedValue.toLocaleLowerCase()),
         )
         .slice(0, 25);
 
@@ -66,8 +66,8 @@ export const Fuel: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel instanceof TextChannel) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       const result = channelCorps
@@ -77,7 +77,8 @@ export const Fuel: Command = {
           });
         })
         .find(
-          (v) => v.struct.structure_id == interaction.options.get("name")?.value
+          (v) =>
+            v.struct.structure_id == interaction.options.get("name")?.value,
         );
 
       if (result?.struct.fuel_expires) {
@@ -94,16 +95,17 @@ export const Fuel: Command = {
                 text,
                 result.struct.fuel_expires,
                 result.struct,
-                result.corp.corpName
+                result.corp.corpName,
               ),
             ],
           },
-          "Fuel expired"
+          "Fuel expired",
         );
       } else {
         await interaction.followUp(
-          `No structure found with the name ${interaction.options.get("name")?.value
-          }`
+          `No structure found with the name ${
+            interaction.options.get("name")?.value
+          }`,
         );
       }
 
@@ -111,7 +113,7 @@ export const Fuel: Command = {
         await sendMessage(
           channel,
           "No data found for this channel.  Use /auth command to begin.",
-          "No data found for this channel.  Use /auth command to begin."
+          "No data found for this channel.  Use /auth command to begin.",
         );
       }
     }

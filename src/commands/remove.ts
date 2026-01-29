@@ -31,7 +31,7 @@ export const Remove: Command = {
       .setLabel("Cancel and keep the data");
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       confirm,
-      cancel
+      cancel,
     );
 
     const response = await interaction.followUp({

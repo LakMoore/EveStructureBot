@@ -24,7 +24,7 @@ export const Reload: Command = {
 
       if (!command) {
         await interaction.reply(
-          `There is no command with name \`${commandName}\`!`
+          `There is no command with name \`${commandName}\`!`,
         );
         return;
       }

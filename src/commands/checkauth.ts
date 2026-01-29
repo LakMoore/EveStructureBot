@@ -17,21 +17,21 @@ export const CheckAuth: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel instanceof TextChannel) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       let found = false;
 
       for (const corp of channelCorps) {
         for (const char of Array.prototype.concat(
-          corp.members.flatMap((m) => m.characters)
+          corp.members.flatMap((m) => m.characters),
         )) {
           if (char.needsReAuth) {
             await sendMessage(
               channel,
               `<@${char.discordId}> Please use /auth to re-authorise your character, named "${char.characterName}".`,
-              `<@${char.discordId}> Please use /auth to re-authorise your character, named "${char.characterName}".`
+              `<@${char.discordId}> Please use /auth to re-authorise your character, named "${char.characterName}".`,
             );
             found = true;
           }
@@ -43,7 +43,7 @@ export const CheckAuth: Command = {
         await sendMessage(
           channel,
           `Deleting empty corporation from this channel.`,
-          `Deleting empty corporation from this channel.`
+          `Deleting empty corporation from this channel.`,
         );
 
         // remove this corp from the array
@@ -59,13 +59,13 @@ export const CheckAuth: Command = {
         await sendMessage(
           channel,
           "No data found for this channel.  Use /auth command to begin.",
-          "No data found for this channel.  Use /auth command to begin."
+          "No data found for this channel.  Use /auth command to begin.",
         );
       } else if (!found) {
         await sendMessage(
           channel,
           "All characters are currently authorised correctly.",
-          "All characters are currently authorised correctly"
+          "All characters are currently authorised correctly",
         );
       }
     }

@@ -116,11 +116,11 @@ export function getTowerDetailsFromNotificationText(text?: string) {
     const type_id = getValueFromNotificationText(text, "  typeID:");
     const aggressor_alliance_id = getValueFromNotificationText(
       text,
-      "aggressorAllianceID:"
+      "aggressorAllianceID:",
     );
     const aggressor_corp_id = getValueFromNotificationText(
       text,
-      "aggressorCorpID:"
+      "aggressorCorpID:",
     );
     const aggressor_id = getValueFromNotificationText(text, "aggressorID:");
     const armor_value = getValueFromNotificationText(text, "armorValue:");
@@ -191,7 +191,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -205,7 +205,7 @@ export function initNotifications() {
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    }
+    },
   );
 
   messageTypes.set(
@@ -219,7 +219,7 @@ export function initNotifications() {
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    }
+    },
   );
 
   messageTypes.set(
@@ -233,7 +233,7 @@ export function initNotifications() {
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    }
+    },
   );
 
   messageTypes.set(
@@ -246,7 +246,7 @@ export function initNotifications() {
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    }
+    },
   );
 
   messageTypes.set(
@@ -259,7 +259,7 @@ export function initNotifications() {
       structureStateMessage: false,
       structureFuelMessage: true,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -272,7 +272,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -285,7 +285,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -298,7 +298,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -311,7 +311,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -325,7 +325,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -338,7 +338,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -351,7 +351,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: true,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -364,7 +364,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: true,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -377,7 +377,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -390,7 +390,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -403,7 +403,7 @@ export function initNotifications() {
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -416,7 +416,7 @@ export function initNotifications() {
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 
   messageTypes.set(
@@ -429,7 +429,7 @@ export function initNotifications() {
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    }
+    },
   );
 }
 
@@ -466,12 +466,12 @@ Alliance: ${allianceName}`;
       role_to_mention,
       structureStateMessage,
       structureFuelMessage,
-      miningUpdatesMessage
+      miningUpdatesMessage,
     );
   } catch (error) {
     consoleLog(
       `An error occured in handleAttackNotification for ${message}. Body: ${note.text}%n`,
-      error
+      error,
     );
   }
 }
@@ -490,19 +490,18 @@ async function handleStructureNotification(
   try {
     const structId = getStructureIdFromGenericNotificationText(note.text);
     const thisStruct = corp.structures.find(
-      (struct) => struct.structure_id === structId
+      (struct) => struct.structure_id === structId,
     );
 
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
-
         const thisChannel = data.channelFor(channel);
 
         if (
-          (structureStateMessage && thisChannel.structureStatus)
-          || (structureFuelMessage && thisChannel.structureFuel)
-          || (miningUpdatesMessage && thisChannel.miningUpdates)
+          (structureStateMessage && thisChannel.structureStatus) ||
+          (structureFuelMessage && thisChannel.structureFuel) ||
+          (miningUpdatesMessage && thisChannel.miningUpdates)
         ) {
           let content;
           const role = role_to_mention(thisChannel);
@@ -520,11 +519,11 @@ async function handleStructureNotification(
                   message,
                   note.timestamp,
                   thisStruct,
-                  corp.corpName
+                  corp.corpName,
                 ),
               ],
             },
-            `Structure Notification: ${message}`
+            `Structure Notification: ${message}`,
           );
         }
       }
@@ -532,7 +531,7 @@ async function handleStructureNotification(
   } catch (error) {
     consoleLog(
       `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error
+      error,
     );
   }
 }
@@ -553,7 +552,7 @@ async function handleTowerNotification(
 
     const starbaseName = await getStarbaseName(
       details.system_id,
-      details.moon_id
+      details.moon_id,
     );
 
     let builtMessage = message;
@@ -563,8 +562,9 @@ async function handleTowerNotification(
     if (details.quantity && details.type_id) {
       // POS wants something
       const itemName = await getItemName(details.type_id);
-      builtMessage += `\n${details.quantity} ${itemName}${details.quantity === 1 ? "" : "s"
-        } remain${details.quantity === 1 ? "s" : ""}`;
+      builtMessage += `\n${details.quantity} ${itemName}${
+        details.quantity === 1 ? "" : "s"
+      } remain${details.quantity === 1 ? "s" : ""}`;
       fuelMessage = true;
     }
 
@@ -589,8 +589,8 @@ async function handleTowerNotification(
         const thisChannel = data.channelFor(channel);
 
         if (
-          (thisChannel.starbaseFuel && fuelMessage)
-          || (thisChannel.starbaseStatus && statusMessage)
+          (thisChannel.starbaseFuel && fuelMessage) ||
+          (thisChannel.starbaseStatus && statusMessage)
         ) {
           let content;
           const role = role_to_mention(thisChannel);
@@ -609,11 +609,11 @@ async function handleTowerNotification(
                   note.timestamp,
                   starbaseName,
                   corp.corpName,
-                  details.starbase_type_id
+                  details.starbase_type_id,
                 ),
               ],
             },
-            `Structure Notification: ${builtMessage}`
+            `Structure Notification: ${builtMessage}`,
           );
         }
       }
@@ -621,7 +621,7 @@ async function handleTowerNotification(
   } catch (error) {
     consoleLog(
       `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error
+      error,
     );
   }
 }

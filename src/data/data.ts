@@ -86,7 +86,7 @@ export class Data {
     this._authenticatedCorps = temp;
 
     let tempChannels: DiscordChannel[] = await storage.getItem(
-      Data.CHANNELS_DATA_KEY
+      Data.CHANNELS_DATA_KEY,
     );
     if (!tempChannels) {
       tempChannels = [];
@@ -143,7 +143,7 @@ export class Data {
         thisCorp.characters.forEach((thisCharacter) => {
           if (thisCorp) {
             const memberIdx = thisCorp.members.findIndex(
-              (corpMember) => corpMember.discordId === thisCharacter.discordId
+              (corpMember) => corpMember.discordId === thisCharacter.discordId,
             );
             if (memberIdx > -1) {
               const corpMember = thisCorp.members[memberIdx];
@@ -183,21 +183,30 @@ export class Data {
       }
 
       // check whether this corp is already in the list
-      const thisIndex = this._authenticatedCorps.findIndex((c) => c === thisCorp);
-      const otherIndex = this._authenticatedCorps
-        .findIndex((c) => c.corpId == thisCorp.corpId && c.serverId == thisCorp.serverId);
+      const thisIndex = this._authenticatedCorps.findIndex(
+        (c) => c === thisCorp,
+      );
+      const otherIndex = this._authenticatedCorps.findIndex(
+        (c) => c.corpId == thisCorp.corpId && c.serverId == thisCorp.serverId,
+      );
 
       if (otherIndex < thisIndex && otherIndex > -1) {
         const corpToKeep = this._authenticatedCorps[otherIndex];
         // merge channelIds
-        corpToKeep.channelIds = [...new Set([...corpToKeep.channelIds, ...thisCorp.channelIds])];
+        corpToKeep.channelIds = [
+          ...new Set([...corpToKeep.channelIds, ...thisCorp.channelIds]),
+        ];
         // merge members, merging characters if necessary
         thisCorp.members.forEach((memberToDelete) => {
-          const memberIndex = corpToKeep.members.findIndex((m) => m.discordId == memberToDelete.discordId);
+          const memberIndex = corpToKeep.members.findIndex(
+            (m) => m.discordId == memberToDelete.discordId,
+          );
           if (memberIndex > -1) {
             const memberToKeep = corpToKeep.members[memberIndex];
             for (const char of memberToDelete.characters) {
-              const charIndex = memberToKeep.characters.findIndex((c) => c.characterId == char.characterId);
+              const charIndex = memberToKeep.characters.findIndex(
+                (c) => c.characterId == char.characterId,
+              );
               if (charIndex > -1) {
                 // keep whichever character has an authToken
                 if (!memberToKeep.characters[charIndex].authToken) {
@@ -221,11 +230,17 @@ export class Data {
         upgraded = true;
       }
 
-      const serverCountForCorp = this._authenticatedCorps
-        .filter((c) => c.corpId == thisCorp.corpId).length;
+      const serverCountForCorp = this._authenticatedCorps.filter(
+        (c) => c.corpId == thisCorp.corpId,
+      ).length;
 
       if (serverCountForCorp > 1) {
-        consoleLog("!!! Found a duplicate corp across " + serverCountForCorp + " servers: " + thisCorp.corpName);
+        consoleLog(
+          "!!! Found a duplicate corp across " +
+            serverCountForCorp +
+            " servers: " +
+            thisCorp.corpName,
+        );
         const allServerNames = this._authenticatedCorps
           .filter((c) => c.corpId == thisCorp.corpId && c.serverName)
           .map((c) => c.serverName);
@@ -267,8 +282,7 @@ export class Data {
           if (!character.mostRecentAuthAt) {
             if (character.needsReAuth) {
               character.mostRecentAuthAt = new Date(0);
-            }
-            else {
+            } else {
               character.mostRecentAuthAt = new Date();
             }
             upgraded = true;
@@ -276,8 +290,7 @@ export class Data {
           if (!character.authFailedAt) {
             if (character.needsReAuth) {
               character.authFailedAt = new Date();
-            }
-            else {
+            } else {
               character.authFailedAt = new Date(0);
             }
             upgraded = true;
@@ -287,13 +300,15 @@ export class Data {
     }
 
     if (upgraded) {
-
       await this.backup();
 
       // remove any corps that were deleted
       corpsToDelete.forEach((corp) => {
         consoleLog("Found duplicate corp " + corp.corpName + " - removing");
-        this._authenticatedCorps.splice(this._authenticatedCorps.findIndex((c) => c === corp), 1);
+        this._authenticatedCorps.splice(
+          this._authenticatedCorps.findIndex((c) => c === corp),
+          1,
+        );
       });
       consoleLog("Upgraded the datastore to new schema.");
       await this.save();
@@ -345,8 +360,14 @@ export class Data {
     consoleLog("Creating a backup of data to filesystem...");
     const tempCorps = await storage.getItem(Data.CORPS_DATA_KEY);
     const tempChannels = await storage.getItem(Data.CHANNELS_DATA_KEY);
-    await storage.setItem(Data.CORPS_DATA_KEY + "_backup_" + Date.now().toString(), tempCorps);
-    await storage.setItem(Data.CHANNELS_DATA_KEY + "_backup_" + Date.now().toString(), tempChannels);
+    await storage.setItem(
+      Data.CORPS_DATA_KEY + "_backup_" + Date.now().toString(),
+      tempCorps,
+    );
+    await storage.setItem(
+      Data.CHANNELS_DATA_KEY + "_backup_" + Date.now().toString(),
+      tempChannels,
+    );
   }
 
   public async removeChannel(channelId: string) {
@@ -355,8 +376,12 @@ export class Data {
     await this.backup();
 
     // update the authenticated corps to remove this channel from them
-    const corpsInChannel = this._authenticatedCorps.filter((c) => c.channelIds.includes(channelId));
-    consoleLog("Found " + corpsInChannel.length + " corps in channel " + channelId);
+    const corpsInChannel = this._authenticatedCorps.filter((c) =>
+      c.channelIds.includes(channelId),
+    );
+    consoleLog(
+      "Found " + corpsInChannel.length + " corps in channel " + channelId,
+    );
     if (corpsInChannel.length > 0) {
       corpsInChannel.forEach((c) => {
         c.channelIds = c.channelIds.filter((c) => c != channelId);
@@ -364,12 +389,16 @@ export class Data {
     }
 
     // report on corps with no channels
-    const corpsWithNoChannels = this._authenticatedCorps.filter((c) => c.channelIds.length == 0);
-    consoleLog("Found " + corpsWithNoChannels.length + " corps with no channels!");
+    const corpsWithNoChannels = this._authenticatedCorps.filter(
+      (c) => c.channelIds.length == 0,
+    );
+    consoleLog(
+      "Found " + corpsWithNoChannels.length + " corps with no channels!",
+    );
 
     // No need to actually delete the corp
 
-    // remove the channel from the channels list    
+    // remove the channel from the channels list
     this._channels = this._channels.filter((c) => c.channelId != channelId);
     await this.save();
   }

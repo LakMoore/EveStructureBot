@@ -23,15 +23,15 @@ export const Refuel: Command = {
   options: [systemNameOption],
   autocomplete: async (
     client: Client,
-    interaction: AutocompleteInteraction
+    interaction: AutocompleteInteraction,
   ) => {
     const focusedValue = interaction.options.getFocused();
 
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel?.isTextBased()) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       const systems = await Promise.all(
@@ -48,7 +48,7 @@ export const Refuel: Command = {
               name: await getSystemName(system_id),
               value: system_id.toString(),
             };
-          })
+          }),
       );
 
       const choices = systems
@@ -57,7 +57,7 @@ export const Refuel: Command = {
             focusedValue.length == 0 ||
             system.name
               ?.toLocaleLowerCase()
-              .includes(focusedValue.toLocaleLowerCase())
+              .includes(focusedValue.toLocaleLowerCase()),
         )
         .slice(0, 25);
 
@@ -74,8 +74,8 @@ export const Refuel: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel instanceof TextChannel) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       const structures = channelCorps
@@ -85,7 +85,7 @@ export const Refuel: Command = {
           });
         })
         .filter(
-          (v) => v.struct.system_id == interaction.options.get("system")?.value
+          (v) => v.struct.system_id == interaction.options.get("system")?.value,
         )
         .sort((v1, v2) => {
           const d1 = new Date(v1.struct.fuel_expires ?? 0);
@@ -106,7 +106,7 @@ export const Refuel: Command = {
         await sendMessage(channel, result.join("\n"), "System Fuel");
       } else {
         await interaction.followUp(
-          `No structures found in ${interaction.options.get("name")?.value}`
+          `No structures found in ${interaction.options.get("name")?.value}`,
         );
       }
 
@@ -114,7 +114,7 @@ export const Refuel: Command = {
         await sendMessage(
           channel,
           "No data found for this channel.  Use /auth command to begin.",
-          "No data found for this channel.  Use /auth command to begin."
+          "No data found for this channel.  Use /auth command to begin.",
         );
       }
     }

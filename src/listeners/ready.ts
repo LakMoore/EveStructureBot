@@ -1,4 +1,9 @@
-import { Client, DiscordAPIError, PermissionsBitField, TextChannel } from "discord.js";
+import {
+  Client,
+  DiscordAPIError,
+  PermissionsBitField,
+  TextChannel,
+} from "discord.js";
 import { Commands } from "../Commands";
 import { consoleLog, data, delay } from "../Bot";
 import { checkMembership } from "../EveSSO";
@@ -28,12 +33,13 @@ async function startPolling(client: Client) {
   // infinite loop required
   do {
     try {
-      const availableCorps = data.authenticatedCorps.filter((c) => c.serverId && c.channelIds.length > 0);
-      if (corpIndex < 0 || corpIndex > availableCorps.length - 1)
-        corpIndex = 0;
+      const availableCorps = data.authenticatedCorps.filter(
+        (c) => c.serverId && c.channelIds.length > 0,
+      );
+      if (corpIndex < 0 || corpIndex > availableCorps.length - 1) corpIndex = 0;
 
       consoleLog(
-        `Poll index: ${corpIndex} - Corp Count: ${availableCorps.length}`
+        `Poll index: ${corpIndex} - Corp Count: ${availableCorps.length}`,
       );
 
       const thisCorp = availableCorps[corpIndex];
@@ -45,20 +51,30 @@ async function startPolling(client: Client) {
             if (channel instanceof TextChannel) {
               if (client.user) {
                 const permissions = channel.permissionsFor(client.user);
-                if (!permissions?.has([
-                  PermissionsBitField.Flags.ViewChannel,
-                  PermissionsBitField.Flags.SendMessages
-                ])) {
+                if (
+                  !permissions?.has([
+                    PermissionsBitField.Flags.ViewChannel,
+                    PermissionsBitField.Flags.SendMessages,
+                  ])
+                ) {
                   consoleLog("No permission to post in " + channel.name);
-                  thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
+                  thisCorp.channelIds = thisCorp.channelIds.filter(
+                    (c) => c != channelId,
+                  );
                   await data.save();
                 }
               }
             }
           } catch (error) {
             if (error instanceof DiscordAPIError && error.code === 50001) {
-              consoleLog("Failed to check permissions for channel " + channelId + ". Removing channel!");
-              thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
+              consoleLog(
+                "Failed to check permissions for channel " +
+                  channelId +
+                  ". Removing channel!",
+              );
+              thisCorp.channelIds = thisCorp.channelIds.filter(
+                (c) => c != channelId,
+              );
               await data.save();
             }
           }
@@ -70,7 +86,11 @@ async function startPolling(client: Client) {
         } catch (error) {
           if (error instanceof DiscordAPIError && error.code === 10004) {
             consoleLog("Server not found for ID " + thisCorp.corpName);
-            consoleLog(thisCorp.channelIds.length + " channels found for server " + thisCorp.corpName);
+            consoleLog(
+              thisCorp.channelIds.length +
+                " channels found for server " +
+                thisCorp.corpName,
+            );
             thisCorp.serverId = "";
             await data.save();
             corpIndex++;
@@ -95,21 +115,39 @@ async function startPolling(client: Client) {
         const updatedCorp = availableCorps[corpIndex];
 
         if (updatedCorp) {
-
-          const notAuthedChars = updatedCorp.members.flatMap((m) => m.characters.filter((c) => c.needsReAuth))
+          const notAuthedChars = updatedCorp.members
+            .flatMap((m) => m.characters.filter((c) => c.needsReAuth))
             .map((c) => c.characterName);
 
           if (notAuthedChars.length > 0) {
             consoleLog("Not Authed", "\n" + notAuthedChars.join("\n"));
           }
 
-          var authedChars = updatedCorp.members.flatMap((m) => m.characters.filter((c) => !c.needsReAuth))
-            .sort((a, b) => new Date(a.nextNotificationCheck).getTime() - new Date(b.nextNotificationCheck).getTime())
-            .map((c) => c.characterName
-              + " " + (c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director) ? " (Director)" :
-                c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager) ? " (Manager)" :
-                  "")
-              + " in " + (new Date(c.nextNotificationCheck).getTime() - Date.now()) / 1000 + " seconds"
+          var authedChars = updatedCorp.members
+            .flatMap((m) => m.characters.filter((c) => !c.needsReAuth))
+            .sort(
+              (a, b) =>
+                new Date(a.nextNotificationCheck).getTime() -
+                new Date(b.nextNotificationCheck).getTime(),
+            )
+            .map(
+              (c) =>
+                c.characterName +
+                " " +
+                (c.roles?.includes(
+                  GetCharactersCharacterIdRolesOk.RolesEnum.Director,
+                )
+                  ? " (Director)"
+                  : c.roles?.includes(
+                        GetCharactersCharacterIdRolesOk.RolesEnum
+                          .StationManager,
+                      )
+                    ? " (Manager)"
+                    : "") +
+                " in " +
+                (new Date(c.nextNotificationCheck).getTime() - Date.now()) /
+                  1000 +
+                " seconds",
             )
             .join("\n");
 
@@ -121,16 +159,14 @@ async function startPolling(client: Client) {
         }
 
         client.user?.setActivity(
-          `Checking Structures at ${new Date(Date.now()).toUTCString()}`
+          `Checking Structures at ${new Date(Date.now()).toUTCString()}`,
         );
       }
-
     } catch (error) {
       consoleLog("An error occured in main loop", error);
     }
     corpIndex++;
 
     await delay(POLL_ATTEMPT_DELAY);
-
   } while (true);
 }

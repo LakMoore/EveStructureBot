@@ -7,7 +7,7 @@ export function generateStructureNotificationEmbed(
   message: string,
   timestamp: Date,
   thisStruct: GetCorporationsCorporationIdStructures200Ok | undefined,
-  corpName: string
+  corpName: string,
 ) {
   const embed = new EmbedBuilder()
     .setColor(colour)
@@ -17,7 +17,7 @@ export function generateStructureNotificationEmbed(
       .setTitle(thisStruct.name ?? "unknown structure")
       .setAuthor({ name: corpName })
       .setThumbnail(
-        `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
+        `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`,
       );
   } else {
     consoleLog("Failed to find structure");

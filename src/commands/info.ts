@@ -18,8 +18,8 @@ export const Info: Command = {
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel instanceof TextChannel) {
-      const channelCorps = data.authenticatedCorps.filter(
-        (ac) => ac.channelIds.includes(channel.id)
+      const channelCorps = data.authenticatedCorps.filter((ac) =>
+        ac.channelIds.includes(channel.id),
       );
 
       for (const corp of channelCorps) {
@@ -28,14 +28,14 @@ export const Info: Command = {
           {
             embeds: [generateCorpDetailsEmbed(corp)],
           },
-          "Corp Details"
+          "Corp Details",
         );
       }
       if (channelCorps.length == 0) {
         await sendMessage(
           channel,
           "No data found for this channel.  Use /auth command to begin.",
-          "No data found for this channel.  Use /auth command to begin."
+          "No data found for this channel.  Use /auth command to begin.",
         );
       }
     }

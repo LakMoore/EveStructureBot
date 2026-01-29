@@ -23,10 +23,12 @@ export default (client: Client): void => {
 
 const handleSlashCommand = async (
   client: Client,
-  interaction: Interaction
+  interaction: Interaction,
 ): Promise<void> => {
   if (interaction instanceof ChatInputCommandInteraction) {
-    const slashCommand = Commands.find((c) => c.name === interaction.commandName);
+    const slashCommand = Commands.find(
+      (c) => c.name === interaction.commandName,
+    );
     if (!slashCommand) {
       interaction.reply({ content: "An error has occurred" });
       return;
@@ -40,10 +42,10 @@ const handleSlashCommand = async (
       const channel = interaction.channel as TextChannel;
 
       consoleLog(
-        `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`
+        `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`,
       );
 
-      if (!await checkBotHasPermissions(interaction)) {
+      if (!(await checkBotHasPermissions(interaction))) {
         return;
       }
 
@@ -64,7 +66,7 @@ const handleSlashCommand = async (
 
 const handleAutocomplete = async (
   client: Client,
-  interaction: AutocompleteInteraction
+  interaction: AutocompleteInteraction,
 ): Promise<void> => {
   const slashCommand = Commands.find((c) => c.name === interaction.commandName);
 
@@ -83,9 +85,11 @@ const handleAutocomplete = async (
 
 const handleButton = async (
   client: Client,
-  interaction: ButtonInteraction
+  interaction: ButtonInteraction,
 ): Promise<void> => {
-  const buttonCommand = Commands.find((c) => c.name === interaction.customId.split("_")[0]);
+  const buttonCommand = Commands.find(
+    (c) => c.name === interaction.customId.split("_")[0],
+  );
 
   try {
     if (buttonCommand?.button) {

@@ -23,21 +23,29 @@ export const Test: Command = {
       try {
         const fs = require("fs");
         const notifications = JSON.parse(
-          fs.readFileSync("notifications.json", "utf8")
+          fs.readFileSync("notifications.json", "utf8"),
         );
 
         const corp = data.authenticatedCorps.findLast(
-          (ac) => ac.corpId == 98691522
+          (ac) => ac.corpId == 98691522,
         );
 
         if (!corp) {
-          await sendMessage(channel, `No data found for this channel.`, "No data found for this channel.");
+          await sendMessage(
+            channel,
+            `No data found for this channel.`,
+            "No data found for this channel.",
+          );
           return;
         }
 
         await processNotifications(notifications, client, corp);
       } catch (error) {
-        await sendMessage(channel, `Failed to process test notifications.`, "Failed to process test notifications.");
+        await sendMessage(
+          channel,
+          `Failed to process test notifications.`,
+          "Failed to process test notifications.",
+        );
       }
     }
   },

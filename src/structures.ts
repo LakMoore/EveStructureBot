@@ -20,7 +20,7 @@ import { AuthenticatedCorp } from "./data/data";
 
 export async function checkStructuresForCorp(
   corp: AuthenticatedCorp,
-  client: Client
+  client: Client,
 ) {
   consoleLog("checkStructuresForCorp ", corp.corpName);
 
@@ -28,7 +28,7 @@ export async function checkStructuresForCorp(
     corp,
     corp.nextStructureCheck,
     (c) => c.nextStructureCheck,
-    GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
+    GetCharactersCharacterIdRolesOk.RolesEnum.StationManager,
   );
 
   if (!workingChars || workingChars.length == 0) {
@@ -53,10 +53,11 @@ export async function checkStructuresForCorp(
 
   try {
     const structures = await CorporationApiFactory(
-      config
+      config,
     ).getCorporationsCorporationIdStructures(corp.corpId);
 
-    const nextCheck = Date.now() + (STRUCTURE_CHECK_DELAY / workingChars.length) + 3000;
+    const nextCheck =
+      Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
     thisChar.nextStructureCheck = new Date(nextCheck);
 
     //consoleLog("structs", structures);
@@ -86,16 +87,18 @@ export async function checkStructuresForCorp(
 
     // check for change
     await checkForStructureChangeAndPersist(client, c);
-
   } catch (error: any) {
     // if 401 Unauthorized then mark this character as needing reauth
     if (error.status === 401) {
       thisChar.needsReAuth = true;
       thisChar.authFailedAt = new Date();
       await data.save();
-      consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
-    }
-    else {
+      consoleLog(
+        "Unauthorised! Marked " +
+          thisChar.characterName +
+          " as needing reauth.",
+      );
+    } else {
       throw error;
     }
   }
@@ -103,14 +106,11 @@ export async function checkStructuresForCorp(
 
 async function checkForStructureChangeAndPersist(
   client: Client<boolean>,
-  corp: AuthenticatedCorp
+  corp: AuthenticatedCorp,
 ) {
-
   // find the user in our persisted storage
   const idx = data.authenticatedCorps.findIndex((thisCorp) => {
-    return (
-      thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId
-    );
+    return thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId;
   });
 
   if (idx > -1) {
@@ -120,7 +120,7 @@ async function checkForStructureChangeAndPersist(
     // check for new structures
     const addedStructs = corp.structures.filter(
       (s1) =>
-        !oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
+        !oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id),
     );
 
     for (const channelId of corp.channelIds) {
@@ -136,16 +136,15 @@ async function checkForStructureChangeAndPersist(
             await sendMessage(
               channel,
               { embeds: [generateNewStructureEmbed(s)] },
-              "new structure"
+              "new structure",
             );
           }
         }
 
-
         // check for removed structures
         const removedStructs = oldCorp.structures.filter(
           (s1) =>
-            !corp.structures.some((s2) => s1.structure_id === s2.structure_id)
+            !corp.structures.some((s2) => s1.structure_id === s2.structure_id),
         );
 
         if (channelConfig.structureStatus) {
@@ -156,31 +155,31 @@ async function checkForStructureChangeAndPersist(
               {
                 embeds: [generateDeletedStructureEmbed(s)],
               },
-              "deleted structure"
+              "deleted structure",
             );
           }
         }
 
         const matchingStructs = corp.structures.filter((s1) =>
-          oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
+          oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id),
         );
         for (const s of matchingStructs) {
           const oldStruct = oldCorp.structures.find(
-            (o) => o.structure_id === s.structure_id
+            (o) => o.structure_id === s.structure_id,
           );
           if (oldStruct) {
             let thisMessage = "";
             // check for structure status changes
             if (s.state != oldStruct?.state) {
               thisMessage += `\nStatus has changed from ${formatState(
-                oldStruct.state
+                oldStruct.state,
               )} to ${formatState(s.state)}`;
               statusMessage = true;
             }
             if (s.state_timer_end !== oldStruct.state_timer_end) {
               if (s.state_timer_end) {
                 thisMessage += `\nStructure has a timer that ends ${getRelativeDiscordTime(
-                  s.state_timer_end
+                  s.state_timer_end,
                 )}`;
               } else {
                 thisMessage += `\nStructure timer has reset`;
@@ -191,15 +190,15 @@ async function checkForStructureChangeAndPersist(
             if (oldStruct.fuel_expires != s.fuel_expires) {
               if (oldStruct.fuel_expires && s.fuel_expires) {
                 thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
-                  oldStruct.fuel_expires
+                  oldStruct.fuel_expires,
                 )} now expiring ${getRelativeDiscordTime(s.fuel_expires)}`;
               } else if (oldStruct.fuel_expires) {
                 thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
-                  oldStruct.fuel_expires
+                  oldStruct.fuel_expires,
                 )}. Now has "unknown expiry"`;
               } else if (s.fuel_expires) {
                 thisMessage += `\nFuel level has changed from "unknown expiry". Now expiring ${getRelativeDiscordTime(
-                  s.fuel_expires
+                  s.fuel_expires,
                 )}`;
               }
               fuelMessage = true;
@@ -218,30 +217,30 @@ async function checkForStructureChangeAndPersist(
                 // fuel expiry is within one check delay of the super low warning
                 expires <= new Date(Date.now() + SUPER_LOW_FUEL_WARNING) &&
                 expires >=
-                new Date(
-                  Date.now() +
-                  SUPER_LOW_FUEL_WARNING -
-                  1000 -
-                  NOTIFICATION_CHECK_DELAY / authedCharCount
-                )
+                  new Date(
+                    Date.now() +
+                      SUPER_LOW_FUEL_WARNING -
+                      1000 -
+                      NOTIFICATION_CHECK_DELAY / authedCharCount,
+                  )
               ) {
                 thisMessage += `\n@hereURGENT: Fuel will be depleated very soon ${getRelativeDiscordTime(
-                  expires
+                  expires,
                 )}`;
                 fuelMessage = true;
               } else if (
                 // fuel expiry is within one check delay of the low warning
                 expires <= new Date(Date.now() + LOW_FUEL_WARNING) &&
                 expires >=
-                new Date(
-                  Date.now() +
-                  LOW_FUEL_WARNING -
-                  1000 -
-                  NOTIFICATION_CHECK_DELAY / authedCharCount
-                )
+                  new Date(
+                    Date.now() +
+                      LOW_FUEL_WARNING -
+                      1000 -
+                      NOTIFICATION_CHECK_DELAY / authedCharCount,
+                  )
               ) {
                 thisMessage += `\nWarning: Fuel will be depleated ${getRelativeDiscordTime(
-                  expires
+                  expires,
                 )}`;
                 fuelMessage = true;
               }
@@ -257,11 +256,9 @@ async function checkForStructureChangeAndPersist(
         }
 
         if (
-          message.length > 0
-          && (
-            (channelConfig.structureStatus && statusMessage)
-            || (channelConfig.structureFuel && fuelMessage)
-          )
+          message.length > 0 &&
+          ((channelConfig.structureStatus && statusMessage) ||
+            (channelConfig.structureFuel && fuelMessage))
         ) {
           await sendMessage(channel, message, "structures: " + message);
         }
@@ -284,7 +281,7 @@ async function checkForStructureChangeAndPersist(
             await sendMessage(
               channel,
               { embeds: [generateNewStructureEmbed(s)] },
-              "new structure"
+              "new structure",
             );
           }
         }
@@ -299,7 +296,7 @@ async function checkForStructureChangeAndPersist(
 }
 
 function generateNewStructureEmbed(
-  s: GetCorporationsCorporationIdStructures200Ok
+  s: GetCorporationsCorporationIdStructures200Ok,
 ) {
   let fuelMessage = "Fuel has been depleated!";
   if (s.fuel_expires != undefined) {
@@ -326,12 +323,12 @@ function generateNewStructureEmbed(
     .setTitle(s.name ?? "Unknown Structure")
     .setDescription(`Status: ${formatState(s.state)}\n${fuelMessage}` + message)
     .setThumbnail(
-      `https://images.evetech.net/types/${s.type_id}/render?size=64`
+      `https://images.evetech.net/types/${s.type_id}/render?size=64`,
     );
 }
 
 function generateDeletedStructureEmbed(
-  s: GetCorporationsCorporationIdStructures200Ok
+  s: GetCorporationsCorporationIdStructures200Ok,
 ) {
   const badgeUrl = `https://images.evetech.net/corporations/${s.corporation_id}/logo?size=64`;
 
@@ -345,7 +342,7 @@ function generateDeletedStructureEmbed(
     .setTitle(s.name ?? "Unknown Structure")
     .setDescription("Structure is no longer part of the corporation!")
     .setThumbnail(
-      `https://images.evetech.net/types/${s.type_id}/render?size=64`
+      `https://images.evetech.net/types/${s.type_id}/render?size=64`,
     );
 }
 
@@ -354,7 +351,7 @@ function generateDeletedStructureEmbed(
 // hull_reinforce, hull_vulnerable, online_deprecated,
 // onlining_vulnerable, shield_vulnerable, unanchored, unknown
 function formatState(
-  state: GetCorporationsCorporationIdStructures200Ok.StateEnum
+  state: GetCorporationsCorporationIdStructures200Ok.StateEnum,
 ): string {
   switch (state) {
     case GetCorporationsCorporationIdStructures200Ok.StateEnum.ArmorReinforce:
