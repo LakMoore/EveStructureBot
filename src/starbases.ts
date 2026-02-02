@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, HTTPError, TextChannel } from "discord.js";
+import { Client, EmbedBuilder, HTTPError, TextChannel } from 'discord.js';
 import {
   GetCharactersCharacterIdRolesOk,
   CorporationApiFactory,
@@ -6,7 +6,7 @@ import {
   UniverseApiFactory,
   CharacterApiFactory,
   AllianceApiFactory,
-} from "eve-client-ts";
+} from 'eve-client-ts';
 import {
   colours,
   consoleLog,
@@ -14,46 +14,46 @@ import {
   getRelativeDiscordTime,
   sendMessage,
   STRUCTURE_CHECK_DELAY,
-} from "./Bot";
-import { AuthenticatedCorp } from "./data/data";
-import { getWorkingChars, getAccessToken } from "./EveSSO";
+} from './Bot';
+import { AuthenticatedCorp } from './data/data';
+import { getWorkingChars, getAccessToken } from './EveSSO';
 
 export async function checkStarbasesForCorp(
   corp: AuthenticatedCorp,
-  client: Client,
+  client: Client
 ) {
-  consoleLog("checkStarbasesForCorp ", corp.corpName);
+  consoleLog('checkStarbasesForCorp ', corp.corpName);
 
   const workingChars = getWorkingChars(
     corp,
     corp.nextStarbaseCheck,
     (c) => c.nextStarbaseCheck,
-    GetCharactersCharacterIdRolesOk.RolesEnum.Director,
+    GetCharactersCharacterIdRolesOk.RolesEnum.Director
   );
 
   if (!workingChars || workingChars.length == 0) {
-    consoleLog("No available characters to check starbases with!");
+    consoleLog('No available characters to check starbases with!');
     return;
   }
 
   const thisChar = workingChars[0];
 
   if (!thisChar || new Date(thisChar.nextStarbaseCheck) > new Date()) {
-    consoleLog(thisChar.characterName + " is not ready to check starbases!");
+    consoleLog(thisChar.characterName + ' is not ready to check starbases!');
     return;
   }
 
   const config = await getAccessToken(thisChar);
   if (!config) {
-    consoleLog("No access token for character " + thisChar.characterName);
+    consoleLog('No access token for character ' + thisChar.characterName);
     return;
   }
 
-  consoleLog("Using " + thisChar.characterName);
+  consoleLog('Using ' + thisChar.characterName);
 
   try {
     const starbases = await CorporationApiFactory(
-      config,
+      config
     ).getCorporationsCorporationIdStarbases(corp.corpId);
 
     const nextCheck =
@@ -92,9 +92,7 @@ export async function checkStarbasesForCorp(
       thisChar.authFailedAt = new Date();
       await data.save();
       consoleLog(
-        "Unauthorised! Marked " +
-          thisChar.characterName +
-          " as needing reauth.",
+        'Unauthorised! Marked ' + thisChar.characterName + ' as needing reauth.'
       );
     } else {
       throw error;
@@ -104,7 +102,7 @@ export async function checkStarbasesForCorp(
 
 async function checkForStarbaseChangeAndPersist(
   client: Client<boolean>,
-  corp: AuthenticatedCorp,
+  corp: AuthenticatedCorp
 ) {
   // find the user in our persisted storage
   const idx = data.authenticatedCorps.findIndex((thisCorp) => {
@@ -119,7 +117,7 @@ async function checkForStarbaseChangeAndPersist(
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         var channelConfig = data.channelFor(channel);
-        let message = "";
+        let message = '';
         let fuelMessage = false;
         let statusMessage = false;
 
@@ -127,9 +125,7 @@ async function checkForStarbaseChangeAndPersist(
           // check for new starbase
           const addedStarbase = corp.starbases.filter(
             (s1) =>
-              !oldCorp.starbases.some(
-                (s2) => s1.starbase_id === s2.starbase_id,
-              ),
+              !oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
           );
 
           for (const s of addedStarbase) {
@@ -138,14 +134,14 @@ async function checkForStarbaseChangeAndPersist(
               {
                 embeds: [await generateNewStarbaseEmbed(s, corp)],
               },
-              "added starbase",
+              'added starbase'
             );
           }
 
           // check for removed starbases
           const removedStarbases = oldCorp.starbases.filter(
             (s1) =>
-              !corp.starbases.some((s2) => s1.starbase_id === s2.starbase_id),
+              !corp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
           );
 
           // max embeds per message is 10
@@ -155,20 +151,20 @@ async function checkForStarbaseChangeAndPersist(
               {
                 embeds: [await generateDeletedStarbasesEmbed(s, corp)],
               },
-              "removed starbase",
+              'removed starbase'
             );
           }
         }
 
         const matchingStarbases = corp.starbases.filter((s1) =>
-          oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id),
+          oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
         );
         for (const s of matchingStarbases) {
           const oldStarbase = oldCorp.starbases.find(
-            (o) => o.starbase_id === s.starbase_id,
+            (o) => o.starbase_id === s.starbase_id
           );
           if (oldStarbase) {
-            let thisMessage = "";
+            let thisMessage = '';
             // check for starbase status changes
             if (s.state != oldStarbase?.state) {
               thisMessage += `\nStatus has changed from ${oldStarbase.state} to ${s.state}`;
@@ -176,7 +172,7 @@ async function checkForStarbaseChangeAndPersist(
             if (s.reinforced_until !== oldStarbase.reinforced_until) {
               if (s.reinforced_until) {
                 thisMessage += `\nStarbase has a reinforcement timer that ends ${getRelativeDiscordTime(
-                  s.reinforced_until,
+                  s.reinforced_until
                 )}`;
               } else {
                 thisMessage += `\nStarbase reinforcement timer has reset`;
@@ -185,7 +181,7 @@ async function checkForStarbaseChangeAndPersist(
             if (s.unanchor_at !== oldStarbase.unanchor_at) {
               if (s.unanchor_at) {
                 thisMessage += `\nStarbase has an unanchor timer that started ${getRelativeDiscordTime(
-                  s.unanchor_at,
+                  s.unanchor_at
                 )}`;
               } else {
                 thisMessage += `\nStarbase unanchor timer has reset`;
@@ -199,13 +195,13 @@ async function checkForStarbaseChangeAndPersist(
             }
 
             if (thisMessage.length > 0) {
-              message += thisMessage + "\n\n";
+              message += thisMessage + '\n\n';
             }
           }
         }
 
         if (message.length > 0) {
-          await sendMessage(channel, message, "Starbases");
+          await sendMessage(channel, message, 'Starbases');
         }
       }
     }
@@ -225,7 +221,7 @@ async function checkForStarbaseChangeAndPersist(
             {
               embeds: [await generateNewStarbaseEmbed(s, corp)],
             },
-            "New Starbase",
+            'New Starbase'
           );
         }
 
@@ -240,9 +236,9 @@ async function checkForStarbaseChangeAndPersist(
 
 async function generateNewStarbaseEmbed(
   s: GetCorporationsCorporationIdStarbases200Ok,
-  corp: AuthenticatedCorp,
+  corp: AuthenticatedCorp
 ) {
-  let message = "";
+  let message = '';
 
   if (s.reinforced_until != undefined) {
     const ends = new Date(s.reinforced_until);
@@ -261,20 +257,20 @@ async function generateNewStarbaseEmbed(
   return new EmbedBuilder()
     .setColor(colours.green)
     .setAuthor({
-      name: "New Starbase",
+      name: 'New Starbase',
       iconURL: badgeUrl,
       url: undefined,
     })
     .setTitle(starbaseName)
     .setDescription(`Type: ${starbaseType}\nStatus: ${s.state}${message}`)
     .setThumbnail(
-      `https://images.evetech.net/types/${s.type_id}/render?size=64`,
+      `https://images.evetech.net/types/${s.type_id}/render?size=64`
     );
 }
 
 async function generateDeletedStarbasesEmbed(
   s: GetCorporationsCorporationIdStarbases200Ok,
-  corp: AuthenticatedCorp,
+  corp: AuthenticatedCorp
 ) {
   const badgeUrl = `https://images.evetech.net/corporations/${corp.corpId}/logo?size=64`;
 
@@ -284,16 +280,16 @@ async function generateDeletedStarbasesEmbed(
   return new EmbedBuilder()
     .setColor(colours.red)
     .setAuthor({
-      name: "Deleted Starbase",
+      name: 'Deleted Starbase',
       iconURL: badgeUrl,
       url: undefined,
     })
     .setTitle(starbaseName)
     .setDescription(
-      `Type: ${starbaseType}\nStarbase is no longer part of the corporation!`,
+      `Type: ${starbaseType}\nStarbase is no longer part of the corporation!`
     )
     .setThumbnail(
-      `https://images.evetech.net/types/${s.type_id}/render?size=64`,
+      `https://images.evetech.net/types/${s.type_id}/render?size=64`
     );
 }
 
@@ -302,7 +298,7 @@ async function getStarbaseType(type_id: number) {
   if (result) {
     return result.name;
   }
-  return "Unknown Type";
+  return 'Unknown Type';
 }
 
 export async function getStarbaseName(system_id?: number, moon_id?: number) {
@@ -311,7 +307,7 @@ export async function getStarbaseName(system_id?: number, moon_id?: number) {
 
   let nameText = moonName;
   if (!moonName.startsWith(systemName)) {
-    nameText = systemName + " - " + moonName;
+    nameText = systemName + ' - ' + moonName;
   }
   return nameText;
 }
@@ -324,7 +320,7 @@ export async function getSystemName(system_id?: number) {
       return result.name;
     }
   }
-  return "Unknown System";
+  return 'Unknown System';
 }
 
 export async function getItemName(type_id?: number) {
@@ -334,7 +330,7 @@ export async function getItemName(type_id?: number) {
       return result.name;
     }
   }
-  return "Unknown Item";
+  return 'Unknown Item';
 }
 
 async function getMoonName(moon_id?: number) {
@@ -344,7 +340,7 @@ async function getMoonName(moon_id?: number) {
       return result.name;
     }
   }
-  return "Unknown Moon";
+  return 'Unknown Moon';
 }
 
 // Get Character name from ID
@@ -356,7 +352,7 @@ export async function getCharacterName(character_id?: number) {
       return result.name;
     }
   }
-  return "Unknown Character";
+  return 'Unknown Character';
 }
 
 // Get Corp Name from ID
@@ -368,7 +364,7 @@ export async function getCorpName(corp_id?: number) {
       return result.name;
     }
   }
-  return "Unknown Corporation";
+  return 'Unknown Corporation';
 }
 
 // Get Alliance Name from ID
@@ -380,5 +376,5 @@ export async function getAllianceName(alliance_id?: number) {
       return result.name;
     }
   }
-  return "Unknown Alliance";
+  return 'Unknown Alliance';
 }

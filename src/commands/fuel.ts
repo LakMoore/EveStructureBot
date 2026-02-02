@@ -5,26 +5,26 @@ import {
   SlashCommandStringOption,
   TextChannel,
   ChatInputCommandInteraction,
-} from "discord.js";
-import { Command } from "../Command";
-import { consoleLog, data, sendMessage } from "../Bot";
-import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
+} from 'discord.js';
+import { Command } from '../Command';
+import { consoleLog, data, sendMessage } from '../Bot';
+import { generateStructureNotificationEmbed } from '../embeds/structureNotification';
 
 const stationNameOption = new SlashCommandStringOption()
-  .setName("name")
-  .setDescription("Name of Structure")
+  .setName('name')
+  .setDescription('Name of Structure')
   .setRequired(true)
   .setAutocomplete(true);
 
 export const Fuel: Command = {
-  name: "fuel",
-  description: "Fetch fuel status for a station.",
+  name: 'fuel',
+  description: 'Fetch fuel status for a station.',
   deferReply: true,
   ephemeral: false,
   options: [stationNameOption],
   autocomplete: async (
     client: Client,
-    interaction: AutocompleteInteraction,
+    interaction: AutocompleteInteraction
   ) => {
     const focusedValue = interaction.options.getFocused();
 
@@ -32,14 +32,14 @@ export const Fuel: Command = {
 
     if (channel?.isTextBased()) {
       const channelCorps = data.authenticatedCorps.filter((ac) =>
-        ac.channelIds.includes(channel.id),
+        ac.channelIds.includes(channel.id)
       );
 
       const choices = channelCorps
         .flatMap((corp) => {
           return corp.structures.map((struct) => {
             return {
-              name: struct.name ?? "unknown structure",
+              name: struct.name ?? 'unknown structure',
               value: struct.structure_id.toString(),
             };
           });
@@ -49,7 +49,7 @@ export const Fuel: Command = {
             focusedValue.length == 0 ||
             struct.name
               ?.toLocaleLowerCase()
-              .includes(focusedValue.toLocaleLowerCase()),
+              .includes(focusedValue.toLocaleLowerCase())
         )
         .slice(0, 25);
 
@@ -57,7 +57,7 @@ export const Fuel: Command = {
     }
   },
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    const content = "Fetching fuel info...";
+    const content = 'Fetching fuel info...';
 
     await interaction.followUp({
       content,
@@ -67,7 +67,7 @@ export const Fuel: Command = {
 
     if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter((ac) =>
-        ac.channelIds.includes(channel.id),
+        ac.channelIds.includes(channel.id)
       );
 
       const result = channelCorps
@@ -77,14 +77,13 @@ export const Fuel: Command = {
           });
         })
         .find(
-          (v) =>
-            v.struct.structure_id == interaction.options.get("name")?.value,
+          (v) => v.struct.structure_id == interaction.options.get('name')?.value
         );
 
       if (result?.struct.fuel_expires) {
-        let text = "Fuel expires";
+        let text = 'Fuel expires';
         if (new Date(result.struct.fuel_expires) < new Date()) {
-          text = "Fuel expired";
+          text = 'Fuel expired';
         }
         await sendMessage(
           channel,
@@ -95,25 +94,25 @@ export const Fuel: Command = {
                 text,
                 result.struct.fuel_expires,
                 result.struct,
-                result.corp.corpName,
+                result.corp.corpName
               ),
             ],
           },
-          "Fuel expired",
+          'Fuel expired'
         );
       } else {
         await interaction.followUp(
           `No structure found with the name ${
-            interaction.options.get("name")?.value
-          }`,
+            interaction.options.get('name')?.value
+          }`
         );
       }
 
       if (channelCorps.length == 0) {
         await sendMessage(
           channel,
-          "No data found for this channel.  Use /auth command to begin.",
-          "No data found for this channel.  Use /auth command to begin.",
+          'No data found for this channel.  Use /auth command to begin.',
+          'No data found for this channel.  Use /auth command to begin.'
         );
       }
     }

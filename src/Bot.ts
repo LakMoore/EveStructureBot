@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 import {
   Client,
   CommandInteraction,
@@ -7,12 +7,12 @@ import {
   MessagePayload,
   PermissionsBitField,
   TextChannel,
-} from "discord.js";
-import ready from "./listeners/ready";
-import interactionCreate from "./listeners/interactionCreate";
-import { setup } from "./EveSSO";
-import { Data } from "./data/data";
-import { initNotifications } from "./data/notification";
+} from 'discord.js';
+import ready from './listeners/ready';
+import interactionCreate from './listeners/interactionCreate';
+import { setup } from './EveSSO';
+import { Data } from './data/data';
+import { initNotifications } from './data/notification';
 
 export const data = new Data();
 export const LOW_FUEL_WARNING = 7 * 24 * 60 * 60 * 1000; //7 days
@@ -29,7 +29,7 @@ export const colours = {
 async function main() {
   try {
     dotenv.config();
-    consoleLog("Bot is starting...");
+    consoleLog('Bot is starting...');
 
     await data.init();
     initNotifications();
@@ -45,7 +45,7 @@ async function main() {
     // login
     await client.login(process.env.SECRET_TOKEN);
 
-    consoleLog("Logged in!");
+    consoleLog('Logged in!');
 
     setup(client);
   } catch (error) {
@@ -56,7 +56,7 @@ async function main() {
 main();
 
 export function consoleLog(message?: any, ...optionalParams: any[]) {
-  console.log(new Date().toISOString() + ": " + message, ...optionalParams);
+  console.log(new Date().toISOString() + ': ' + message, ...optionalParams);
 }
 
 export const delay = (ms: number) =>
@@ -69,15 +69,15 @@ export function getRelativeDiscordTime(time: Date): string {
 export async function sendMessage(
   channel: TextChannel,
   message: string | MessagePayload | MessageCreateOptions,
-  type: string,
+  type: string
 ) {
   try {
     consoleLog(
-      `sending "${type}" message to ${channel.name} in ${channel.guild.name}`,
+      `sending "${type}" message to ${channel.name} in ${channel.guild.name}`
     );
     await channel.send(message);
   } catch (error) {
-    consoleLog("An error occured in sendMessage", error);
+    consoleLog('An error occured in sendMessage', error);
   }
 }
 
@@ -94,7 +94,7 @@ export async function checkBotHasPermissions(interaction: CommandInteraction) {
     ) {
       await interaction.followUp({
         content:
-          "Please grant me permission to post in this channel and try again.",
+          'Please grant me permission to post in this channel and try again.',
         ephemeral: true,
       });
       return false;

@@ -1,14 +1,14 @@
-import { ChatInputCommandInteraction, Client } from "discord.js";
-import { Command } from "../Command";
-import { Commands } from "../Commands";
+import { ChatInputCommandInteraction, Client } from 'discord.js';
+import { Command } from '../Command';
+import { Commands } from '../Commands';
 
 export const Reload: Command = {
-  name: "reload",
-  description: "Forces the bot to reload the specified command",
+  name: 'reload',
+  description: 'Forces the bot to reload the specified command',
   deferReply: true,
   ephemeral: true,
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    const content = "Reloading command...";
+    const content = 'Reloading command...';
 
     await interaction.followUp({
       content,
@@ -17,14 +17,14 @@ export const Reload: Command = {
     if (client.application) {
       const commandName =
         interaction.options
-          .get("command", true)
+          .get('command', true)
           .value?.toString()
-          .toLocaleLowerCase() ?? "";
+          .toLocaleLowerCase() ?? '';
       const command = client.application?.commands.cache.get(commandName);
 
       if (!command) {
         await interaction.reply(
-          `There is no command with name \`${commandName}\`!`,
+          `There is no command with name \`${commandName}\`!`
         );
         return;
       }
@@ -37,9 +37,9 @@ export const Reload: Command = {
 
       await client.application.commands.set(Commands);
 
-      await interaction.reply("Commands reloaded");
+      await interaction.reply('Commands reloaded');
       return;
     }
-    await interaction.reply("Unknown error!");
+    await interaction.reply('Unknown error!');
   },
 };

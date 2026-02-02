@@ -3,20 +3,20 @@ import {
   DiscordAPIError,
   PermissionsBitField,
   TextChannel,
-} from "discord.js";
-import { Commands } from "../Commands";
-import { consoleLog, data, delay } from "../Bot";
-import { checkMembership } from "../EveSSO";
-import { checkNotificationsForCorp } from "../notifications";
-import { checkStarbasesForCorp } from "../starbases";
-import { checkStructuresForCorp } from "../structures";
-import { GetCharactersCharacterIdRolesOk } from "eve-client-ts";
+} from 'discord.js';
+import { Commands } from '../Commands';
+import { consoleLog, data, delay } from '../Bot';
+import { checkMembership } from '../EveSSO';
+import { checkNotificationsForCorp } from '../notifications';
+import { checkStarbasesForCorp } from '../starbases';
+import { checkStructuresForCorp } from '../structures';
+import { GetCharactersCharacterIdRolesOk } from 'eve-client-ts';
 
 const POLL_ATTEMPT_DELAY = 2000;
 let corpIndex = 0;
 
 export default (client: Client): void => {
-  client.on("ready", async () => {
+  client.on('ready', async () => {
     if (!client.user || !client.application) {
       return;
     }
@@ -34,12 +34,12 @@ async function startPolling(client: Client) {
   do {
     try {
       const availableCorps = data.authenticatedCorps.filter(
-        (c) => c.serverId && c.channelIds.length > 0,
+        (c) => c.serverId && c.channelIds.length > 0
       );
       if (corpIndex < 0 || corpIndex > availableCorps.length - 1) corpIndex = 0;
 
       consoleLog(
-        `Poll index: ${corpIndex} - Corp Count: ${availableCorps.length}`,
+        `Poll index: ${corpIndex} - Corp Count: ${availableCorps.length}`
       );
 
       const thisCorp = availableCorps[corpIndex];
@@ -57,9 +57,9 @@ async function startPolling(client: Client) {
                     PermissionsBitField.Flags.SendMessages,
                   ])
                 ) {
-                  consoleLog("No permission to post in " + channel.name);
+                  consoleLog('No permission to post in ' + channel.name);
                   thisCorp.channelIds = thisCorp.channelIds.filter(
-                    (c) => c != channelId,
+                    (c) => c != channelId
                   );
                   await data.save();
                 }
@@ -68,12 +68,12 @@ async function startPolling(client: Client) {
           } catch (error) {
             if (error instanceof DiscordAPIError && error.code === 50001) {
               consoleLog(
-                "Failed to check permissions for channel " +
+                'Failed to check permissions for channel ' +
                   channelId +
-                  ". Removing channel!",
+                  '. Removing channel!'
               );
               thisCorp.channelIds = thisCorp.channelIds.filter(
-                (c) => c != channelId,
+                (c) => c != channelId
               );
               await data.save();
             }
@@ -85,13 +85,13 @@ async function startPolling(client: Client) {
           thisCorp.serverName = guild.name;
         } catch (error) {
           if (error instanceof DiscordAPIError && error.code === 10004) {
-            consoleLog("Server not found for ID " + thisCorp.corpName);
+            consoleLog('Server not found for ID ' + thisCorp.corpName);
             consoleLog(
               thisCorp.channelIds.length +
-                " channels found for server " +
-                thisCorp.corpName,
+                ' channels found for server ' +
+                thisCorp.corpName
             );
-            thisCorp.serverId = "";
+            thisCorp.serverId = '';
             await data.save();
             corpIndex++;
             continue;
@@ -120,7 +120,7 @@ async function startPolling(client: Client) {
             .map((c) => c.characterName);
 
           if (notAuthedChars.length > 0) {
-            consoleLog("Not Authed", "\n" + notAuthedChars.join("\n"));
+            consoleLog('Not Authed', '\n' + notAuthedChars.join('\n'));
           }
 
           var authedChars = updatedCorp.members
@@ -128,30 +128,29 @@ async function startPolling(client: Client) {
             .sort(
               (a, b) =>
                 new Date(a.nextNotificationCheck).getTime() -
-                new Date(b.nextNotificationCheck).getTime(),
+                new Date(b.nextNotificationCheck).getTime()
             )
             .map(
               (c) =>
                 c.characterName +
-                " " +
+                ' ' +
                 (c.roles?.includes(
-                  GetCharactersCharacterIdRolesOk.RolesEnum.Director,
+                  GetCharactersCharacterIdRolesOk.RolesEnum.Director
                 )
-                  ? " (Director)"
+                  ? ' (Director)'
                   : c.roles?.includes(
-                        GetCharactersCharacterIdRolesOk.RolesEnum
-                          .StationManager,
+                        GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
                       )
-                    ? " (Manager)"
-                    : "") +
-                " in " +
+                    ? ' (Manager)'
+                    : '') +
+                ' in ' +
                 (new Date(c.nextNotificationCheck).getTime() - Date.now()) /
                   1000 +
-                " seconds",
+                ' seconds'
             )
-            .join("\n");
+            .join('\n');
 
-          consoleLog("Authed Chars", "\n" + authedChars);
+          consoleLog('Authed Chars', '\n' + authedChars);
 
           await checkStructuresForCorp(updatedCorp, client);
           await checkStarbasesForCorp(updatedCorp, client);
@@ -159,11 +158,11 @@ async function startPolling(client: Client) {
         }
 
         client.user?.setActivity(
-          `Checking Structures at ${new Date(Date.now()).toUTCString()}`,
+          `Checking Structures at ${new Date(Date.now()).toUTCString()}`
         );
       }
     } catch (error) {
-      consoleLog("An error occured in main loop", error);
+      consoleLog('An error occured in main loop', error);
     }
     corpIndex++;
 

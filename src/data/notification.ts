@@ -30,25 +30,25 @@
     type: 'StructureUnderAttack'
   }*/
 
-import { Client, Colors, TextChannel } from "discord.js";
-import { GetCharactersCharacterIdNotifications200Ok } from "eve-client-ts";
-import { AuthenticatedCorp, DiscordChannel } from "./data";
-import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
-import { consoleLog, data, sendMessage } from "../Bot";
-import { generateStarbaseNotificationEmbed } from "../embeds/starbaseNotification";
+import { Client, Colors, TextChannel } from 'discord.js';
+import { GetCharactersCharacterIdNotifications200Ok } from 'eve-client-ts';
+import { AuthenticatedCorp, DiscordChannel } from './data';
+import { generateStructureNotificationEmbed } from '../embeds/structureNotification';
+import { consoleLog, data, sendMessage } from '../Bot';
+import { generateStarbaseNotificationEmbed } from '../embeds/starbaseNotification';
 import {
   getAllianceName,
   getCharacterName,
   getCorpName,
   getItemName,
   getStarbaseName,
-} from "../starbases";
+} from '../starbases';
 
 export function getStructureIdFromGenericNotificationText(text?: string) {
   if (text) {
-    const part1 = text.split("structureID:");
-    const part2 = part1[1].split("\n");
-    const part3 = part2[0].split(" ");
+    const part1 = text.split('structureID:');
+    const part2 = part1[1].split('\n');
+    const part3 = part2[0].split(' ');
     const structId = part3.pop();
     if (structId) {
       return Number(structId);
@@ -59,8 +59,8 @@ export function getStructureIdFromGenericNotificationText(text?: string) {
 
 export function getAggressorIdFromNotificationText(text?: string) {
   if (text) {
-    const part1 = text.split("charID: ");
-    const part2 = part1[1].split("\n");
+    const part1 = text.split('charID: ');
+    const part2 = part1[1].split('\n');
     const charID = part2[0];
     if (charID) {
       return Number(charID);
@@ -71,30 +71,30 @@ export function getAggressorIdFromNotificationText(text?: string) {
 
 export function getCorpNameFromNotificationText(text?: string) {
   if (text) {
-    const part1 = text.split("corpName: ");
+    const part1 = text.split('corpName: ');
     if (part1.length > 1) {
-      const part2 = part1[1].split("\n");
+      const part2 = part1[1].split('\n');
       const corpName = part2[0];
       if (corpName && corpName.length > 0) {
         return corpName;
       }
     }
   }
-  return "Unknown Corporation";
+  return 'Unknown Corporation';
 }
 
 export function getAllianceNameFromNotificationText(text?: string) {
   if (text) {
-    const part1 = text.split("allianceName: ");
+    const part1 = text.split('allianceName: ');
     if (part1.length > 1) {
-      const part2 = part1[1].split("\n");
+      const part2 = part1[1].split('\n');
       const allianceName = part2[0];
       if (allianceName && allianceName.length > 0) {
         return allianceName;
       }
     }
   }
-  return "Unknown Alliance";
+  return 'Unknown Alliance';
 }
 
 /*  Message has this structure
@@ -109,23 +109,23 @@ wants:
 */
 export function getTowerDetailsFromNotificationText(text?: string) {
   if (text) {
-    const moon_id = getValueFromNotificationText(text, "moonID:");
-    const system_id = getValueFromNotificationText(text, "solarSystemID:");
-    const starbase_type_id = getValueFromNotificationText(text, "typeID:");
-    const quantity = getValueFromNotificationText(text, "- quantity:");
-    const type_id = getValueFromNotificationText(text, "  typeID:");
+    const moon_id = getValueFromNotificationText(text, 'moonID:');
+    const system_id = getValueFromNotificationText(text, 'solarSystemID:');
+    const starbase_type_id = getValueFromNotificationText(text, 'typeID:');
+    const quantity = getValueFromNotificationText(text, '- quantity:');
+    const type_id = getValueFromNotificationText(text, '  typeID:');
     const aggressor_alliance_id = getValueFromNotificationText(
       text,
-      "aggressorAllianceID:",
+      'aggressorAllianceID:'
     );
     const aggressor_corp_id = getValueFromNotificationText(
       text,
-      "aggressorCorpID:",
+      'aggressorCorpID:'
     );
-    const aggressor_id = getValueFromNotificationText(text, "aggressorID:");
-    const armor_value = getValueFromNotificationText(text, "armorValue:");
-    const hull_value = getValueFromNotificationText(text, "hullValue:");
-    const shield_value = getValueFromNotificationText(text, "shieldValue:");
+    const aggressor_id = getValueFromNotificationText(text, 'aggressorID:');
+    const armor_value = getValueFromNotificationText(text, 'armorValue:');
+    const hull_value = getValueFromNotificationText(text, 'hullValue:');
+    const shield_value = getValueFromNotificationText(text, 'shieldValue:');
 
     return {
       moon_id,
@@ -148,7 +148,7 @@ function getValueFromNotificationText(text: string, key: string) {
   if (text) {
     const parts = text.split(key);
     if (parts?.length > 1) {
-      const result = parts[1].split("\n");
+      const result = parts[1].split('\n');
       if (result?.length > 0) {
         return Number(result[0]);
       }
@@ -172,7 +172,7 @@ export const messageTypes = new Map<
       role_to_mention: (c: DiscordChannel) => string | undefined,
       structureStateMessage: boolean,
       structureFuelMessage: boolean,
-      miningUpdatesMessage: boolean,
+      miningUpdatesMessage: boolean
     ) => Promise<void>;
     structureStateMessage: boolean;
     structureFuelMessage: boolean;
@@ -184,252 +184,252 @@ export function initNotifications() {
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureUnderAttack,
     {
-      message: "STRUCTURE UNDER ATTACK",
+      message: 'STRUCTURE UNDER ATTACK',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureUnderAttackNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum
       .MoonminingExtractionStarted,
     {
-      message: "Moon mining extraction started",
+      message: 'Moon mining extraction started',
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum
       .MoonminingExtractionFinished,
     {
-      message: "Moon mining extraction finished",
+      message: 'Moon mining extraction finished',
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum
       .MoonminingAutomaticFracture,
     {
-      message: "Moon mining automatic fracture triggered",
+      message: 'Moon mining automatic fracture triggered',
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.MoonminingLaserFired,
     {
-      message: "Moon mining laser fired",
+      message: 'Moon mining laser fired',
       colour: Colors.Blue,
       get_role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: true,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureFuelAlert,
     {
-      message: "Structure low on fuel",
+      message: 'Structure low on fuel',
       colour: Colors.Yellow,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: false,
       structureFuelMessage: true,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureDestroyed,
     {
-      message: "Structure destroyed",
+      message: 'Structure destroyed',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureLostArmor,
     {
-      message: "Structure armor depleated",
+      message: 'Structure armor depleated',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureLostShields,
     {
-      message: "Structure shields depleated",
+      message: 'Structure shields depleated',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureOnline,
     {
-      message: "Structure online",
+      message: 'Structure online',
       colour: Colors.Green,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum
       .StructureServicesOffline,
     {
-      message: "Structure services offline",
+      message: 'Structure services offline',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureUnanchoring,
     {
-      message: "Structure has started unanchoring",
+      message: 'Structure has started unanchoring',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureWentHighPower,
     {
-      message: "Structure power restored",
+      message: 'Structure power restored',
       colour: Colors.Green,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: true,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureWentLowPower,
     {
-      message: "Structure power failed",
+      message: 'Structure power failed',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: true,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.OrbitalAttacked,
     {
-      message: "POCO Attacked",
+      message: 'POCO Attacked',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.OrbitalReinforced,
     {
-      message: "POCO Re-inforced",
+      message: 'POCO Re-inforced',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.TowerAlertMsg,
     {
-      message: "POS Alert",
+      message: 'POS Alert',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.attack_alert_role,
       handler: handleTowerNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.TowerResourceAlertMsg,
     {
-      message: "POS Needs Resources",
+      message: 'POS Needs Resources',
       colour: Colors.Red,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleTowerNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 
   messageTypes.set(
     GetCharactersCharacterIdNotifications200Ok.TypeEnum.StructureAnchoring,
     {
-      message: "Structure Anchoring",
+      message: 'Structure Anchoring',
       colour: Colors.Yellow,
       get_role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
-    },
+    }
   );
 }
 
@@ -442,7 +442,7 @@ async function handleStructureUnderAttackNotification(
   role_to_mention: (c: DiscordChannel) => string | undefined,
   structureStateMessage: boolean,
   structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean,
+  miningUpdatesMessage: boolean
 ) {
   try {
     const aggressor_id = getAggressorIdFromNotificationText(note.text);
@@ -466,12 +466,12 @@ Alliance: ${allianceName}`;
       role_to_mention,
       structureStateMessage,
       structureFuelMessage,
-      miningUpdatesMessage,
+      miningUpdatesMessage
     );
   } catch (error) {
     consoleLog(
       `An error occured in handleAttackNotification for ${message}. Body: ${note.text}%n`,
-      error,
+      error
     );
   }
 }
@@ -485,12 +485,12 @@ async function handleStructureNotification(
   role_to_mention: (c: DiscordChannel) => string | undefined,
   structureStateMessage: boolean,
   structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean,
+  miningUpdatesMessage: boolean
 ) {
   try {
     const structId = getStructureIdFromGenericNotificationText(note.text);
     const thisStruct = corp.structures.find(
-      (struct) => struct.structure_id === structId,
+      (struct) => struct.structure_id === structId
     );
 
     for (const channelId of corp.channelIds) {
@@ -519,11 +519,11 @@ async function handleStructureNotification(
                   message,
                   note.timestamp,
                   thisStruct,
-                  corp.corpName,
+                  corp.corpName
                 ),
               ],
             },
-            `Structure Notification: ${message}`,
+            `Structure Notification: ${message}`
           );
         }
       }
@@ -531,7 +531,7 @@ async function handleStructureNotification(
   } catch (error) {
     consoleLog(
       `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error,
+      error
     );
   }
 }
@@ -545,14 +545,14 @@ async function handleTowerNotification(
   role_to_mention: (c: DiscordChannel) => string | undefined,
   structureStateMessage: boolean,
   structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean,
+  miningUpdatesMessage: boolean
 ) {
   try {
     const details = getTowerDetailsFromNotificationText(note.text);
 
     const starbaseName = await getStarbaseName(
       details.system_id,
-      details.moon_id,
+      details.moon_id
     );
 
     let builtMessage = message;
@@ -563,8 +563,8 @@ async function handleTowerNotification(
       // POS wants something
       const itemName = await getItemName(details.type_id);
       builtMessage += `\n${details.quantity} ${itemName}${
-        details.quantity === 1 ? "" : "s"
-      } remain${details.quantity === 1 ? "s" : ""}`;
+        details.quantity === 1 ? '' : 's'
+      } remain${details.quantity === 1 ? 's' : ''}`;
       fuelMessage = true;
     }
 
@@ -580,8 +580,8 @@ async function handleTowerNotification(
       statusMessage = true;
     }
 
-    consoleLog("note", note);
-    consoleLog("details", details);
+    consoleLog('note', note);
+    consoleLog('details', details);
 
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
@@ -609,11 +609,11 @@ async function handleTowerNotification(
                   note.timestamp,
                   starbaseName,
                   corp.corpName,
-                  details.starbase_type_id,
+                  details.starbase_type_id
                 ),
               ],
             },
-            `Structure Notification: ${builtMessage}`,
+            `Structure Notification: ${builtMessage}`
           );
         }
       }
@@ -621,7 +621,7 @@ async function handleTowerNotification(
   } catch (error) {
     consoleLog(
       `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error,
+      error
     );
   }
 }

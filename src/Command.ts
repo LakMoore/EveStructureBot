@@ -4,18 +4,18 @@ import {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
   ButtonInteraction,
-} from "discord.js";
+} from 'discord.js';
 
 export interface Command extends ChatInputApplicationCommandData {
   ephemeral: boolean;
   deferReply: boolean;
   run: (
     client: Client,
-    interaction: ChatInputCommandInteraction,
+    interaction: ChatInputCommandInteraction
   ) => Promise<void>;
   autocomplete?: (
     client: Client,
-    interaction: AutocompleteInteraction,
+    interaction: AutocompleteInteraction
   ) => Promise<void>;
   button?: (client: Client, interaction: ButtonInteraction) => Promise<void>;
 }

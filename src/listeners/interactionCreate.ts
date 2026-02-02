@@ -5,12 +5,12 @@ import {
   AutocompleteInteraction,
   TextChannel,
   ButtonInteraction,
-} from "discord.js";
-import { Commands } from "../Commands";
-import { checkBotHasPermissions, consoleLog } from "../Bot";
+} from 'discord.js';
+import { Commands } from '../Commands';
+import { checkBotHasPermissions, consoleLog } from '../Bot';
 
 export default (client: Client): void => {
-  client.on("interactionCreate", async (interaction: Interaction) => {
+  client.on('interactionCreate', async (interaction: Interaction) => {
     if (interaction.isCommand() || interaction.isContextMenuCommand()) {
       await handleSlashCommand(client, interaction);
     } else if (interaction.isAutocomplete()) {
@@ -23,14 +23,14 @@ export default (client: Client): void => {
 
 const handleSlashCommand = async (
   client: Client,
-  interaction: Interaction,
+  interaction: Interaction
 ): Promise<void> => {
   if (interaction instanceof ChatInputCommandInteraction) {
     const slashCommand = Commands.find(
-      (c) => c.name === interaction.commandName,
+      (c) => c.name === interaction.commandName
     );
     if (!slashCommand) {
-      interaction.reply({ content: "An error has occurred" });
+      interaction.reply({ content: 'An error has occurred' });
       return;
     }
 
@@ -42,7 +42,7 @@ const handleSlashCommand = async (
       const channel = interaction.channel as TextChannel;
 
       consoleLog(
-        `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`,
+        `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`
       );
 
       if (!(await checkBotHasPermissions(interaction))) {
@@ -53,11 +53,11 @@ const handleSlashCommand = async (
     } catch (error) {
       if (error instanceof Error) {
         await interaction.followUp({
-          content: "An error has occurred (" + error.message + ")",
+          content: 'An error has occurred (' + error.message + ')',
         });
       } else {
         await interaction.followUp({
-          content: "An unknown error has occurred.",
+          content: 'An unknown error has occurred.',
         });
       }
     }
@@ -66,7 +66,7 @@ const handleSlashCommand = async (
 
 const handleAutocomplete = async (
   client: Client,
-  interaction: AutocompleteInteraction,
+  interaction: AutocompleteInteraction
 ): Promise<void> => {
   const slashCommand = Commands.find((c) => c.name === interaction.commandName);
 
@@ -76,19 +76,19 @@ const handleAutocomplete = async (
     }
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Autocomplete error: " + error.message);
+      console.log('Autocomplete error: ' + error.message);
     } else {
-      console.log("Autocomplete error: " + error);
+      console.log('Autocomplete error: ' + error);
     }
   }
 };
 
 const handleButton = async (
   client: Client,
-  interaction: ButtonInteraction,
+  interaction: ButtonInteraction
 ): Promise<void> => {
   const buttonCommand = Commands.find(
-    (c) => c.name === interaction.customId.split("_")[0],
+    (c) => c.name === interaction.customId.split('_')[0]
   );
 
   try {
@@ -97,9 +97,9 @@ const handleButton = async (
     }
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Button error: " + error.message);
+      console.log('Button error: ' + error.message);
     } else {
-      console.log("Button error: " + error);
+      console.log('Button error: ' + error);
     }
   }
 };

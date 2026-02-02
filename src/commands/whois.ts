@@ -4,25 +4,25 @@ import {
   AutocompleteInteraction,
   SlashCommandStringOption,
   TextChannel,
-} from "discord.js";
-import { Command } from "../Command";
-import { consoleLog, data, sendMessage } from "../Bot";
+} from 'discord.js';
+import { Command } from '../Command';
+import { consoleLog, data, sendMessage } from '../Bot';
 
 const characterNameOption = new SlashCommandStringOption()
-  .setName("name")
-  .setDescription("Name of Character")
+  .setName('name')
+  .setDescription('Name of Character')
   .setRequired(true)
   .setAutocomplete(true);
 
 export const WhoIs: Command = {
-  name: "whois",
-  description: "Find the discord user who owns a given character.",
+  name: 'whois',
+  description: 'Find the discord user who owns a given character.',
   deferReply: true,
   ephemeral: false,
   options: [characterNameOption],
   autocomplete: async (
     client: Client,
-    interaction: AutocompleteInteraction,
+    interaction: AutocompleteInteraction
   ) => {
     const focusedValue = interaction.options.getFocused();
 
@@ -30,7 +30,7 @@ export const WhoIs: Command = {
 
     if (channel?.isTextBased()) {
       const channelCorps = data.authenticatedCorps.filter((ac) =>
-        ac.channelIds.includes(channel.id),
+        ac.channelIds.includes(channel.id)
       );
 
       const choices = channelCorps
@@ -51,28 +51,28 @@ export const WhoIs: Command = {
             focusedValue.length == 0 ||
             char.name
               ?.toLocaleLowerCase()
-              .includes(focusedValue.toLocaleLowerCase()),
+              .includes(focusedValue.toLocaleLowerCase())
         );
 
       await interaction.respond(choices);
     }
   },
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    let content = "Fetching character info...";
+    let content = 'Fetching character info...';
 
     const channel = client.channels.cache.get(interaction.channelId);
 
     if (channel instanceof TextChannel) {
       const channelCorps = data.authenticatedCorps.filter((ac) =>
-        ac.channelIds.includes(channel.id),
+        ac.channelIds.includes(channel.id)
       );
 
       if (channelCorps.length == 0) {
         content =
-          "No data found for this channel.  Use /auth command to begin.";
+          'No data found for this channel.  Use /auth command to begin.';
       } else {
         const charId = Number(
-          interaction.options.get("name")?.value?.toString(),
+          interaction.options.get('name')?.value?.toString()
         );
 
         if (charId) {
@@ -86,7 +86,7 @@ export const WhoIs: Command = {
             content = `${character.characterName} is <@${character.discordId}>`;
           }
         } else {
-          content = "Character not found";
+          content = 'Character not found';
         }
       }
     }

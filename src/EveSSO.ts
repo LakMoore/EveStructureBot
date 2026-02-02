@@ -1,15 +1,15 @@
-import { Client, Guild, HTTPError, TextChannel } from "discord.js";
+import { Client, Guild, HTTPError, TextChannel } from 'discord.js';
 import {
   CharacterApiFactory,
   Configuration,
   CorporationApiFactory,
   GetCharactersCharacterIdRolesOk,
-} from "eve-client-ts";
-import SingleSignOn, { HTTPFetchError } from "@after_ice/eve-sso";
-import Koa from "koa";
-import { AuthenticatedCharacter, AuthenticatedCorp } from "./data/data";
-import { GET_ROLES_DELAY, consoleLog, data, sendMessage } from "./Bot";
-import { generateCorpDetailsEmbed } from "./embeds/corpDetails";
+} from 'eve-client-ts';
+import SingleSignOn, { HTTPFetchError } from '@after_ice/eve-sso';
+import Koa from 'koa';
+import { AuthenticatedCharacter, AuthenticatedCorp } from './data/data';
+import { GET_ROLES_DELAY, consoleLog, data, sendMessage } from './Bot';
+import { generateCorpDetailsEmbed } from './embeds/corpDetails';
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
@@ -20,17 +20,17 @@ export function sso(): SingleSignOn {
 
 export function setup(client: Client) {
   // Get the client ID and secret from the Eve developers section
-  const CLIENT_ID = process.env.EVE_CLIENT_ID ?? "";
-  const SECRET = process.env.EVE_SECRET_KEY ?? "";
+  const CLIENT_ID = process.env.EVE_CLIENT_ID ?? '';
+  const SECRET = process.env.EVE_SECRET_KEY ?? '';
   // The callback URI as defined in the application in the developers section
-  const CALLBACK_URI = process.env.EVE_CALLBACK_URL ?? "";
+  const CALLBACK_URI = process.env.EVE_CALLBACK_URL ?? '';
   const CALLBACK_SERVER_PORT = Number(
-    process.env.CALLBACK_SERVER_PORT ?? "8080",
+    process.env.CALLBACK_SERVER_PORT ?? '8080'
   );
 
   _sso = new SingleSignOn(CLIENT_ID, SECRET, CALLBACK_URI, {
-    endpoint: "https://login.eveonline.com",
-    userAgent: "eve-structure-bot",
+    endpoint: 'https://login.eveonline.com',
+    userAgent: 'eve-structure-bot',
   });
 
   const app = new Koa();
@@ -49,7 +49,7 @@ export function setup(client: Client) {
         state = state[0];
       }
 
-      const parts = state.split("|");
+      const parts = state.split('|');
       const channelId = parts[0];
       const userId = parts[1];
 
@@ -58,35 +58,35 @@ export function setup(client: Client) {
 
       // Usually you'd want to store the access token
       // as well as the refresh token
-      consoleLog("info", info);
+      consoleLog('info', info);
 
-      const subParts = info.decoded_access_token.sub.split(":");
+      const subParts = info.decoded_access_token.sub.split(':');
       const charId = Number(
-        subParts.length > 0 ? subParts[subParts.length - 1] : "0",
+        subParts.length > 0 ? subParts[subParts.length - 1] : '0'
       );
 
       // Do whatever, for example, redirect to user page
       ctx.response.body =
-        "Authentication successful.  Please close this browser window and continue working with EveStructureBot in the Discord channel.";
+        'Authentication successful.  Please close this browser window and continue working with EveStructureBot in the Discord channel.';
 
-      if (channelId && !Array.isArray(channelId) && channelId != "unknown") {
+      if (channelId && !Array.isArray(channelId) && channelId != 'unknown') {
         const channel = client.channels.cache.get(channelId);
 
         if (channel instanceof TextChannel) {
-          let errMessage = "";
+          let errMessage = '';
           const expires = getExpires(info.expires_in);
 
           const char =
             await CharacterApiFactory().getCharactersCharacterId(charId);
-          consoleLog("char", char);
+          consoleLog('char', char);
 
           // char.corporation_id could be up to 6 days old!
           // let's get the history to find the current corp
           const corpHistory =
             await CharacterApiFactory().getCharactersCharacterIdCorporationhistory(
-              charId,
+              charId
             );
-          consoleLog("corpHistory", corpHistory);
+          consoleLog('corpHistory', corpHistory);
 
           const corpId =
             corpHistory.length > 0
@@ -95,11 +95,11 @@ export function setup(client: Client) {
 
           if (!corpId) {
             errMessage +=
-              "\nCharacter is not in a Corporation. Unable to proceed.";
+              '\nCharacter is not in a Corporation. Unable to proceed.';
           } else {
             const corp =
               await CorporationApiFactory().getCorporationsCorporationId(
-                corpId,
+                corpId
               );
 
             if (corp.name) {
@@ -108,24 +108,24 @@ export function setup(client: Client) {
                 config.accessToken = info.access_token;
 
                 let thisCorp = data.authenticatedCorps.find(
-                  (ac) => ac.corpId == corpId,
+                  (ac) => ac.corpId == corpId
                 );
 
                 // only Directors can add new corps to new channels
                 if (!thisCorp || !thisCorp.channelIds.includes(channelId)) {
                   const roles =
                     await CharacterApiFactory(
-                      config,
+                      config
                     ).getCharactersCharacterIdRoles(charId);
                   if (
                     !roles?.roles?.includes(
-                      GetCharactersCharacterIdRolesOk.RolesEnum.Director,
+                      GetCharactersCharacterIdRolesOk.RolesEnum.Director
                     )
                   ) {
                     await sendMessage(
                       channel,
                       `Only Directors can add new Corporations to new channels.`,
-                      `Only Directors can add new Corporations to new channels.`,
+                      `Only Directors can add new Corporations to new channels.`
                     );
                     return;
                   }
@@ -140,7 +140,7 @@ export function setup(client: Client) {
                   await sendMessage(
                     channel,
                     `This Corporation is already being monitored in another Discord server.`,
-                    `This Corporation is already being monitored in another Discord server.`,
+                    `This Corporation is already being monitored in another Discord server.`
                   );
                   return;
                 }
@@ -180,7 +180,7 @@ export function setup(client: Client) {
 
                 // search for the Corp member
                 const memberIdx = thisCorp.members.findIndex(
-                  (corpMember) => corpMember.discordId === userId,
+                  (corpMember) => corpMember.discordId === userId
                 );
 
                 // make a new version of the character that just got authenticated
@@ -208,7 +208,7 @@ export function setup(client: Client) {
                   const corpMember = thisCorp.members[memberIdx];
                   // search the member for the character
                   const idx = corpMember.characters.findIndex(
-                    (ch) => ch.characterId == charId,
+                    (ch) => ch.characterId == charId
                   );
 
                   if (idx > -1) {
@@ -237,7 +237,7 @@ export function setup(client: Client) {
                 await sendMessage(
                   channel,
                   `Successfully authenticated ${char.name}`,
-                  `Auth success for ${char.name}`,
+                  `Auth success for ${char.name}`
                 );
 
                 await sendMessage(
@@ -245,7 +245,7 @@ export function setup(client: Client) {
                   {
                     embeds: [generateCorpDetailsEmbed(thisCorp)],
                   },
-                  "Corp Details",
+                  'Corp Details'
                 );
 
                 await data.save();
@@ -255,10 +255,10 @@ export function setup(client: Client) {
                   await setDiscordRoles(channel.guild, userId);
                 }
               } catch (error) {
-                consoleLog("error", error);
+                consoleLog('error', error);
                 if (error instanceof Response) {
                   const errorObj = await error.json();
-                  errMessage += "\nUnable to proceed:\n" + errorObj.error;
+                  errMessage += '\nUnable to proceed:\n' + errorObj.error;
                 }
               }
             }
@@ -268,13 +268,13 @@ export function setup(client: Client) {
             await sendMessage(
               channel,
               errMessage,
-              `error during auth ${errMessage}`,
+              `error during auth ${errMessage}`
             );
           }
         }
       }
     } else {
-      ctx.response.body = "No access code received from authentication server.";
+      ctx.response.body = 'No access code received from authentication server.';
     }
   });
 
@@ -298,7 +298,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
       if (config.accessToken) {
         try {
           const memberList = await CorporationApiFactory(
-            config,
+            config
           ).getCorporationsCorporationIdMembers(char.corpId);
 
           if (memberList.includes(char.characterId)) {
@@ -324,7 +324,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
                 await sendMessage(
                   channelObj,
                   `<@${corpMember.discordId}> The ESI token for ${char.characterName} in ${corp.corpName} has expired! Please re-authenticate using /auth.`,
-                  `<@${corpMember.discordId}> The ESI token for ${char.characterName} in ${corp.corpName} has expired! Please re-authenticate using /auth.`,
+                  `<@${corpMember.discordId}> The ESI token for ${char.characterName} in ${corp.corpName} has expired! Please re-authenticate using /auth.`
                 );
               }
             }
@@ -338,7 +338,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
           // The character is NOT in the corp the ESI says it is in!!!
 
           const serverCorps = data.authenticatedCorps.filter(
-            (ac) => ac.serverId == corp.serverId && ac.corpId == char.corpId,
+            (ac) => ac.serverId == corp.serverId && ac.corpId == char.corpId
           );
 
           for (const c of serverCorps) {
@@ -349,7 +349,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
                 await sendMessage(
                   channelObj,
                   `Character ${char.characterName} is no longer a member of corp ${corp.corpName} and will be removed.`,
-                  `Character ${char.characterName} is no longer a member of corp ${corp.corpName}`,
+                  `Character ${char.characterName} is no longer a member of corp ${corp.corpName}`
                 );
               }
             }
@@ -357,7 +357,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
             // ensure the character is removed from this corp
             c.members.forEach((m) => {
               m.characters = m.characters.filter(
-                (c) => c.characterId != char.characterId,
+                (c) => c.characterId != char.characterId
               );
             });
           }
@@ -378,20 +378,20 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
             new Date(char.nextRolesCheck) < new Date()
           ) {
             try {
-              consoleLog("checking roles for character:", char.characterName);
+              consoleLog('checking roles for character:', char.characterName);
               const roles = await CharacterApiFactory(
-                await getAccessToken(char),
+                await getAccessToken(char)
               ).getCharactersCharacterIdRoles(char.characterId);
 
               if (roles.roles) {
                 char.roles = roles.roles;
                 char.nextRolesCheck = new Date(
-                  Date.now() + GET_ROLES_DELAY + 5000,
+                  Date.now() + GET_ROLES_DELAY + 5000
                 );
                 await data.save();
               }
             } catch (error) {
-              consoleLog("error getting roles for character:", error);
+              consoleLog('error getting roles for character:', error);
             }
           }
         }
@@ -409,12 +409,12 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
       // if this discord member has no characters, remove it
       if (corpMember.characters.length == 0) {
         consoleLog(
-          "Removing member with no characters: ",
-          corpMember.discordId,
+          'Removing member with no characters: ',
+          corpMember.discordId
         );
         var index = corp.members.findIndex(
           (ac) =>
-            ac.discordId == corpMember.discordId && ac.characters.length == 0,
+            ac.discordId == corpMember.discordId && ac.characters.length == 0
         );
         if (index > -1) {
           corp.members.splice(index, 1);
@@ -427,18 +427,18 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
   // update some stats
   corp.maxCharacters = Math.max(
     corp.members.reduce((acc, member) => acc + member.characters.length, 0),
-    corp.maxCharacters,
+    corp.maxCharacters
   );
   corp.maxDirectors = Math.max(
     corp.members.reduce(
       (acc, member) =>
         acc +
         member.characters.filter((c) =>
-          c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director),
+          c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director)
         ).length,
-      0,
+      0
     ),
-    corp.maxDirectors,
+    corp.maxDirectors
   );
   await data.save();
 
@@ -451,17 +451,17 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
         await sendMessage(
           channelObj,
           `Corporation ${corp.corpName} has no authenticated members and will be removed from this channel and the server.`,
-          `Corporation ${corp.corpName} has no authenticated members and will be removed.`,
+          `Corporation ${corp.corpName} has no authenticated members and will be removed.`
         );
       }
     }
 
     consoleLog(
-      "Removing channels and server from corp with no members: ",
-      corp.corpName,
+      'Removing channels and server from corp with no members: ',
+      corp.corpName
     );
     corp.channelIds = [];
-    corp.serverId = "";
+    corp.serverId = '';
     await data.save();
   }
 }
@@ -472,21 +472,19 @@ async function setDiscordRoles(guild: Guild, userId: string) {
   // ensure the member exists
   if (!member) {
     consoleLog(
-      `Unable to find Discord member of ${guild.name} with ID ${userId}`,
+      `Unable to find Discord member of ${guild.name} with ID ${userId}`
     );
     return;
   }
 
   const serverCorps = data.authenticatedCorps.filter(
-    (ac) => ac.serverId == guild.id,
+    (ac) => ac.serverId == guild.id
   );
 
   // TODO: ensure that members get removed from a corp collection when they have no authenticated characters in that corp
   const uniqueCorps = serverCorps
     .filter((c) =>
-      c.members.some(
-        (cm) => cm.discordId == userId && cm.characters.length > 0,
-      ),
+      c.members.some((cm) => cm.discordId == userId && cm.characters.length > 0)
     )
     .map((c) => c.corpId)
     .filter((value, index, array) => array.indexOf(value) === index);
@@ -494,11 +492,11 @@ async function setDiscordRoles(guild: Guild, userId: string) {
   // create an array of unique tickers for this member
   const corpTickers = await Promise.all(
     uniqueCorps.map(async (corpId) => {
-      if (!corpId) return "";
+      if (!corpId) return '';
       const corp =
         await CorporationApiFactory().getCorporationsCorporationId(corpId);
       return `[${corp.ticker}]`;
-    }),
+    })
   );
 
   // remove roles that should not exist
@@ -507,14 +505,14 @@ async function setDiscordRoles(guild: Guild, userId: string) {
       // if the Discord role starts with [ and ends with ]
       // and is NOT in the list we just created
       if (
-        corpRole.name.startsWith("[") &&
-        corpRole.name.endsWith("]") &&
+        corpRole.name.startsWith('[') &&
+        corpRole.name.endsWith(']') &&
         !corpTickers.includes(corpRole.name)
       ) {
         // then remove this role from this user
         return member.roles.remove(corpRole);
       }
-    }),
+    })
   );
 
   // ensure all the roles exist and are applied to this member
@@ -532,13 +530,13 @@ async function setDiscordRoles(guild: Guild, userId: string) {
         }
 
         if (!corpRole) {
-          consoleLog("Unable to find or create a corp role for " + ticker);
+          consoleLog('Unable to find or create a corp role for ' + ticker);
         } else {
           if (!member.roles.cache.has(corpRole.id)) {
             return member.roles.add(corpRole);
           }
         }
-      }),
+      })
   );
 }
 
@@ -550,7 +548,7 @@ export function getWorkingChars(
   corp: AuthenticatedCorp,
   nextCheck: Date,
   getNextCheck: (c: AuthenticatedCharacter) => Date,
-  requiredRole: GetCharactersCharacterIdRolesOk.RolesEnum | undefined,
+  requiredRole: GetCharactersCharacterIdRolesOk.RolesEnum | undefined
 ) {
   if (new Date(nextCheck) > new Date()) {
     // checking this record too soon!
@@ -563,12 +561,12 @@ export function getWorkingChars(
     .filter(
       (c) =>
         !c.needsReAuth &&
-        (requiredRole == undefined || c.roles?.includes(requiredRole)),
+        (requiredRole == undefined || c.roles?.includes(requiredRole))
     )
     .sort(
       (a, b) =>
         new Date(getNextCheck(a)).getTime() -
-        new Date(getNextCheck(b)).getTime(),
+        new Date(getNextCheck(b)).getTime()
     );
 
   return workingChars;
@@ -580,30 +578,30 @@ export async function getAccessToken(thisChar: AuthenticatedCharacter) {
   try {
     if (new Date(thisChar.tokenExpires) <= new Date()) {
       // auth token has expired, let's refresh it
-      consoleLog("refreshing token for ", thisChar.characterName);
+      consoleLog('refreshing token for ', thisChar.characterName);
       const response = await sso().getAccessToken(thisChar.refreshToken, true);
       thisChar.authToken = response.access_token;
       thisChar.refreshToken = response.refresh_token;
       thisChar.tokenExpires = getExpires(response.expires_in);
-      consoleLog("token refreshed");
+      consoleLog('token refreshed');
     }
     config.accessToken = thisChar.authToken;
   } catch (error) {
     if (error instanceof HTTPFetchError) {
       consoleLog(
         `HttpError ${error.response.status} while refreshing token`,
-        error.message,
+        error.message
       );
 
       if (error.response.status > 399 && error.response.status < 500) {
         // unauthorised
-        consoleLog("Marking character as needing re-authorisation");
+        consoleLog('Marking character as needing re-authorisation');
         thisChar.needsReAuth = true;
         thisChar.authFailedAt = new Date();
         await data.save();
       }
     } else if (error instanceof Error) {
-      consoleLog("Error while refreshing token", error.message);
+      consoleLog('Error while refreshing token', error.message);
     }
   }
 
