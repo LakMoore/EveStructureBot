@@ -4,6 +4,7 @@ import { consoleLog, NOTIFICATION_CHECK_DELAY, data } from "./Bot";
 import { AuthenticatedCorp } from "./data/data";
 import { messageTypes } from "./data/notification";
 import { getWorkingChars, getAccessToken } from "./EveSSO";
+import { logWarning, logErrorLevel } from "./errorLogger";
 
 
 export async function checkNotificationsForCorp(
@@ -72,10 +73,10 @@ export async function checkNotificationsForCorp(
             thisChar.needsReAuth = true;
             thisChar.authFailedAt = new Date();
             await data.save();
-            consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
+            logWarning("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
         }
         else {
-            throw error;
+            logErrorLevel("Error checking notifications for corp " + corp.corpName, error);
         }
     }
 }

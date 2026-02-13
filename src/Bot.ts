@@ -13,6 +13,7 @@ import interactionCreate from "./listeners/interactionCreate";
 import { setup } from "./EveSSO";
 import { Data } from "./data/data";
 import { initNotifications } from "./data/notification";
+import { initErrorLogger, logInfo, logWarning, logErrorLevel } from "./errorLogger";
 
 export const data = new Data();
 export const LOW_FUEL_WARNING = 7 * 24 * 60 * 60 * 1000; //7 days
@@ -47,10 +48,13 @@ async function main() {
 
     consoleLog("Logged in!");
 
+    // Initialize error logger after login
+    initErrorLogger(client);
+
     setup(client);
 
   } catch (error) {
-    consoleLog(error);
+    logErrorLevel("Critical error in main()", error);
   }
 }
 
@@ -78,7 +82,7 @@ export async function sendMessage(
     );
     await channel.send(message);
   } catch (error) {
-    consoleLog("An error occured in sendMessage", error);
+    logErrorLevel("An error occured in sendMessage", error);
   }
 }
 

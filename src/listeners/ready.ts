@@ -6,6 +6,7 @@ import { checkNotificationsForCorp } from "../notifications";
 import { checkStarbasesForCorp } from "../starbases";
 import { checkStructuresForCorp } from "../structures";
 import { GetCharactersCharacterIdRolesOk } from "eve-client-ts";
+import { setErrorChannel, logInfo, logWarning, logErrorLevel } from "../errorLogger";
 
 const POLL_ATTEMPT_DELAY = 2000;
 let corpIndex = 0;
@@ -20,9 +21,42 @@ export default (client: Client): void => {
 
     consoleLog(`${client.user.username} is online`);
 
+    // Enumerate channels and find error channel
+    await findErrorChannel(client);
+
     await startPolling(client);
   });
 };
+
+/**
+ * Find and set the error channel during startup
+ */
+async function findErrorChannel(client: Client) {
+  const errorChannelId = process.env.ERROR_CHANNEL_ID;
+  
+  if (!errorChannelId) {
+    consoleLog("ERROR_CHANNEL_ID not configured in environment");
+    return;
+  }
+
+  try {
+    // Try to fetch the channel
+    const channel = await client.channels.fetch(errorChannelId);
+    
+    if (channel instanceof TextChannel) {
+      setErrorChannel(channel);
+      logInfo(`Error channel found: ${channel.name} in ${channel.guild.name}`);
+    } else {
+      logWarning(`ERROR_CHANNEL_ID ${errorChannelId} is not a text channel`);
+    }
+  } catch (error) {
+    if (error instanceof DiscordAPIError) {
+      logErrorLevel(`Failed to fetch error channel ${errorChannelId}`, error);
+    } else {
+      logErrorLevel(`Unexpected error fetching error channel`, error);
+    }
+  }
+}
 
 async function startPolling(client: Client) {
   // infinite loop required
@@ -57,9 +91,11 @@ async function startPolling(client: Client) {
             }
           } catch (error) {
             if (error instanceof DiscordAPIError && error.code === 50001) {
-              consoleLog("Failed to check permissions for channel " + channelId + ". Removing channel!");
+              logWarning("Failed to check permissions for channel " + channelId + ". Removing channel!");
               thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
               await data.save();
+            } else {
+              logErrorLevel("Unexpected error checking channel permissions", error);
             }
           }
         }
@@ -69,12 +105,14 @@ async function startPolling(client: Client) {
           thisCorp.serverName = guild.name;
         } catch (error) {
           if (error instanceof DiscordAPIError && error.code === 10004) {
-            consoleLog("Server not found for ID " + thisCorp.corpName);
+            logWarning("Server not found for ID " + thisCorp.corpName);
             consoleLog(thisCorp.channelIds.length + " channels found for server " + thisCorp.corpName);
             thisCorp.serverId = "";
             await data.save();
             corpIndex++;
             continue;
+          } else {
+            logErrorLevel("Unexpected error fetching guild", error);
           }
         }
 
@@ -126,7 +164,7 @@ async function startPolling(client: Client) {
       }
 
     } catch (error) {
-      consoleLog("An error occured in main loop", error);
+      logErrorLevel("An error occured in main loop", error);
     }
     corpIndex++;
 

@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import { Commands } from "../Commands";
 import { checkBotHasPermissions, consoleLog } from "../Bot";
+import { logErrorLevel } from "../errorLogger";
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
@@ -49,6 +50,7 @@ const handleSlashCommand = async (
 
       await slashCommand.run(client, interaction);
     } catch (error) {
+      logErrorLevel("Error executing slash command", error);
       if (error instanceof Error) {
         await interaction.followUp({
           content: "An error has occurred (" + error.message + ")",
@@ -73,11 +75,7 @@ const handleAutocomplete = async (
       await slashCommand.autocomplete(client, interaction);
     }
   } catch (error) {
-    if (error instanceof Error) {
-      console.log("Autocomplete error: " + error.message);
-    } else {
-      console.log("Autocomplete error: " + error);
-    }
+    logErrorLevel("Autocomplete error", error);
   }
 };
 
@@ -92,10 +90,6 @@ const handleButton = async (
       await buttonCommand.button(client, interaction);
     }
   } catch (error) {
-    if (error instanceof Error) {
-      console.log("Button error: " + error.message);
-    } else {
-      console.log("Button error: " + error);
-    }
+    logErrorLevel("Button error", error);
   }
 };
