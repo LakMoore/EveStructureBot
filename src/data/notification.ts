@@ -471,7 +471,7 @@ Alliance: ${allianceName}`;
     );
   } catch (error) {
     logErrorLevel(
-      `An error occured in handleAttackNotification for ${message}. Body: ${note.text}%n`,
+      `An error occurred in handleAttackNotification for ${message}. Body: ${note.text}%n`,
       error
     );
   }
@@ -532,7 +532,7 @@ async function handleStructureNotification(
     }
   } catch (error) {
     logErrorLevel(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
+      `An error occurred in handleNotification for ${message}. Body: ${note.text}%n`,
       error
     );
   }
@@ -621,7 +621,7 @@ async function handleTowerNotification(
     }
   } catch (error) {
     logErrorLevel(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
+      `An error occurred in handleNotification for ${message}. Body: ${note.text}%n`,
       error
     );
   }

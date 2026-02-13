@@ -332,7 +332,7 @@ export class Data {
       // infinite loop required
       setTimeout(async () => await this.autoSave(), 1);
     } catch (error) {
-      logErrorLevel("An error occured in autoSave", error);
+      logErrorLevel("An error occurred in autoSave", error);
     }
   }
 

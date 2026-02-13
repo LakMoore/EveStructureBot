@@ -82,7 +82,7 @@ export async function sendMessage(
     );
     await channel.send(message);
   } catch (error) {
-    logErrorLevel("An error occured in sendMessage", error);
+    logErrorLevel("An error occurred in sendMessage", error);
   }
 }
 

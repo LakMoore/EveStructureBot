@@ -164,7 +164,7 @@ async function startPolling(client: Client) {
       }
 
     } catch (error) {
-      logErrorLevel("An error occured in main loop", error);
+      logErrorLevel("An error occurred in main loop", error);
     }
     corpIndex++;
 
