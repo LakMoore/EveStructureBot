@@ -17,6 +17,7 @@ import {
 } from "./Bot";
 import { getAccessToken, getWorkingChars } from "./EveSSO";
 import { AuthenticatedCorp } from "./data/data";
+import { logWarning, logError } from "./errorLogger";
 
 export async function checkStructuresForCorp(
   corp: AuthenticatedCorp,
@@ -93,10 +94,10 @@ export async function checkStructuresForCorp(
       thisChar.needsReAuth = true;
       thisChar.authFailedAt = new Date();
       await data.save();
-      consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
+      logWarning("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
     }
     else {
-      throw error;
+      logError("Error checking structures for corp " + corp.corpName, error);
     }
   }
 }

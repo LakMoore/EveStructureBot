@@ -2,6 +2,7 @@ import { CommandInteraction, Client, TextChannel } from "discord.js";
 import { Command } from "../Command";
 import { data, sendMessage } from "../Bot";
 import { processNotifications } from "../notifications";
+import { logError } from "../errorLogger";
 
 export const Test: Command = {
   name: "test",
@@ -37,6 +38,7 @@ export const Test: Command = {
 
         await processNotifications(notifications, client, corp);
       } catch (error) {
+        logError("Failed to process test notifications", error);
         await sendMessage(channel, `Failed to process test notifications.`, "Failed to process test notifications.");
       }
     }

@@ -17,6 +17,7 @@ import {
 } from "./Bot";
 import { AuthenticatedCorp } from "./data/data";
 import { getWorkingChars, getAccessToken } from "./EveSSO";
+import { logWarning, logError } from "./errorLogger";
 
 export async function checkStarbasesForCorp(
   corp: AuthenticatedCorp,
@@ -91,10 +92,10 @@ export async function checkStarbasesForCorp(
       thisChar.needsReAuth = true;
       thisChar.authFailedAt = new Date();
       await data.save();
-      consoleLog("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
+      logWarning("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
     }
     else {
-      throw error;
+      logError("Error checking starbases for corp " + corp.corpName, error);
     }
   }
 }

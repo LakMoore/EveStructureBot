@@ -12,6 +12,7 @@ import { SetPing } from "./commands/set_ping";
 import { WhoIs } from "./commands/whois";
 import { Configure } from "./commands/configure";
 import { Test } from "./commands/test";
+import { TestErrorLogging } from "./commands/test_error_logging";
 
 export const Commands: Command[] = [
   Auth,
@@ -25,6 +26,7 @@ export const Commands: Command[] = [
   Reload,
   SetPing,
   Test,
+  TestErrorLogging,
   DebugReprocess,
   WhoIs,
 ];

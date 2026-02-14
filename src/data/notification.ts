@@ -36,6 +36,7 @@ import { AuthenticatedCorp, DiscordChannel } from "./data";
 import { generateStructureNotificationEmbed } from "../embeds/structureNotification";
 import { consoleLog, data, sendMessage } from "../Bot";
 import { generateStarbaseNotificationEmbed } from "../embeds/starbaseNotification";
+import { logError } from "../errorLogger";
 import {
   getAllianceName,
   getCharacterName,
@@ -469,8 +470,8 @@ Alliance: ${allianceName}`;
       miningUpdatesMessage
     );
   } catch (error) {
-    consoleLog(
-      `An error occured in handleAttackNotification for ${message}. Body: ${note.text}%n`,
+    logError(
+      `An error occurred in handleAttackNotification for ${message}. Body: ${note.text}%n`,
       error
     );
   }
@@ -530,8 +531,8 @@ async function handleStructureNotification(
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
+    logError(
+      `An error occurred in handleNotification for ${message}. Body: ${note.text}%n`,
       error
     );
   }
@@ -619,8 +620,8 @@ async function handleTowerNotification(
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
+    logError(
+      `An error occurred in handleNotification for ${message}. Body: ${note.text}%n`,
       error
     );
   }

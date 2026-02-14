@@ -15,6 +15,7 @@ import {
   sendMessage,
 } from "./Bot";
 import { generateCorpDetailsEmbed } from "./embeds/corpDetails";
+import { logWarning, logError } from "./errorLogger";
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
@@ -244,7 +245,7 @@ export function setup(client: Client) {
                   await setDiscordRoles(channel.guild, userId);
                 }
               } catch (error) {
-                consoleLog("error", error);
+                logError("Error during authentication", error);
                 if (error instanceof Response) {
                   const errorObj = await error.json();
                   errMessage += "\nUnable to proceed:\n" + errorObj.error;
@@ -377,7 +378,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
                 await data.save();
               }
             } catch (error) {
-              consoleLog("error getting roles for character:", error);
+              logWarning("Error getting roles for character", error);
             }
           }
         }
@@ -550,20 +551,20 @@ export async function getAccessToken(thisChar: AuthenticatedCharacter) {
     config.accessToken = thisChar.authToken;
   } catch (error) {
     if (error instanceof HTTPFetchError) {
-      consoleLog(
+      logWarning(
         `HttpError ${error.response.status} while refreshing token`,
         error.message
       );
 
       if (error.response.status > 399 && error.response.status < 500) {
         // unauthorised
-        consoleLog("Marking character as needing re-authorisation");
+        logWarning("Marking character as needing re-authorisation");
         thisChar.needsReAuth = true;
         thisChar.authFailedAt = new Date();
         await data.save();
       }
     } else if (error instanceof Error) {
-      consoleLog("Error while refreshing token", error.message);
+      logError("Error while refreshing token", error.message);
     }
   }
 

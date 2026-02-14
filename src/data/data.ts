@@ -6,6 +6,7 @@ import {
 import storage from "node-persist";
 import { consoleLog, delay } from "../Bot";
 import { TextChannel } from "discord.js";
+import { logError } from "../errorLogger";
 
 export interface AuthenticatedCharacter {
   roles: Array<GetCharactersCharacterIdRolesOk.RolesEnum>;
@@ -331,7 +332,7 @@ export class Data {
       // infinite loop required
       setTimeout(async () => await this.autoSave(), 1);
     } catch (error) {
-      consoleLog("An error occured in autoSave", error);
+      logError("An error occurred in autoSave", error);
     }
   }
 
