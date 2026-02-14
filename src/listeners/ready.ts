@@ -6,7 +6,7 @@ import { checkNotificationsForCorp } from "../notifications";
 import { checkStarbasesForCorp } from "../starbases";
 import { checkStructuresForCorp } from "../structures";
 import { GetCharactersCharacterIdRolesOk } from "eve-client-ts";
-import { setErrorChannel, logInfo, logWarning, logErrorLevel } from "../errorLogger";
+import { setErrorChannel, logInfo, logWarning, logError } from "../errorLogger";
 
 const POLL_ATTEMPT_DELAY = 2000;
 let corpIndex = 0;
@@ -51,9 +51,9 @@ async function findErrorChannel(client: Client) {
     }
   } catch (error) {
     if (error instanceof DiscordAPIError) {
-      logErrorLevel(`Failed to fetch error channel ${errorChannelId}`, error);
+      logError(`Failed to fetch error channel ${errorChannelId}`, error);
     } else {
-      logErrorLevel(`Unexpected error fetching error channel`, error);
+      logError(`Unexpected error fetching error channel`, error);
     }
   }
 }
@@ -95,7 +95,7 @@ async function startPolling(client: Client) {
               thisCorp.channelIds = thisCorp.channelIds.filter((c) => c != channelId);
               await data.save();
             } else {
-              logErrorLevel("Unexpected error checking channel permissions", error);
+              logError("Unexpected error checking channel permissions", error);
             }
           }
         }
@@ -112,7 +112,7 @@ async function startPolling(client: Client) {
             corpIndex++;
             continue;
           } else {
-            logErrorLevel("Unexpected error fetching guild", error);
+            logError("Unexpected error fetching guild", error);
           }
         }
 
@@ -164,7 +164,7 @@ async function startPolling(client: Client) {
       }
 
     } catch (error) {
-      logErrorLevel("An error occurred in main loop", error);
+      logError("An error occurred in main loop", error);
     }
     corpIndex++;
 

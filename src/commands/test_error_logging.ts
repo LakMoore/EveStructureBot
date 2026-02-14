@@ -1,6 +1,6 @@
 import { CommandInteraction, Client, TextChannel } from "discord.js";
 import { Command } from "../Command";
-import { logInfo, logWarning, logErrorLevel } from "../errorLogger";
+import { logInfo, logWarning, logError } from "../errorLogger";
 
 export const TestErrorLogging: Command = {
   name: "test_error_logging",
@@ -27,13 +27,13 @@ export const TestErrorLogging: Command = {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Test error level (will ping @everyone)
-      logErrorLevel("Test ERROR message from test_error_logging command - this should ping @everyone");
+      logError("Test ERROR message from test_error_logging command - this should ping @everyone");
 
       await interaction.editReply({
         content: "Test messages sent to error channel successfully! Check the error channel.",
       });
     } catch (error) {
-      logErrorLevel("Error in test_error_logging command", error);
+      logError("Error in test_error_logging command", error);
       await interaction.editReply({
         content: "Failed to send test messages. Check console for errors.",
       });

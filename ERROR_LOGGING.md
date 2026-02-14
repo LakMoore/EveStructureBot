@@ -33,7 +33,7 @@ The system supports three error levels:
 Import the error logging functions in your file:
 
 ```typescript
-import { logInfo, logWarning, logErrorLevel } from "./errorLogger";
+import { logInfo, logWarning, logError } from "./errorLogger";
 ```
 
 ### Examples
@@ -46,7 +46,7 @@ logInfo("Bot started successfully");
 logWarning("Failed to fetch data, retrying...", retryCount);
 
 // Log critical error (will ping @everyone in Discord)
-logErrorLevel("Critical database connection failure", error);
+logError("Critical database connection failure", error);
 ```
 
 ## Features

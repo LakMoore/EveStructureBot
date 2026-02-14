@@ -4,7 +4,7 @@ import { consoleLog, NOTIFICATION_CHECK_DELAY, data } from "./Bot";
 import { AuthenticatedCorp } from "./data/data";
 import { messageTypes } from "./data/notification";
 import { getWorkingChars, getAccessToken } from "./EveSSO";
-import { logWarning, logErrorLevel } from "./errorLogger";
+import { logWarning, logError } from "./errorLogger";
 
 
 export async function checkNotificationsForCorp(
@@ -76,7 +76,7 @@ export async function checkNotificationsForCorp(
             logWarning("Unauthorised! Marked " + thisChar.characterName + " as needing reauth.");
         }
         else {
-            logErrorLevel("Error checking notifications for corp " + corp.corpName, error);
+            logError("Error checking notifications for corp " + corp.corpName, error);
         }
     }
 }

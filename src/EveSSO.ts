@@ -15,7 +15,7 @@ import {
   sendMessage,
 } from "./Bot";
 import { generateCorpDetailsEmbed } from "./embeds/corpDetails";
-import { logWarning, logErrorLevel } from "./errorLogger";
+import { logWarning, logError } from "./errorLogger";
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
@@ -245,7 +245,7 @@ export function setup(client: Client) {
                   await setDiscordRoles(channel.guild, userId);
                 }
               } catch (error) {
-                logErrorLevel("Error during authentication", error);
+                logError("Error during authentication", error);
                 if (error instanceof Response) {
                   const errorObj = await error.json();
                   errMessage += "\nUnable to proceed:\n" + errorObj.error;
@@ -564,7 +564,7 @@ export async function getAccessToken(thisChar: AuthenticatedCharacter) {
         await data.save();
       }
     } else if (error instanceof Error) {
-      logErrorLevel("Error while refreshing token", error.message);
+      logError("Error while refreshing token", error.message);
     }
   }
 

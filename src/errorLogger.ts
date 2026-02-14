@@ -58,7 +58,7 @@ export function getErrorChannel(): TextChannel | null {
  * @param message The main error message
  * @param optionalParams Additional parameters to log
  */
-export function logError(level: ErrorLevel, message: any, ...optionalParams: any[]) {
+function log(level: ErrorLevel, message: any, ...optionalParams: any[]) {
   // Always log to console
   const timestamp = new Date().toISOString();
   const levelPrefix = `[${level.toUpperCase()}]`;
@@ -162,13 +162,13 @@ function formatMessage(message: any): string {
  * Convenience functions for each log level
  */
 export function logInfo(message: any, ...optionalParams: any[]) {
-  logError(ErrorLevel.INFO, message, ...optionalParams);
+  log(ErrorLevel.INFO, message, ...optionalParams);
 }
 
 export function logWarning(message: any, ...optionalParams: any[]) {
-  logError(ErrorLevel.WARNING, message, ...optionalParams);
+  log(ErrorLevel.WARNING, message, ...optionalParams);
 }
 
-export function logErrorLevel(message: any, ...optionalParams: any[]) {
-  logError(ErrorLevel.ERROR, message, ...optionalParams);
+export function logError(message: any, ...optionalParams: any[]) {
+  log(ErrorLevel.ERROR, message, ...optionalParams);
 }

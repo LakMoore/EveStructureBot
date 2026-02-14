@@ -64,7 +64,7 @@ Updated all error handlers to use the centralized logger:
 
 ### Error Logging Flow
 1. Code encounters an error condition
-2. Calls `logInfo()`, `logWarning()`, or `logErrorLevel()` with message and optional parameters
+2. Calls `logInfo()`, `logWarning()`, or `logError()` with message and optional parameters
 3. Error logger formats the message and logs to console
 4. If error channel is configured, formats Discord message and sends to channel
 5. ERROR level messages include @everyone ping
