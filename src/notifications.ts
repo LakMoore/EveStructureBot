@@ -1,13 +1,10 @@
-import { Client, HTTPError } from 'discord.js';
-import {
-  GetCharactersCharacterIdRolesOk,
-  CharacterApiFactory,
-  GetCharactersCharacterIdNotifications200Ok,
-} from 'eve-client-ts';
+import { Client } from 'discord.js';
 import { consoleLog, NOTIFICATION_CHECK_DELAY, data } from './Bot';
 import { AuthenticatedCorp } from './data/data';
 import { messageTypes } from './data/notification';
 import { getWorkingChars, getAccessToken } from './EveSSO';
+import { EsiClient } from '@localisprimary/esi/dist/client';
+import { GetCharacterNotificationsResponse } from '@localisprimary/esi/dist/types';
 
 export async function checkNotificationsForCorp(
   corp: AuthenticatedCorp,
@@ -20,7 +17,7 @@ export async function checkNotificationsForCorp(
     corp.nextNotificationCheck,
     (c) => c.nextNotificationCheck,
     // POS notifications are only sent to Directors so checking other roles actually slows down POS checks
-    GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
+    'Station_Manager'
   );
 
   if (!workingChars || workingChars.length == 0) {
@@ -37,8 +34,8 @@ export async function checkNotificationsForCorp(
     return;
   }
 
-  const config = await getAccessToken(thisChar);
-  if (!config) {
+  const token = await getAccessToken(thisChar);
+  if (!token) {
     consoleLog('No access token for character ' + thisChar.characterName);
     return;
   }
@@ -46,9 +43,13 @@ export async function checkNotificationsForCorp(
   consoleLog('Using ' + thisChar.characterName);
 
   try {
-    const notifications = await CharacterApiFactory(
-      config
-    ).getCharactersCharacterIdNotifications(thisChar.characterId);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+      token,
+    });
+    const { data: notifications } = await esi.getCharacterNotifications({
+      character_id: thisChar.characterId,
+    });
 
     // mark this character so we don't use it to check again too soon
     const nextCheck =
@@ -67,6 +68,16 @@ export async function checkNotificationsForCorp(
     const selectedNotifications = notifications.filter(
       (note) => new Date(note.timestamp) > new Date(corp.mostRecentNotification)
     );
+    // Get the notifications that we have not seen previously
+    const selectedNotifications = notifications
+      .filter(
+        (note) =>
+          new Date(note.timestamp) > new Date(corp.mostRecentNotification)
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
 
     const newDate = await processNotifications(
       selectedNotifications,
@@ -92,7 +103,7 @@ export async function checkNotificationsForCorp(
 }
 
 export async function processNotifications(
-  selectedNotifications: GetCharactersCharacterIdNotifications200Ok[],
+  selectedNotifications: GetCharacterNotificationsResponse,
   client: Client<boolean>,
   corp: AuthenticatedCorp
 ) {

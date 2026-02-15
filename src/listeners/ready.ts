@@ -10,7 +10,6 @@ import { checkMembership } from '../EveSSO';
 import { checkNotificationsForCorp } from '../notifications';
 import { checkStarbasesForCorp } from '../starbases';
 import { checkStructuresForCorp } from '../structures';
-import { GetCharactersCharacterIdRolesOk } from 'eve-client-ts';
 
 const POLL_ATTEMPT_DELAY = 2000;
 let corpIndex = 0;
@@ -123,31 +122,32 @@ async function startPolling(client: Client) {
             consoleLog('Not Authed', '\n' + notAuthedChars.join('\n'));
           }
 
-          var authedChars = updatedCorp.members
+          const authedChars = updatedCorp.members
             .flatMap((m) => m.characters.filter((c) => !c.needsReAuth))
             .sort(
               (a, b) =>
                 new Date(a.nextNotificationCheck).getTime() -
                 new Date(b.nextNotificationCheck).getTime()
             )
-            .map(
-              (c) =>
+            .map((c) => {
+              let roleTitle = '';
+              if (c.roles?.roles?.includes('Director')) {
+                roleTitle = ' (Director)';
+              } else if (c.roles?.roles?.includes('Station_Manager')) {
+                roleTitle = ' (Manager)';
+              }
+              const secondsUntilCheck =
+                (new Date(c.nextNotificationCheck).getTime() - Date.now()) /
+                1000;
+              return (
                 c.characterName +
                 ' ' +
-                (c.roles?.includes(
-                  GetCharactersCharacterIdRolesOk.RolesEnum.Director
-                )
-                  ? ' (Director)'
-                  : c.roles?.includes(
-                        GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
-                      )
-                    ? ' (Manager)'
-                    : '') +
+                roleTitle +
                 ' in ' +
-                (new Date(c.nextNotificationCheck).getTime() - Date.now()) /
-                  1000 +
+                secondsUntilCheck +
                 ' seconds'
-            )
+              );
+            })
             .join('\n');
 
           consoleLog('Authed Chars', '\n' + authedChars);

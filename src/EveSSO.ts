@@ -1,10 +1,5 @@
 import { Client, Guild, HTTPError, TextChannel } from 'discord.js';
-import {
-  CharacterApiFactory,
-  Configuration,
-  CorporationApiFactory,
-  GetCharactersCharacterIdRolesOk,
-} from 'eve-client-ts';
+import { EsiClient, GetCharacterRolesResponse } from '@localisprimary/esi';
 import SingleSignOn, { HTTPFetchError } from '@after_ice/eve-sso';
 import Koa from 'koa';
 import { AuthenticatedCharacter, AuthenticatedCorp } from './data/data';
@@ -76,16 +71,21 @@ export function setup(client: Client) {
           let errMessage = '';
           const expires = getExpires(info.expires_in);
 
-          const char =
-            await CharacterApiFactory().getCharactersCharacterId(charId);
+          const esiNoToken = new EsiClient({
+            userAgent: 'EveStructureBot',
+          });
+
+          const { data: char } = await esiNoToken.getCharacter({
+            character_id: charId,
+          });
           consoleLog('char', char);
 
           // char.corporation_id could be up to 6 days old!
           // let's get the history to find the current corp
-          const corpHistory =
-            await CharacterApiFactory().getCharactersCharacterIdCorporationhistory(
-              charId
-            );
+          const { data: corpHistory } =
+            await esiNoToken.getCharacterCorporationhistory({
+              character_id: charId,
+            });
           consoleLog('corpHistory', corpHistory);
 
           const corpId =
@@ -93,19 +93,20 @@ export function setup(client: Client) {
               ? corpHistory[0].corporation_id
               : char.corporation_id;
 
-          if (!corpId) {
+          if (corpId == 0) {
             errMessage +=
               '\nCharacter is not in a Corporation. Unable to proceed.';
           } else {
-            const corp =
-              await CorporationApiFactory().getCorporationsCorporationId(
-                corpId
-              );
+            const { data: corp } = await esiNoToken.getCorporation({
+              corporation_id: corpId,
+            });
 
             if (corp.name) {
               try {
-                const config = new Configuration();
-                config.accessToken = info.access_token;
+                const esiWithToken = new EsiClient({
+                  userAgent: 'EveStructureBot',
+                  token: info.access_token,
+                });
 
                 let thisCorp = data.authenticatedCorps.find(
                   (ac) => ac.corpId == corpId
@@ -196,7 +197,7 @@ export function setup(client: Client) {
                   nextStructureCheck: new Date(0),
                   nextNotificationCheck: new Date(0),
                   nextRolesCheck: new Date(0),
-                  roles: [],
+                  roles: {},
                   needsReAuth: false,
                   addedAt: new Date(),
                   mostRecentAuthAt: new Date(),
@@ -293,13 +294,18 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
   for (const corpMember of corp.members) {
     for (const char of corpMember.characters.filter((c) => !c.needsReAuth)) {
       let corpConfirmed = true;
-      const config = await getAccessToken(char);
+      const token = await getAccessToken(char);
 
-      if (config.accessToken) {
+      if (token) {
         try {
-          const memberList = await CorporationApiFactory(
-            config
-          ).getCorporationsCorporationIdMembers(char.corpId);
+          const esi = new EsiClient({
+            userAgent: 'EveStructureBot',
+            token: token,
+          });
+
+          const { data: memberList } = await esi.getCorporationMembers({
+            corporation_id: char.corpId,
+          });
 
           if (memberList.includes(char.characterId)) {
             // character is confirmed as a member of this corp
@@ -379,12 +385,17 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
           ) {
             try {
               consoleLog('checking roles for character:', char.characterName);
-              const roles = await CharacterApiFactory(
-                await getAccessToken(char)
-              ).getCharactersCharacterIdRoles(char.characterId);
+              const token = await getAccessToken(char);
+              const esi = new EsiClient({
+                userAgent: 'EveStructureBot',
+                token: token,
+              });
+              const { data: roles } = await esi.getCharacterRoles({
+                character_id: char.characterId,
+              });
 
               if (roles.roles) {
-                char.roles = roles.roles;
+                char.roles = roles;
                 char.nextRolesCheck = new Date(
                   Date.now() + GET_ROLES_DELAY + 5000
                 );
@@ -433,9 +444,8 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
     corp.members.reduce(
       (acc, member) =>
         acc +
-        member.characters.filter((c) =>
-          c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director)
-        ).length,
+        member.characters.filter((c) => c.roles?.roles?.includes('Director'))
+          .length,
       0
     ),
     corp.maxDirectors
@@ -493,8 +503,12 @@ async function setDiscordRoles(guild: Guild, userId: string) {
   const corpTickers = await Promise.all(
     uniqueCorps.map(async (corpId) => {
       if (!corpId) return '';
-      const corp =
-        await CorporationApiFactory().getCorporationsCorporationId(corpId);
+      const esi = new EsiClient({
+        userAgent: 'EveStructureBot',
+      });
+      const { data: corp } = await esi.getCorporation({
+        corporation_id: corpId,
+      });
       return `[${corp.ticker}]`;
     })
   );
@@ -512,6 +526,7 @@ async function setDiscordRoles(guild: Guild, userId: string) {
         // then remove this role from this user
         return member.roles.remove(corpRole);
       }
+      return Promise.resolve();
     })
   );
 
@@ -523,18 +538,14 @@ async function setDiscordRoles(guild: Guild, userId: string) {
         // get role by name
         let corpRole = guild.roles.cache.find((role) => role.name === ticker);
 
-        if (!corpRole) {
-          // a role for this corp does not exist, let's make one
-          // TODO: Role colours!
-          corpRole = await guild.roles.create({ name: ticker });
-        }
+        // TODO: Role colours!
+        // a role for this corp does not exist, let's make one
+        corpRole ??= await guild.roles.create({ name: ticker });
 
-        if (!corpRole) {
+        if (corpRole == undefined) {
           consoleLog('Unable to find or create a corp role for ' + ticker);
-        } else {
-          if (!member.roles.cache.has(corpRole.id)) {
-            return member.roles.add(corpRole);
-          }
+        } else if (!member.roles.cache.has(corpRole.id)) {
+          return member.roles.add(corpRole);
         }
       })
   );
@@ -548,7 +559,7 @@ export function getWorkingChars(
   corp: AuthenticatedCorp,
   nextCheck: Date,
   getNextCheck: (c: AuthenticatedCharacter) => Date,
-  requiredRole: GetCharactersCharacterIdRolesOk.RolesEnum | undefined
+  requiredRole?: Exclude<GetCharacterRolesResponse['roles'], undefined>[number]
 ) {
   if (new Date(nextCheck) > new Date()) {
     // checking this record too soon!
@@ -561,7 +572,7 @@ export function getWorkingChars(
     .filter(
       (c) =>
         !c.needsReAuth &&
-        (requiredRole == undefined || c.roles?.includes(requiredRole))
+        (requiredRole == undefined || c.roles?.roles?.includes(requiredRole))
     )
     .sort(
       (a, b) =>
@@ -573,8 +584,6 @@ export function getWorkingChars(
 }
 
 export async function getAccessToken(thisChar: AuthenticatedCharacter) {
-  const config = new Configuration();
-
   try {
     if (new Date(thisChar.tokenExpires) <= new Date()) {
       // auth token has expired, let's refresh it
@@ -585,7 +594,7 @@ export async function getAccessToken(thisChar: AuthenticatedCharacter) {
       thisChar.tokenExpires = getExpires(response.expires_in);
       consoleLog('token refreshed');
     }
-    config.accessToken = thisChar.authToken;
+    return thisChar.authToken;
   } catch (error) {
     if (error instanceof HTTPFetchError) {
       consoleLog(
@@ -604,6 +613,5 @@ export async function getAccessToken(thisChar: AuthenticatedCharacter) {
       consoleLog('Error while refreshing token', error.message);
     }
   }
-
-  return config;
+  return '';
 }

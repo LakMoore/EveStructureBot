@@ -1,17 +1,35 @@
 import { EmbedBuilder } from 'discord.js';
-import { GetCorporationsCorporationIdStructures200Ok } from 'eve-client-ts';
 import { getRelativeDiscordTime, consoleLog } from '../Bot';
+import { GetCorporationStructuresResponse } from '@localisprimary/esi';
+import {
+  getItemName,
+  getRegionNameFromSystemId,
+  getSystemName,
+} from '../starbases';
 
-export function generateStructureNotificationEmbed(
+export const DOTLAN_MAP_URL = 'https://evemaps.dotlan.net/system/';
+
+export async function generateStructureNotificationEmbed(
   colour: number,
   message: string,
-  timestamp: Date,
-  thisStruct: GetCorporationsCorporationIdStructures200Ok | undefined,
+  timestamp: string,
+  thisStruct: GetCorporationStructuresResponse[number] | undefined,
   corpName: string
 ) {
+  let dotLanLink = `Unknown System`;
+  if (thisStruct?.system_id) {
+    const systemName = await getSystemName(thisStruct?.system_id);
+    dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+  }
+
+  const structure_details = `What: ${await getItemName(thisStruct?.type_id)} belonging to ${corpName}
+Where: ${dotLanLink} (${await getRegionNameFromSystemId(thisStruct?.system_id)})\n`;
+
   const embed = new EmbedBuilder()
     .setColor(colour)
-    .setDescription(`${message}\n${getRelativeDiscordTime(timestamp)}`);
+    .setDescription(
+      `${message.replace('[[STRUCTURE_DETAILS]]', structure_details)}\n${getRelativeDiscordTime(timestamp)}`
+    );
   if (thisStruct) {
     embed
       .setTitle(thisStruct.name ?? 'unknown structure')

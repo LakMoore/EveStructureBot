@@ -62,7 +62,7 @@ export function consoleLog(message?: any, ...optionalParams: any[]) {
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export function getRelativeDiscordTime(time: Date): string {
+export function getRelativeDiscordTime(time: string | Date): string {
   return `<t:${Math.round(new Date(time).getTime() / 1000)}:R>`;
 }
 

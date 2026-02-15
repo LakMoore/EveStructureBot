@@ -1,12 +1,4 @@
-import { Client, EmbedBuilder, HTTPError, TextChannel } from 'discord.js';
-import {
-  GetCharactersCharacterIdRolesOk,
-  CorporationApiFactory,
-  GetCorporationsCorporationIdStarbases200Ok,
-  UniverseApiFactory,
-  CharacterApiFactory,
-  AllianceApiFactory,
-} from 'eve-client-ts';
+import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import {
   colours,
   consoleLog,
@@ -17,6 +9,10 @@ import {
 } from './Bot';
 import { AuthenticatedCorp } from './data/data';
 import { getWorkingChars, getAccessToken } from './EveSSO';
+import {
+  EsiClient,
+  GetCorporationStarbasesResponse,
+} from '@localisprimary/esi';
 
 export async function checkStarbasesForCorp(
   corp: AuthenticatedCorp,
@@ -28,7 +24,7 @@ export async function checkStarbasesForCorp(
     corp,
     corp.nextStarbaseCheck,
     (c) => c.nextStarbaseCheck,
-    GetCharactersCharacterIdRolesOk.RolesEnum.Director
+    'Director'
   );
 
   if (!workingChars || workingChars.length == 0) {
@@ -43,8 +39,8 @@ export async function checkStarbasesForCorp(
     return;
   }
 
-  const config = await getAccessToken(thisChar);
-  if (!config) {
+  const token = await getAccessToken(thisChar);
+  if (!token) {
     consoleLog('No access token for character ' + thisChar.characterName);
     return;
   }
@@ -52,9 +48,13 @@ export async function checkStarbasesForCorp(
   consoleLog('Using ' + thisChar.characterName);
 
   try {
-    const starbases = await CorporationApiFactory(
-      config
-    ).getCorporationsCorporationIdStarbases(corp.corpId);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+      token,
+    });
+    const { data: starbases } = await esi.getCorporationStarbases({
+      corporation_id: corp.corpId,
+    });
 
     const nextCheck =
       Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
@@ -116,7 +116,7 @@ async function checkForStarbaseChangeAndPersist(
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
-        var channelConfig = data.channelFor(channel);
+        const channelConfig = data.channelFor(channel);
         let message = '';
         let fuelMessage = false;
         let statusMessage = false;
@@ -235,7 +235,7 @@ async function checkForStarbaseChangeAndPersist(
 }
 
 async function generateNewStarbaseEmbed(
-  s: GetCorporationsCorporationIdStarbases200Ok,
+  s: GetCorporationStarbasesResponse[number],
   corp: AuthenticatedCorp
 ) {
   let message = '';
@@ -269,7 +269,7 @@ async function generateNewStarbaseEmbed(
 }
 
 async function generateDeletedStarbasesEmbed(
-  s: GetCorporationsCorporationIdStarbases200Ok,
+  s: GetCorporationStarbasesResponse[number],
   corp: AuthenticatedCorp
 ) {
   const badgeUrl = `https://images.evetech.net/corporations/${corp.corpId}/logo?size=64`;
@@ -294,14 +294,20 @@ async function generateDeletedStarbasesEmbed(
 }
 
 async function getStarbaseType(type_id: number) {
-  const result = await UniverseApiFactory().getUniverseTypesTypeId(type_id);
+  const esi = new EsiClient({
+    userAgent: 'EveStructureBot',
+  });
+  const { data: result } = await esi.getUniverseType({ type_id });
   if (result) {
     return result.name;
   }
   return 'Unknown Type';
 }
 
-export async function getStarbaseName(system_id?: number, moon_id?: number) {
+export async function getStarbaseName(
+  system_id?: string | number,
+  moon_id?: string | number
+) {
   const systemName = await getSystemName(system_id);
   const moonName = await getMoonName(moon_id);
 
@@ -312,10 +318,12 @@ export async function getStarbaseName(system_id?: number, moon_id?: number) {
   return nameText;
 }
 
-export async function getSystemName(system_id?: number) {
+export async function getSystemName(system_id?: string | number) {
   if (system_id) {
-    const result =
-      await UniverseApiFactory().getUniverseSystemsSystemId(system_id);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: result } = await esi.getUniverseSystem({ system_id });
     if (result) {
       return result.name;
     }
@@ -323,9 +331,37 @@ export async function getSystemName(system_id?: number) {
   return 'Unknown System';
 }
 
-export async function getItemName(type_id?: number) {
+export async function getRegionNameFromSystemId(system_id?: string | number) {
+  if (system_id) {
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: systemResult } = await esi.getUniverseSystem({
+      system_id,
+    });
+    if (systemResult) {
+      const { data: constellationResult } = await esi.getUniverseConstellation({
+        constellation_id: systemResult.constellation_id,
+      });
+      if (constellationResult) {
+        const { data: regionResult } = await esi.getUniverseRegion({
+          region_id: constellationResult.region_id,
+        });
+        if (regionResult) {
+          return regionResult.name;
+        }
+      }
+    }
+  }
+  return 'Unknown Region';
+}
+
+export async function getItemName(type_id?: string | number) {
   if (type_id) {
-    const result = await UniverseApiFactory().getUniverseTypesTypeId(type_id);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: result } = await esi.getUniverseType({ type_id });
     if (result) {
       return result.name;
     }
@@ -333,9 +369,12 @@ export async function getItemName(type_id?: number) {
   return 'Unknown Item';
 }
 
-async function getMoonName(moon_id?: number) {
+export async function getMoonName(moon_id?: string | number) {
   if (moon_id) {
-    const result = await UniverseApiFactory().getUniverseMoonsMoonId(moon_id);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: result } = await esi.getUniverseMoon({ moon_id });
     if (result) {
       return result.name;
     }
@@ -343,11 +382,26 @@ async function getMoonName(moon_id?: number) {
   return 'Unknown Moon';
 }
 
+export async function getPlanetName(planet_id?: number) {
+  if (planet_id) {
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: result } = await esi.getUniversePlanet({ planet_id });
+    if (result) {
+      return result.name;
+    }
+  }
+  return 'Unknown Planet';
+}
+
 // Get Character name from ID
 export async function getCharacterName(character_id?: number) {
   if (character_id) {
-    const result =
-      await CharacterApiFactory().getCharactersCharacterId(character_id);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: result } = await esi.getCharacter({ character_id });
     if (result) {
       return result.name;
     }
@@ -356,10 +410,12 @@ export async function getCharacterName(character_id?: number) {
 }
 
 // Get Corp Name from ID
-export async function getCorpName(corp_id?: number) {
-  if (corp_id) {
-    const result =
-      await CorporationApiFactory().getCorporationsCorporationId(corp_id);
+export async function getCorpName(corporation_id?: number | string) {
+  if (corporation_id) {
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: result } = await esi.getCorporation({ corporation_id });
     if (result) {
       return result.name;
     }
@@ -368,10 +424,12 @@ export async function getCorpName(corp_id?: number) {
 }
 
 // Get Alliance Name from ID
-export async function getAllianceName(alliance_id?: number) {
+export async function getAllianceName(alliance_id?: number | string) {
   if (alliance_id) {
-    const result =
-      await AllianceApiFactory().getAlliancesAllianceId(alliance_id);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+    });
+    const { data: result } = await esi.getAlliance({ alliance_id });
     if (result) {
       return result.name;
     }

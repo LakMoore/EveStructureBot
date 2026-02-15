@@ -1,9 +1,4 @@
-import { Client, EmbedBuilder, HTTPError, TextChannel } from 'discord.js';
-import {
-  GetCharactersCharacterIdRolesOk,
-  CorporationApiFactory,
-  GetCorporationsCorporationIdStructures200Ok,
-} from 'eve-client-ts';
+import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import {
   consoleLog,
   STRUCTURE_CHECK_DELAY,
@@ -17,6 +12,10 @@ import {
 } from './Bot';
 import { getAccessToken, getWorkingChars } from './EveSSO';
 import { AuthenticatedCorp } from './data/data';
+import {
+  EsiClient,
+  GetCorporationStructuresResponse,
+} from '@localisprimary/esi';
 
 export async function checkStructuresForCorp(
   corp: AuthenticatedCorp,
@@ -28,7 +27,7 @@ export async function checkStructuresForCorp(
     corp,
     corp.nextStructureCheck,
     (c) => c.nextStructureCheck,
-    GetCharactersCharacterIdRolesOk.RolesEnum.StationManager
+    'Station_Manager'
   );
 
   if (!workingChars || workingChars.length == 0) {
@@ -43,8 +42,8 @@ export async function checkStructuresForCorp(
     return;
   }
 
-  const config = await getAccessToken(thisChar);
-  if (!config) {
+  const token = await getAccessToken(thisChar);
+  if (!token) {
     consoleLog('No access token for character ' + thisChar.characterName);
     return;
   }
@@ -52,9 +51,13 @@ export async function checkStructuresForCorp(
   consoleLog('Using ' + thisChar.characterName);
 
   try {
-    const structures = await CorporationApiFactory(
-      config
-    ).getCorporationsCorporationIdStructures(corp.corpId);
+    const esi = new EsiClient({
+      userAgent: 'EveStructureBot',
+      token,
+    });
+    const { data: structures } = await esi.getCorporationStructures({
+      corporation_id: corp.corpId,
+    });
 
     const nextCheck =
       Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
@@ -124,7 +127,7 @@ async function checkForStructureChangeAndPersist(
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
-        var channelConfig = data.channelFor(channel);
+        const channelConfig = data.channelFor(channel);
         let message = '';
         let fuelMessage = false;
         let statusMessage = false;
@@ -271,7 +274,7 @@ async function checkForStructureChangeAndPersist(
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
-        var channelConfig = data.channelFor(channel);
+        const channelConfig = data.channelFor(channel);
 
         if (channelConfig.structureStatus) {
           // send individually to avoid max embed per message limit (10)
@@ -294,7 +297,7 @@ async function checkForStructureChangeAndPersist(
 }
 
 function generateNewStructureEmbed(
-  s: GetCorporationsCorporationIdStructures200Ok
+  s: GetCorporationStructuresResponse[number]
 ) {
   let fuelMessage = 'Fuel has been depleated!';
   if (s.fuel_expires != undefined) {
@@ -326,7 +329,7 @@ function generateNewStructureEmbed(
 }
 
 function generateDeletedStructureEmbed(
-  s: GetCorporationsCorporationIdStructures200Ok
+  s: GetCorporationStructuresResponse[number]
 ) {
   const badgeUrl = `https://images.evetech.net/corporations/${s.corporation_id}/logo?size=64`;
 
@@ -349,22 +352,22 @@ function generateDeletedStructureEmbed(
 // hull_reinforce, hull_vulnerable, online_deprecated,
 // onlining_vulnerable, shield_vulnerable, unanchored, unknown
 function formatState(
-  state: GetCorporationsCorporationIdStructures200Ok.StateEnum
+  state: GetCorporationStructuresResponse[number]['state']
 ): string {
   switch (state) {
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.ArmorReinforce:
+    case 'armor_reinforce':
       return 'shield depleated';
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.ArmorVulnerable:
+    case 'armor_vulnerable':
       return 'partial shields';
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.HullReinforce:
+    case 'hull_reinforce':
       return 'armor depleated';
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.HullVulnerable:
+    case 'hull_vulnerable':
       return 'partial armor';
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.Anchoring:
+    case 'anchoring':
       return 'anchoring';
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.Unanchored:
+    case 'unanchored':
       return 'unanchored';
-    case GetCorporationsCorporationIdStructures200Ok.StateEnum.ShieldVulnerable:
+    case 'shield_vulnerable':
       return 'full shields';
     default:
       return 'unknown';

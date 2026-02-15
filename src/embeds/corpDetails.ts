@@ -1,7 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import { AuthenticatedCorp, AuthenticatedCharacter } from '../data/data';
 import { NOTIFICATION_CHECK_DELAY, STRUCTURE_CHECK_DELAY } from '../Bot';
-import { GetCharactersCharacterIdRolesOk } from 'eve-client-ts';
 
 export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
   const allChars: AuthenticatedCharacter[] = Array.prototype.concat(
@@ -9,11 +8,9 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
   );
   const chars = allChars.filter((c) => !c.needsReAuth);
   const needReauth = allChars.filter((c) => c.needsReAuth);
-  const directors = chars.filter((c) =>
-    c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.Director)
-  );
+  const directors = chars.filter((c) => c.roles?.roles?.includes('Director'));
   const stationManagers = chars.filter((c) =>
-    c.roles?.includes(GetCharactersCharacterIdRolesOk.RolesEnum.StationManager)
+    c.roles?.roles?.includes('Station_Manager')
   );
 
   const fields = [];

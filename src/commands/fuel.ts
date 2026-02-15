@@ -1,13 +1,13 @@
 import {
-  CommandInteraction,
   Client,
   AutocompleteInteraction,
   SlashCommandStringOption,
   TextChannel,
   ChatInputCommandInteraction,
+  Colors,
 } from 'discord.js';
 import { Command } from '../Command';
-import { consoleLog, data, sendMessage } from '../Bot';
+import { data, sendMessage } from '../Bot';
 import { generateStructureNotificationEmbed } from '../embeds/structureNotification';
 
 const stationNameOption = new SlashCommandStringOption()
@@ -85,12 +85,15 @@ export const Fuel: Command = {
         if (new Date(result.struct.fuel_expires) < new Date()) {
           text = 'Fuel expired';
         }
+
+        text += `\n\n[[STRUCTURE_DETAILS]]`;
+
         await sendMessage(
           channel,
           {
             embeds: [
-              generateStructureNotificationEmbed(
-                0x00ff00,
+              await generateStructureNotificationEmbed(
+                Colors.Orange,
                 text,
                 result.struct.fuel_expires,
                 result.struct,

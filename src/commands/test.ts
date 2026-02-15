@@ -21,7 +21,7 @@ export const Test: Command = {
       await sendMessage(channel, `Testing...`, 'Test');
 
       try {
-        const fs = require('fs');
+        const fs = require('node:fs');
         const notifications = JSON.parse(
           fs.readFileSync('notifications.json', 'utf8')
         );
@@ -40,7 +40,7 @@ export const Test: Command = {
         }
 
         await processNotifications(notifications, client, corp);
-      } catch (error) {
+      } catch {
         await sendMessage(
           channel,
           `Failed to process test notifications.`,

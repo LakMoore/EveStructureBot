@@ -1,14 +1,16 @@
 import {
-  GetCharactersCharacterIdRolesOk,
-  GetCorporationsCorporationIdStarbases200Ok,
-  GetCorporationsCorporationIdStructures200Ok,
-} from 'eve-client-ts';
+  GetCharacterRolesResponse,
+  GetCorporationStarbasesResponse,
+  GetCorporationStructuresResponse,
+  // GetCorporationsCorporationIdStarbases200Ok,
+  // GetCorporationsCorporationIdStructures200Ok,
+} from '@localisprimary/esi';
 import storage from 'node-persist';
 import { consoleLog, delay } from '../Bot';
 import { TextChannel } from 'discord.js';
 
 export interface AuthenticatedCharacter {
-  roles: Array<GetCharactersCharacterIdRolesOk.RolesEnum>;
+  roles: GetCharacterRolesResponse;
   discordId: string;
   characterId: number;
   characterName: string;
@@ -42,8 +44,8 @@ export interface AuthenticatedCorp {
   members: CorpMember[];
   /** @deprecated fetch a character via members[] */
   characters: AuthenticatedCharacter[] | undefined;
-  starbases: GetCorporationsCorporationIdStarbases200Ok[];
-  structures: GetCorporationsCorporationIdStructures200Ok[];
+  starbases: GetCorporationStarbasesResponse; // already an array
+  structures: GetCorporationStructuresResponse; // already an array
   nextStructureCheck: Date;
   nextStarbaseCheck: Date;
   nextNotificationCheck: Date;
