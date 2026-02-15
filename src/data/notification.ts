@@ -32,10 +32,7 @@
 
 import { Client, Colors, TextChannel } from 'discord.js';
 import { AuthenticatedCorp, DiscordChannel } from './data';
-import {
-  DOTLAN_MAP_URL,
-  generateStructureNotificationEmbed,
-} from '../embeds/structureNotification';
+import { DOTLAN_MAP_URL } from '../embeds/structureNotification';
 import { consoleLog, data, getRelativeDiscordTime, sendMessage } from '../Bot';
 import {
   getAllianceName,
@@ -353,7 +350,7 @@ export function initNotifications() {
   });
 
   messageTypes.set('SovStructureReinforced', {
-    message: 'Sovereignty Structure Reinforced',
+    message: 'Sovereignty Hub Reinforced',
     colour: Colors.Orange,
     get_role_to_mention: (c) => c.attack_alert_role,
     handler: handleSovStructureReinforcedNotification,
@@ -974,19 +971,24 @@ async function handleSovStructureReinforcedNotification(
     const solarsystemID = Number(values['solarSystemID']) || 0;
     const systemName = await getSystemName(solarsystemID);
     const regionName = await getRegionNameFromSystemId(solarsystemID);
-    const campaignEventType = values['campaignEventType'] || 'Unknown';
     let decloakTime = values['decloakTime'];
     let decloakTimeStr = '';
     if (decloakTime) {
       // decloakTime is a filetime (100ns since 1601-01-01 UTC)
       const decloakDate = new Date(filetimeToJsTimestamp(decloakTime));
-      decloakTimeStr = `\nReinforcement ends ${getRelativeDiscordTime(decloakDate)}`;
+      decloakTimeStr = `Command nodes will begin decloaking ${getRelativeDiscordTime(decloakDate)}`;
     }
     let dotLanLink = 'Unknown System';
     if (solarsystemID) {
       dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
     }
-    let messageDetail = `Where: ${dotLanLink} (${regionName})\nEvent Type: ${campaignEventType}${decloakTimeStr}`;
+    let messageDetail = `The Sovereignty Hub in ${dotLanLink} (${regionName}) has been reinforced by hostile forces.\n${decloakTimeStr}`;
+
+    const allianceId = values['sender_id'];
+    const allianceName = await getAllianceName(allianceId);
+
+    const thumbnail = `https://images.evetech.net/alliances/${allianceId}/logo?size=64`;
+
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
@@ -1007,7 +1009,8 @@ async function handleSovStructureReinforcedNotification(
                   message,
                   messageDetail,
                   note.timestamp,
-                  corp.corpName
+                  allianceName,
+                  thumbnail
                 ),
               ],
             },
