@@ -2,6 +2,9 @@
   "name": "discordbotts",
   "version": "1.0.0",
   "description": "Boilerplate code for a Typescript Discord Bot",
+  "engines": {
+    "node": "24.13.1"
+  },
   "main": "src/Bot.ts",
   "scripts": {
     "build": "npx tsc",
