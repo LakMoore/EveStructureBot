@@ -58,16 +58,13 @@ export async function checkNotificationsForCorp(
     corp.nextNotificationCheck = new Date(nextCheck);
 
     // consoleLog("notifications", notifications);
-    // // save the notification to a temporary file
-    // const fs = require("fs");
+    // save the notification to a temporary file
+    // const fs = require('node:fs');
     // fs.writeFileSync(
-    //   "notifications.json",
+    //   'notifications.json',
     //   JSON.stringify(notifications, null, 2)
     // );
-    // Get the notifications that we have not seen previously
-    const selectedNotifications = notifications.filter(
-      (note) => new Date(note.timestamp) > new Date(corp.mostRecentNotification)
-    );
+
     // Get the notifications that we have not seen previously
     const selectedNotifications = notifications
       .filter(
