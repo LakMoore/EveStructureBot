@@ -113,16 +113,11 @@ export function setup(client: Client) {
                 );
 
                 // only Directors can add new corps to new channels
-                if (!thisCorp || !thisCorp.channelIds.includes(channelId)) {
-                  const roles =
-                    await CharacterApiFactory(
-                      config
-                    ).getCharactersCharacterIdRoles(charId);
-                  if (
-                    !roles?.roles?.includes(
-                      GetCharactersCharacterIdRolesOk.RolesEnum.Director
-                    )
-                  ) {
+                if (!thisCorp?.channelIds.includes(channelId)) {
+                  const { data: roles } = await esiWithToken.getCharacterRoles({
+                    character_id: charId,
+                  });
+                  if (!roles?.roles?.includes('Director')) {
                     await sendMessage(
                       channel,
                       `Only Directors can add new Corporations to new channels.`,
