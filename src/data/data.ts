@@ -295,6 +295,76 @@ export class Data {
       }
 
       for (const member of thisCorp.members) {
+        if (member.characters.length > 1) {
+          const dedupedCharacters: AuthenticatedCharacter[] = [];
+
+          for (const character of member.characters) {
+            const existingIndex = dedupedCharacters.findIndex(
+              (c) => c.characterId == character.characterId
+            );
+
+            if (existingIndex == -1) {
+              dedupedCharacters.push(character);
+            } else {
+              const existing = dedupedCharacters[existingIndex];
+
+              const existingAuthAt = new Date(
+                existing.mostRecentAuthAt
+              ).getTime();
+              const incomingAuthAt = new Date(
+                character.mostRecentAuthAt
+              ).getTime();
+
+              let merged = existing;
+              let other = character;
+
+              if (
+                !isNaN(incomingAuthAt) &&
+                (isNaN(existingAuthAt) || incomingAuthAt > existingAuthAt)
+              ) {
+                merged = character;
+                other = existing;
+              }
+
+              if (!merged.authToken && other.authToken) {
+                merged.authToken = other.authToken;
+              }
+              if (!merged.refreshToken && other.refreshToken) {
+                merged.refreshToken = other.refreshToken;
+              }
+
+              const mergedTokenExpires = new Date(
+                merged.tokenExpires
+              ).getTime();
+              const otherTokenExpires = new Date(other.tokenExpires).getTime();
+              if (
+                !isNaN(otherTokenExpires) &&
+                (isNaN(mergedTokenExpires) ||
+                  otherTokenExpires > mergedTokenExpires)
+              ) {
+                merged.tokenExpires = other.tokenExpires;
+              }
+
+              merged.needsReAuth = merged.needsReAuth && other.needsReAuth;
+
+              if (
+                merged.roles?.roles == undefined &&
+                other.roles?.roles != undefined
+              ) {
+                merged.roles = other.roles;
+              }
+
+              dedupedCharacters[existingIndex] = merged;
+              upgraded = true;
+            }
+          }
+
+          if (dedupedCharacters.length != member.characters.length) {
+            member.characters = dedupedCharacters;
+            upgraded = true;
+          }
+        }
+
         // for each character, initialise the lastAuth and authfailed
         member.characters.forEach((character) => {
           if (!character.addedAt) {
