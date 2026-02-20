@@ -194,6 +194,18 @@ export class Data {
 
       if (otherIndex < thisIndex && otherIndex > -1) {
         const corpToKeep = this._authenticatedCorps[otherIndex];
+        const keepMostRecentMs = new Date(
+          corpToKeep.mostRecentNotification
+        ).getTime();
+        const deleteMostRecentMs = new Date(
+          thisCorp.mostRecentNotification
+        ).getTime();
+        corpToKeep.mostRecentNotification = new Date(
+          Math.max(
+            isNaN(keepMostRecentMs) ? 0 : keepMostRecentMs,
+            isNaN(deleteMostRecentMs) ? 0 : deleteMostRecentMs
+          )
+        );
         // merge channelIds
         corpToKeep.channelIds = [
           ...new Set([...corpToKeep.channelIds, ...thisCorp.channelIds]),
@@ -229,6 +241,14 @@ export class Data {
 
       if (!thisCorp.serverName) {
         thisCorp.serverName = '';
+        upgraded = true;
+      }
+
+      const mostRecentNotificationMs = new Date(
+        thisCorp.mostRecentNotification
+      ).getTime();
+      if (isNaN(mostRecentNotificationMs)) {
+        thisCorp.mostRecentNotification = new Date(0);
         upgraded = true;
       }
 

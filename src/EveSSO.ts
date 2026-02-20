@@ -108,9 +108,25 @@ export function setup(client: Client) {
                   token: info.access_token,
                 });
 
-                let thisCorp = data.authenticatedCorps.find(
+                const matchingCorps = data.authenticatedCorps.filter(
                   (ac) => ac.corpId == corpId
                 );
+
+                let thisCorp = matchingCorps.find(
+                  (ac) => ac.serverId == channel.guildId
+                );
+
+                if (!thisCorp) {
+                  thisCorp = matchingCorps.find((ac) =>
+                    ac.channelIds.includes(channelId)
+                  );
+                }
+
+                if (!thisCorp) {
+                  thisCorp = matchingCorps.find(
+                    (ac) => !ac.serverId || ac.channelIds.length == 0
+                  );
+                }
 
                 // only Directors can add new corps to new channels
                 if (!thisCorp?.channelIds.includes(channelId)) {
@@ -129,8 +145,8 @@ export function setup(client: Client) {
 
                 // a corp can only be in one Discord server at a time!
                 if (
-                  thisCorp &&
-                  thisCorp.serverId &&
+                  thisCorp?.serverId != undefined &&
+                  thisCorp.serverId != '' &&
                   thisCorp.serverId != channel.guildId
                 ) {
                   await sendMessage(
@@ -141,7 +157,7 @@ export function setup(client: Client) {
                   return;
                 }
 
-                if (!thisCorp) {
+                if (thisCorp?.corpId == undefined) {
                   thisCorp = {
                     serverId: channel.guildId,
                     serverName: channel.guild.name,

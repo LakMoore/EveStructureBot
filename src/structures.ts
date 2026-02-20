@@ -117,6 +117,10 @@ async function checkForStructureChangeAndPersist(
   if (idx > -1) {
     // seen this before, check each structure for changes.
     const oldCorp = data.authenticatedCorps[idx];
+    const oldMostRecentNotification = new Date(oldCorp.mostRecentNotification);
+    if (isNaN(oldMostRecentNotification.getTime())) {
+      oldCorp.mostRecentNotification = new Date(0);
+    }
 
     // check for new structures
     const addedStructs = corp.structures.filter(
@@ -267,6 +271,7 @@ async function checkForStructureChangeAndPersist(
     }
 
     // replace the data in storage
+    corp.mostRecentNotification = oldCorp.mostRecentNotification;
     data.authenticatedCorps[idx] = corp;
   } else {
     // tracking new structures!
@@ -289,8 +294,20 @@ async function checkForStructureChangeAndPersist(
       }
     }
 
-    // add the data to storage
-    data.authenticatedCorps.push(corp);
+    const mostRecentNotification = new Date(corp.mostRecentNotification);
+    if (isNaN(mostRecentNotification.getTime())) {
+      corp.mostRecentNotification = new Date(0);
+    }
+
+    const alreadyTracked = data.authenticatedCorps.some(
+      (existingCorp) =>
+        existingCorp.serverId == corp.serverId && existingCorp.corpId == corp.corpId
+    );
+
+    if (!alreadyTracked) {
+      // add the data to storage
+      data.authenticatedCorps.push(corp);
+    }
   }
 
   await data.save();

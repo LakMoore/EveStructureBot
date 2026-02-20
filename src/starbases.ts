@@ -112,6 +112,10 @@ async function checkForStarbaseChangeAndPersist(
   if (idx > -1) {
     // seen this before, check each starbase for changes.
     const oldCorp = data.authenticatedCorps[idx];
+    const oldMostRecentNotification = new Date(oldCorp.mostRecentNotification);
+    if (isNaN(oldMostRecentNotification.getTime())) {
+      oldCorp.mostRecentNotification = new Date(0);
+    }
 
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
@@ -207,6 +211,7 @@ async function checkForStarbaseChangeAndPersist(
     }
 
     // replace the data in storage
+    corp.mostRecentNotification = oldCorp.mostRecentNotification;
     data.authenticatedCorps[idx] = corp;
   } else {
     // tracking new starbases!
@@ -225,9 +230,22 @@ async function checkForStarbaseChangeAndPersist(
           );
         }
 
-        // add the data to storage
-        data.authenticatedCorps.push(corp);
       }
+    }
+
+    const mostRecentNotification = new Date(corp.mostRecentNotification);
+    if (isNaN(mostRecentNotification.getTime())) {
+      corp.mostRecentNotification = new Date(0);
+    }
+
+    const alreadyTracked = data.authenticatedCorps.some(
+      (existingCorp) =>
+        existingCorp.serverId == corp.serverId && existingCorp.corpId == corp.corpId
+    );
+
+    if (!alreadyTracked) {
+      // add the data to storage
+      data.authenticatedCorps.push(corp);
     }
   }
 
