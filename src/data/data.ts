@@ -297,6 +297,13 @@ export class Data {
             }
             upgraded = true;
           }
+
+          // Roles system changed and must now have roles.roles
+          if (character.roles?.roles == undefined) {
+            character.roles = {};
+            character.nextRolesCheck = new Date();
+            upgraded = true;
+          }
         });
       }
     }

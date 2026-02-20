@@ -17,7 +17,7 @@ export async function checkNotificationsForCorp(
     corp.nextNotificationCheck,
     (c) => c.nextNotificationCheck,
     // POS notifications are only sent to Directors so checking other roles actually slows down POS checks
-    'Station_Manager'
+    'Director'
   );
 
   if (!workingChars || workingChars.length == 0) {
@@ -123,13 +123,12 @@ export async function processNotifications(
         data.structureFuelMessage,
         data.miningUpdatesMessage
       );
+      const thisDate = new Date(notification.timestamp);
+      if (thisDate > mostRecentNotification) {
+        mostRecentNotification = thisDate;
+      }
     } else {
       consoleLog('No handler for message', notification);
-    }
-
-    const thisDate = new Date(notification.timestamp);
-    if (thisDate > mostRecentNotification) {
-      mostRecentNotification = thisDate;
     }
   }
 
