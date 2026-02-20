@@ -180,7 +180,7 @@ export function setup(client: Client) {
                 );
 
                 // make a new version of the character that just got authenticated
-                const character: AuthenticatedCharacter = {
+                let character: AuthenticatedCharacter = {
                   discordId: userId,
                   characterId: charId,
                   characterName: char.name,
@@ -218,6 +218,7 @@ export function setup(client: Client) {
                     oldCharacter.refreshToken = info.refresh_token;
                     oldCharacter.needsReAuth = false;
                     oldCharacter.mostRecentAuthAt = new Date();
+                    character = oldCharacter;
                   } else {
                     // if the character is new, add it
                     corpMember.characters.push(character);
@@ -228,6 +229,15 @@ export function setup(client: Client) {
                     discordId: userId,
                     characters: [character],
                   });
+                }
+
+                try {
+                  await refreshCharacterRoles(character, info.access_token);
+                } catch (error) {
+                  consoleLog(
+                    'error getting roles after auth for character:',
+                    error
+                  );
                 }
 
                 await sendMessage(
@@ -379,23 +389,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
             new Date(char.nextRolesCheck) < new Date()
           ) {
             try {
-              consoleLog('checking roles for character:', char.characterName);
-              const token = await getAccessToken(char);
-              const esi = new EsiClient({
-                userAgent: 'EveStructureBot',
-                token: token,
-              });
-              const { data: roles } = await esi.getCharacterRoles({
-                character_id: char.characterId,
-              });
-
-              if (roles.roles) {
-                char.roles = roles;
-                char.nextRolesCheck = new Date(
-                  Date.now() + GET_ROLES_DELAY + 5000
-                );
-                await data.save();
-              }
+              await refreshCharacterRoles(char);
             } catch (error) {
               consoleLog('error getting roles for character:', error);
             }
@@ -544,6 +538,32 @@ async function setDiscordRoles(guild: Guild, userId: string) {
         }
       })
   );
+}
+
+async function refreshCharacterRoles(
+  char: AuthenticatedCharacter,
+  authToken?: string
+) {
+  consoleLog('checking roles for character:', char.characterName);
+  const token = authToken ?? (await getAccessToken(char));
+
+  if (!token) {
+    return;
+  }
+
+  const esi = new EsiClient({
+    userAgent: 'EveStructureBot',
+    token,
+  });
+  const { data: roles } = await esi.getCharacterRoles({
+    character_id: char.characterId,
+  });
+
+  if (roles.roles) {
+    char.roles = roles;
+    char.nextRolesCheck = new Date(Date.now() + GET_ROLES_DELAY + 5000);
+    await data.save();
+  }
 }
 
 function getExpires(expires_in: number): Date {
