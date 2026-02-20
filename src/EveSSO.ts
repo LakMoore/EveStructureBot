@@ -116,17 +116,13 @@ export function setup(client: Client) {
                   (ac) => ac.serverId == channel.guildId
                 );
 
-                if (!thisCorp) {
-                  thisCorp = matchingCorps.find((ac) =>
-                    ac.channelIds.includes(channelId)
-                  );
-                }
+                thisCorp ??= matchingCorps.find((ac) =>
+                  ac.channelIds.includes(channelId)
+                );
 
-                if (!thisCorp) {
-                  thisCorp = matchingCorps.find(
-                    (ac) => !ac.serverId || ac.channelIds.length == 0
-                  );
-                }
+                thisCorp ??= matchingCorps.find(
+                  (ac) => !ac.serverId || ac.channelIds.length == 0
+                );
 
                 // only Directors can add new corps to new channels
                 if (!thisCorp?.channelIds.includes(channelId)) {
