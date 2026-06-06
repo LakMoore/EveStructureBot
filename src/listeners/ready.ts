@@ -7,6 +7,7 @@ import {
 import { Commands } from '../Commands';
 import { consoleLog, data, delay } from '../Bot';
 import { checkMembership } from '../EveSSO';
+import { initialiseReloadCommandOptions } from '../commands/reload';
 import { checkNotificationsForCorp } from '../notifications';
 import { checkStarbasesForCorp } from '../starbases';
 import { checkStructuresForCorp } from '../structures';
@@ -20,6 +21,7 @@ export default (client: Client): void => {
       return;
     }
 
+    await initialiseReloadCommandOptions();
     await client.application.commands.set(Commands);
 
     consoleLog(`${client.user.username} is online`);

@@ -4,13 +4,33 @@ import {
   SlashCommandStringOption,
 } from 'discord.js';
 import { Command } from '../Command';
-import { Commands } from '../Commands';
 
-const commandOption = new SlashCommandStringOption()
-  .setName('command')
-  .setDescription('The command to reload')
-  .setRequired(true)
-  .addChoices(...Commands.map((c) => ({ name: c.name, value: c.name })));
+function createCommandOption(commandNames: string[] = []) {
+  const option = new SlashCommandStringOption()
+    .setName('command')
+    .setDescription('The command to reload')
+    .setRequired(true);
+
+  if (commandNames.length > 0) {
+    option.addChoices(
+      ...commandNames.map((name) => ({
+        name,
+        value: name,
+      }))
+    );
+  }
+
+  return option;
+}
+
+let commandOption = createCommandOption();
+
+export async function initialiseReloadCommandOptions() {
+  const { Commands } = await import('../Commands.js');
+  const commandNames = Commands.map((c) => c.name);
+  commandOption = createCommandOption(commandNames);
+  Reload.options = [commandOption];
+}
 
 export const Reload: Command = {
   name: 'reload',
@@ -30,6 +50,7 @@ export const Reload: Command = {
       .getString('command', true)
       .toLowerCase();
 
+    const { Commands } = await import('../Commands.js');
     const sourceCommand = Commands.find((c) => c.name === commandName);
     if (!sourceCommand) {
       await interaction.editReply({
