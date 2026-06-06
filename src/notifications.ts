@@ -91,6 +91,8 @@ export async function processNotifications(
 ) {
   let mostRecentNotification = new Date(corp.mostRecentNotification);
 
+  const missingTypes: string[] = [];
+
   for (const notification of selectedNotifications) {
     const data = messageTypes.get(notification.type);
     if (data) {
@@ -112,8 +114,10 @@ export async function processNotifications(
       if (thisDate > mostRecentNotification) {
         mostRecentNotification = thisDate;
       }
-    } else {
+    } else if (missingTypes.length < 3) {
+      // avoid spamming the logs with missing types
       consoleLog('No handler for message', notification);
+      missingTypes.push(notification.type);
     }
   }
 
