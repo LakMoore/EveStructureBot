@@ -587,8 +587,15 @@ export function getWorkingChars(
   getNextCheck: (c: AuthenticatedCharacter) => Date,
   requiredRole?: Exclude<GetCharacterRolesResponse['roles'], undefined>[number]
 ) {
-  if (new Date(nextCheck) > new Date()) {
+  const secondsUntilNextCheck =
+    (new Date(nextCheck).getTime() - Date.now()) / 1000;
+  if (secondsUntilNextCheck > 0) {
     // checking this record too soon!
+    consoleLog(
+      `No characters ready to check (next check for corp ${corp.corpName} in ${secondsUntilNextCheck.toFixed(
+        0
+      )} seconds)`
+    );
     return [];
   }
 
@@ -605,6 +612,10 @@ export function getWorkingChars(
         new Date(getNextCheck(a)).getTime() -
         new Date(getNextCheck(b)).getTime()
     );
+
+  consoleLog(
+    `Found ${workingChars.length} characters ready to check for corp ${corp.corpName}. First up: ${workingChars[0]?.characterName ?? 'none'}`
+  );
 
   return workingChars;
 }
