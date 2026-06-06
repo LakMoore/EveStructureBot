@@ -12,7 +12,7 @@ import { checkNotificationsForCorp } from '../notifications';
 import { checkStarbasesForCorp } from '../starbases';
 import { checkStructuresForCorp } from '../structures';
 
-const POLL_ATTEMPT_DELAY = 2000;
+const POLL_ATTEMPT_DELAY = 3000;
 let corpIndex = 0;
 
 export default (client: Client): void => {
@@ -37,7 +37,10 @@ async function startPolling(client: Client) {
       const availableCorps = data.authenticatedCorps.filter(
         (c) => c.serverId && c.channelIds.length > 0
       );
-      if (corpIndex < 0 || corpIndex > availableCorps.length - 1) corpIndex = 0;
+      if (corpIndex < 0 || corpIndex > availableCorps.length - 1) {
+        corpIndex = 0;
+        await delay(POLL_ATTEMPT_DELAY);
+      }
 
       consoleLog(
         `Poll index: ${corpIndex} - Corp Count: ${availableCorps.length}`
@@ -177,7 +180,5 @@ async function startPolling(client: Client) {
       consoleLog('An error occured in main loop', error);
     }
     corpIndex++;
-
-    await delay(POLL_ATTEMPT_DELAY);
   } while (true);
 }
