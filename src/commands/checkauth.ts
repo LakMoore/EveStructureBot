@@ -47,11 +47,11 @@ export const CheckAuth: Command = {
         );
 
         // remove this corp from the array
-        var index = data.authenticatedCorps.indexOf(corp);
+        const index = data.authenticatedCorps.indexOf(corp);
         data.authenticatedCorps.splice(index, 1);
         await data.save();
 
-        var index2 = channelCorps.indexOf(corp);
+        const index2 = channelCorps.indexOf(corp);
         channelCorps.splice(index2, 1);
       }
 

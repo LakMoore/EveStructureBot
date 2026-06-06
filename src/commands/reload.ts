@@ -1,45 +1,59 @@
-import { ChatInputCommandInteraction, Client } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  Client,
+  SlashCommandStringOption,
+} from 'discord.js';
 import { Command } from '../Command';
 import { Commands } from '../Commands';
+
+const commandOption = new SlashCommandStringOption()
+  .setName('command')
+  .setDescription('The command to reload')
+  .setRequired(true)
+  .addChoices(...Commands.map((c) => ({ name: c.name, value: c.name })));
 
 export const Reload: Command = {
   name: 'reload',
   description: 'Forces the bot to reload the specified command',
   deferReply: true,
   ephemeral: true,
+  options: [commandOption],
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    const content = 'Reloading command...';
+    await interaction.editReply({ content: 'Reloading command...' });
 
-    await interaction.followUp({
-      content,
-    });
-
-    if (client.application) {
-      const commandName =
-        interaction.options
-          .get('command', true)
-          .value?.toString()
-          .toLocaleLowerCase() ?? '';
-      const command = client.application?.commands.cache.get(commandName);
-
-      if (!command) {
-        await interaction.reply(
-          `There is no command with name \`${commandName}\`!`
-        );
-        return;
-      }
-
-      const commands = await client.application.commands.fetch();
-
-      for (const command of commands.values()) {
-        await client.application?.commands.delete(command);
-      }
-
-      await client.application.commands.set(Commands);
-
-      await interaction.reply('Commands reloaded');
+    if (!client.application) {
+      await interaction.editReply({ content: 'Unable to access command API.' });
       return;
     }
-    await interaction.reply('Unknown error!');
+
+    const commandName = interaction.options
+      .getString('command', true)
+      .toLowerCase();
+
+    const sourceCommand = Commands.find((c) => c.name === commandName);
+    if (!sourceCommand) {
+      await interaction.editReply({
+        content: `There is no local command with name \`${commandName}\`.`,
+      });
+      return;
+    }
+
+    const deployedCommands = await client.application.commands.fetch();
+    const deployedCommand = deployedCommands.find(
+      (c) => c.name === commandName
+    );
+
+    if (deployedCommand) {
+      await client.application.commands.delete(deployedCommand.id);
+    }
+
+    const { run, autocomplete, button, deferReply, ephemeral, ...commandData } =
+      sourceCommand;
+
+    await client.application.commands.create(commandData);
+
+    await interaction.editReply({
+      content: `Reloaded command \`${commandName}\`.`,
+    });
   },
 };

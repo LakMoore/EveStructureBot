@@ -6,7 +6,7 @@ import {
   TextChannel,
 } from 'discord.js';
 import { Command } from '../Command';
-import { consoleLog, data, getRelativeDiscordTime, sendMessage } from '../Bot';
+import { data, getRelativeDiscordTime, sendMessage } from '../Bot';
 import { getSystemName } from '../starbases';
 
 const systemNameOption = new SlashCommandStringOption()
@@ -106,7 +106,7 @@ export const Refuel: Command = {
         await sendMessage(channel, result.join('\n'), 'System Fuel');
       } else {
         await interaction.followUp(
-          `No structures found in ${interaction.options.get('name')?.value}`
+          `No structures found in ${interaction.options.get('system')?.value}`
         );
       }
 

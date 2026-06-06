@@ -47,57 +47,43 @@ export async function checkStarbasesForCorp(
 
   consoleLog('Using ' + thisChar.characterName);
 
-  try {
-    const esi = new EsiClient({
-      userAgent: 'EveStructureBot',
-      token,
-    });
-    const { data: starbases } = await esi.getCorporationStarbases({
-      corporation_id: corp.corpId,
-    });
+  const esi = new EsiClient({
+    userAgent: 'EveStructureBot',
+    token,
+  });
+  const { data: starbases } = await esi.getCorporationStarbases({
+    corporation_id: corp.corpId,
+  });
 
-    const nextCheck =
-      Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
-    thisChar.nextStarbaseCheck = new Date(nextCheck);
+  const nextCheck =
+    Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
+  thisChar.nextStarbaseCheck = new Date(nextCheck);
 
-    // make a new object so we can compare it to the old one
-    const c: AuthenticatedCorp = {
-      serverId: corp.serverId,
-      serverName: corp.serverName,
-      channelId: undefined,
-      channelIds: corp.channelIds,
-      corpId: corp.corpId,
-      corpName: corp.corpName,
-      members: corp.members,
-      characters: undefined,
-      starbases: starbases,
-      structures: corp.structures,
-      nextStarbaseCheck: new Date(nextCheck),
-      nextStructureCheck: corp.nextStructureCheck,
-      nextNotificationCheck: corp.nextNotificationCheck,
-      mostRecentNotification: corp.mostRecentNotification,
-      setDiscordRoles: corp.setDiscordRoles,
-      addedAt: corp.addedAt,
-      maxCharacters: corp.maxCharacters,
-      maxDirectors: corp.maxDirectors,
-      mostRecentAuthAt: corp.mostRecentAuthAt,
-    };
+  // make a new object so we can compare it to the old one
+  const c: AuthenticatedCorp = {
+    serverId: corp.serverId,
+    serverName: corp.serverName,
+    channelId: undefined,
+    channelIds: corp.channelIds,
+    corpId: corp.corpId,
+    corpName: corp.corpName,
+    members: corp.members,
+    characters: undefined,
+    starbases: starbases,
+    structures: corp.structures,
+    nextStarbaseCheck: new Date(nextCheck),
+    nextStructureCheck: corp.nextStructureCheck,
+    nextNotificationCheck: corp.nextNotificationCheck,
+    mostRecentNotification: corp.mostRecentNotification,
+    setDiscordRoles: corp.setDiscordRoles,
+    addedAt: corp.addedAt,
+    maxCharacters: corp.maxCharacters,
+    maxDirectors: corp.maxDirectors,
+    mostRecentAuthAt: corp.mostRecentAuthAt,
+  };
 
-    // check for change
-    await checkForStarbaseChangeAndPersist(client, c);
-  } catch (error: any) {
-    // if 401 Unauthorized then mark this character as needing reauth
-    if (error.status === 401) {
-      thisChar.needsReAuth = true;
-      thisChar.authFailedAt = new Date();
-      await data.save();
-      consoleLog(
-        'Unauthorised! Marked ' + thisChar.characterName + ' as needing reauth.'
-      );
-    } else {
-      throw error;
-    }
-  }
+  // check for change
+  await checkForStarbaseChangeAndPersist(client, c);
 }
 
 async function checkForStarbaseChangeAndPersist(
@@ -113,7 +99,7 @@ async function checkForStarbaseChangeAndPersist(
     // seen this before, check each starbase for changes.
     const oldCorp = data.authenticatedCorps[idx];
     const oldMostRecentNotification = new Date(oldCorp.mostRecentNotification);
-    if (isNaN(oldMostRecentNotification.getTime())) {
+    if (Number.isNaN(oldMostRecentNotification.getTime())) {
       oldCorp.mostRecentNotification = new Date(0);
     }
 
@@ -229,18 +215,18 @@ async function checkForStarbaseChangeAndPersist(
             'New Starbase'
           );
         }
-
       }
     }
 
     const mostRecentNotification = new Date(corp.mostRecentNotification);
-    if (isNaN(mostRecentNotification.getTime())) {
+    if (Number.isNaN(mostRecentNotification.getTime())) {
       corp.mostRecentNotification = new Date(0);
     }
 
     const alreadyTracked = data.authenticatedCorps.some(
       (existingCorp) =>
-        existingCorp.serverId == corp.serverId && existingCorp.corpId == corp.corpId
+        existingCorp.serverId == corp.serverId &&
+        existingCorp.corpId == corp.corpId
     );
 
     if (!alreadyTracked) {

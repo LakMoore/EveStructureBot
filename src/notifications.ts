@@ -42,61 +42,46 @@ export async function checkNotificationsForCorp(
 
   consoleLog('Using ' + thisChar.characterName);
 
-  try {
-    const esi = new EsiClient({
-      userAgent: 'EveStructureBot',
-      token,
-    });
-    const { data: notifications } = await esi.getCharacterNotifications({
-      character_id: thisChar.characterId,
-    });
+  const esi = new EsiClient({
+    userAgent: 'EveStructureBot',
+    token,
+  });
+  const { data: notifications } = await esi.getCharacterNotifications({
+    character_id: thisChar.characterId,
+  });
 
-    // mark this character so we don't use it to check again too soon
-    const nextCheck =
-      Date.now() + NOTIFICATION_CHECK_DELAY / workingChars.length + 3000;
-    thisChar.nextNotificationCheck = new Date(nextCheck);
-    corp.nextNotificationCheck = new Date(nextCheck);
+  // mark this character so we don't use it to check again too soon
+  const nextCheck =
+    Date.now() + NOTIFICATION_CHECK_DELAY / workingChars.length + 3000;
+  thisChar.nextNotificationCheck = new Date(nextCheck);
+  corp.nextNotificationCheck = new Date(nextCheck);
 
-    // consoleLog("notifications", notifications);
-    // save the notification to a temporary file
-    // const fs = require('node:fs');
-    // fs.writeFileSync(
-    //   'notifications.json',
-    //   JSON.stringify(notifications, null, 2)
-    // );
+  // consoleLog("notifications", notifications);
+  // save the notification to a temporary file
+  // const fs = require('node:fs');
+  // fs.writeFileSync(
+  //   'notifications.json',
+  //   JSON.stringify(notifications, null, 2)
+  // );
 
-    // Get the notifications that we have not seen previously
-    const selectedNotifications = notifications
-      .filter(
-        (note) =>
-          new Date(note.timestamp) > new Date(corp.mostRecentNotification)
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-
-    const newDate = await processNotifications(
-      selectedNotifications,
-      client,
-      corp
+  // Get the notifications that we have not seen previously
+  const selectedNotifications = notifications
+    .filter(
+      (note) => new Date(note.timestamp) > new Date(corp.mostRecentNotification)
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
-    corp.mostRecentNotification = newDate;
 
-    await data.save();
-  } catch (error: any) {
-    // if 401 Unauthorized then mark this character as needing reauth
-    if (error.status === 401) {
-      thisChar.needsReAuth = true;
-      thisChar.authFailedAt = new Date();
-      await data.save();
-      consoleLog(
-        'Unauthorised! Marked ' + thisChar.characterName + ' as needing reauth.'
-      );
-    } else {
-      throw error;
-    }
-  }
+  const newDate = await processNotifications(
+    selectedNotifications,
+    client,
+    corp
+  );
+  corp.mostRecentNotification = newDate;
+
+  await data.save();
 }
 
 export async function processNotifications(

@@ -73,8 +73,8 @@ export interface DiscordChannel {
 const SAVE_DELAY_MS = 5 * 60 * 1000; // 5 mins in milliseconds
 
 export class Data {
-  private static CORPS_DATA_KEY = 'users';
-  private static CHANNELS_DATA_KEY = 'channels';
+  private static readonly CORPS_DATA_KEY = 'users';
+  private static readonly CHANNELS_DATA_KEY = 'channels';
   private _authenticatedCorps: AuthenticatedCorp[] = [];
   private _channels: DiscordChannel[] = [];
 
@@ -149,9 +149,9 @@ export class Data {
             );
             if (memberIdx > -1) {
               const corpMember = thisCorp.members[memberIdx];
-              const charIdx = corpMember.characters.findIndex((c) => {
-                c.characterId === thisCharacter.characterId;
-              });
+              const charIdx = corpMember.characters.findIndex(
+                (c) => c.characterId === thisCharacter.characterId
+              );
 
               if (charIdx > -1) {
                 // if the member already has this character, copy over the top
@@ -176,18 +176,14 @@ export class Data {
 
       // upgrade channelId to channelIds
       if (thisCorp.channelId != undefined) {
-        if (thisCorp.channelIds == undefined) {
-          thisCorp.channelIds = [];
-        }
+        thisCorp.channelIds ??= [];
         thisCorp.channelIds.push(thisCorp.channelId);
         thisCorp.channelId = undefined;
         upgraded = true;
       }
 
       // check whether this corp is already in the list
-      const thisIndex = this._authenticatedCorps.findIndex(
-        (c) => c === thisCorp
-      );
+      const thisIndex = this._authenticatedCorps.indexOf(thisCorp);
       const otherIndex = this._authenticatedCorps.findIndex(
         (c) => c.corpId == thisCorp.corpId && c.serverId == thisCorp.serverId
       );
@@ -202,8 +198,8 @@ export class Data {
         ).getTime();
         corpToKeep.mostRecentNotification = new Date(
           Math.max(
-            isNaN(keepMostRecentMs) ? 0 : keepMostRecentMs,
-            isNaN(deleteMostRecentMs) ? 0 : deleteMostRecentMs
+            Number.isNaN(keepMostRecentMs) ? 0 : keepMostRecentMs,
+            Number.isNaN(deleteMostRecentMs) ? 0 : deleteMostRecentMs
           )
         );
         // merge channelIds
@@ -247,7 +243,7 @@ export class Data {
       const mostRecentNotificationMs = new Date(
         thisCorp.mostRecentNotification
       ).getTime();
-      if (isNaN(mostRecentNotificationMs)) {
+      if (Number.isNaN(mostRecentNotificationMs)) {
         thisCorp.mostRecentNotification = new Date(0);
         upgraded = true;
       }
@@ -319,8 +315,9 @@ export class Data {
               let other = character;
 
               if (
-                !isNaN(incomingAuthAt) &&
-                (isNaN(existingAuthAt) || incomingAuthAt > existingAuthAt)
+                !Number.isNaN(incomingAuthAt) &&
+                (Number.isNaN(existingAuthAt) ||
+                  incomingAuthAt > existingAuthAt)
               ) {
                 merged = character;
                 other = existing;
@@ -338,8 +335,8 @@ export class Data {
               ).getTime();
               const otherTokenExpires = new Date(other.tokenExpires).getTime();
               if (
-                !isNaN(otherTokenExpires) &&
-                (isNaN(mergedTokenExpires) ||
+                !Number.isNaN(otherTokenExpires) &&
+                (Number.isNaN(mergedTokenExpires) ||
                   otherTokenExpires > mergedTokenExpires)
               ) {
                 merged.tokenExpires = other.tokenExpires;
@@ -405,7 +402,7 @@ export class Data {
       corpsToDelete.forEach((corp) => {
         consoleLog('Found duplicate corp ' + corp.corpName + ' - removing');
         this._authenticatedCorps.splice(
-          this._authenticatedCorps.findIndex((c) => c === corp),
+          this._authenticatedCorps.indexOf(corp),
           1
         );
       });

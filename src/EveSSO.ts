@@ -51,14 +51,13 @@ export function setup(client: Client) {
       // Swap the one-time code for an access token
       const info = await sso().getAccessToken(code);
 
-      // Usually you'd want to store the access token
-      // as well as the refresh token
-      consoleLog('info', info);
+      consoleLog('SSO token exchange succeeded', {
+        expiresIn: info.expires_in,
+        hasRefreshToken: Boolean(info.refresh_token),
+      });
 
       const subParts = info.decoded_access_token.sub.split(':');
-      const charId = Number(
-        subParts.length > 0 ? subParts[subParts.length - 1] : '0'
-      );
+      const charId = Number(subParts.length > 0 ? subParts.at(-1) : '0');
 
       // Do whatever, for example, redirect to user page
       ctx.response.body =
@@ -357,7 +356,20 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
           }
         }
 
-        if (!corpConfirmed) {
+        if (corpConfirmed) {
+          // character is confirmed as a member of this corp
+          // let's see if the roles need checking
+          if (
+            !char.nextRolesCheck ||
+            new Date(char.nextRolesCheck) < new Date()
+          ) {
+            try {
+              await refreshCharacterRoles(char);
+            } catch (error) {
+              consoleLog('error getting roles for character:', error);
+            }
+          }
+        } else {
           // The character is NOT in the corp the ESI says it is in!!!
 
           const serverCorps = data.authenticatedCorps.filter(
@@ -393,19 +405,6 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
 
           // TODO: We could check all the other corps that are authenticated to see if
           // we can figure out which corp this character is really in.
-        } else {
-          // character is confirmed as a member of this corp
-          // let's see if the roles need checking
-          if (
-            !char.nextRolesCheck ||
-            new Date(char.nextRolesCheck) < new Date()
-          ) {
-            try {
-              await refreshCharacterRoles(char);
-            } catch (error) {
-              consoleLog('error getting roles for character:', error);
-            }
-          }
         }
       }
 
@@ -424,7 +423,7 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
           'Removing member with no characters: ',
           corpMember.discordId
         );
-        var index = corp.members.findIndex(
+        const index = corp.members.findIndex(
           (ac) =>
             ac.discordId == corpMember.discordId && ac.characters.length == 0
         );
@@ -534,7 +533,7 @@ async function setDiscordRoles(guild: Guild, userId: string) {
   // ensure all the roles exist and are applied to this member
   await Promise.all(
     corpTickers
-      .filter((ticker) => ticker)
+      .filter((ticker) => ticker?.length > 0)
       .map(async (ticker) => {
         // get role by name
         let corpRole = guild.roles.cache.find((role) => role.name === ticker);
