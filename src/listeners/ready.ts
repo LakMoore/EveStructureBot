@@ -138,15 +138,25 @@ async function startPolling(client: Client) {
               } else if (c.roles?.roles?.includes('Station_Manager')) {
                 roleTitle = ' (Manager)';
               }
-              const secondsUntilCheck =
+              const secondsUntilNotificationCheck =
                 (new Date(c.nextNotificationCheck).getTime() - Date.now()) /
                 1000;
+              const secondsUntilStructureCheck =
+                (new Date(c.nextStructureCheck).getTime() - Date.now()) / 1000;
+              const secondsUntilStarbaseCheck =
+                (new Date(c.nextStarbaseCheck).getTime() - Date.now()) / 1000;
               return (
                 c.characterName +
                 ' ' +
                 roleTitle +
-                ' in ' +
-                secondsUntilCheck +
+                '\tnotifications in ' +
+                secondsUntilNotificationCheck +
+                ' seconds' +
+                '\tstructure checks in ' +
+                secondsUntilStructureCheck +
+                ' seconds' +
+                '\tstarbase checks in ' +
+                secondsUntilStarbaseCheck +
                 ' seconds'
               );
             })
