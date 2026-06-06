@@ -54,7 +54,7 @@ export function parseNotificationText(text?: string) {
     for (const line of lines) {
       const parts = line.split(':');
       if (parts.length === 2) {
-        const key = parts[0].trim();
+        const key = parts[0]; // don't trim the key, some notifications have important leading spaces to differentiate similar keys (e.g. "typeID" vs "  typeID")
         const value = parts[1].replace('&id001', '').trim();
         result[key] = value;
       }

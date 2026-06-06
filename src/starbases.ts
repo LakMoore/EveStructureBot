@@ -429,7 +429,7 @@ export async function getCorpName(corporation_id?: number | string) {
 
 // Get Alliance Name from ID
 export async function getAllianceName(alliance_id?: number | string) {
-  if (alliance_id) {
+  if (alliance_id && alliance_id != 'null') {
     const esi = new EsiClient({
       userAgent: 'EveStructureBot',
     });
