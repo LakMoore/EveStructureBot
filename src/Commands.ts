@@ -1,6 +1,7 @@
 import { Command } from './Command';
 import { Auth } from './commands/auth';
 import { CheckAuth } from './commands/checkauth';
+import { Debug } from './commands/debug';
 import { DebugReprocess } from './commands/debug_reprocess';
 import { Fuel } from './commands/fuel';
 import { Hello } from './commands/hello';
@@ -17,6 +18,7 @@ export const Commands: Command[] = [
   Auth,
   CheckAuth,
   Configure,
+  Debug,
   Fuel,
   Hello,
   Info,
