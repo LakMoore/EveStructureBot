@@ -1,11 +1,12 @@
 import { EmbedBuilder } from 'discord.js';
-import { getRelativeDiscordTime, consoleLog } from '../Bot';
+import { getRelativeDiscordTime } from '../Bot';
 import { GetCorporationStructuresResponse } from '@localisprimary/esi';
 import {
   getItemName,
   getRegionNameFromSystemId,
   getSystemName,
 } from '../starbases';
+import { LOGGER } from '../Logger';
 
 export const DOTLAN_MAP_URL = 'https://evemaps.dotlan.net/system/';
 
@@ -38,7 +39,7 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(thisStruct?.system_id)})
         `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
       );
   } else {
-    consoleLog('Failed to find structure');
+    LOGGER.warning('Failed to find structure');
     embed.setTitle(`Not sure which one!`);
   }
   return embed;

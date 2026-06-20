@@ -1,7 +1,6 @@
 import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import {
   colours,
-  consoleLog,
   data,
   getRelativeDiscordTime,
   sendMessage,
@@ -13,12 +12,13 @@ import {
   EsiClient,
   GetCorporationStarbasesResponse,
 } from '@localisprimary/esi';
+import { LOGGER } from './Logger';
 
 export async function checkStarbasesForCorp(
   corp: AuthenticatedCorp,
   client: Client
 ) {
-  consoleLog('checkStarbasesForCorp ', corp.corpName);
+  LOGGER.info('checkStarbasesForCorp ' + corp.corpName);
 
   const workingChars = getWorkingChars(
     corp,
@@ -28,24 +28,24 @@ export async function checkStarbasesForCorp(
   );
 
   if (!workingChars || workingChars.length == 0) {
-    consoleLog('No available characters to check starbases with!');
+    LOGGER.info('No available characters to check starbases with!');
     return;
   }
 
   const thisChar = workingChars[0];
 
   if (!thisChar || new Date(thisChar.nextStarbaseCheck) > new Date()) {
-    consoleLog(thisChar.characterName + ' is not ready to check starbases!');
+    LOGGER.info(thisChar.characterName + ' is not ready to check starbases!');
     return;
   }
 
   const token = await getAccessToken(thisChar);
   if (!token) {
-    consoleLog('No access token for character ' + thisChar.characterName);
+    LOGGER.info('No access token for character ' + thisChar.characterName);
     return;
   }
 
-  consoleLog('Using ' + thisChar.characterName);
+  LOGGER.info('Using ' + thisChar.characterName);
 
   const esi = new EsiClient({
     userAgent: 'EveStructureBot',

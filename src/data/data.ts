@@ -6,8 +6,9 @@ import {
   // GetCorporationsCorporationIdStructures200Ok,
 } from '@localisprimary/esi';
 import storage from 'node-persist';
-import { consoleLog, delay } from '../Bot';
+import { delay } from '../Bot';
 import { TextChannel } from 'discord.js';
+import { LOGGER } from '../Logger';
 
 export interface AuthenticatedCharacter {
   roles: GetCharacterRolesResponse;
@@ -253,16 +254,17 @@ export class Data {
       ).length;
 
       if (serverCountForCorp > 1) {
-        consoleLog(
-          '!!! Found a duplicate corp across ' +
-            serverCountForCorp +
-            ' servers: ' +
-            thisCorp.corpName
-        );
         const allServerNames = this._authenticatedCorps
           .filter((c) => c.corpId == thisCorp.corpId && c.serverName)
           .map((c) => c.serverName);
-        consoleLog('Servers:\n' + allServerNames.join('\n'));
+        LOGGER.warning(
+          '!!! Found a duplicate corp across ' +
+            serverCountForCorp +
+            ' servers: ' +
+            thisCorp.corpName +
+            '\nServers:\n' +
+            allServerNames.join('\n')
+        );
       }
 
       if (!thisCorp.addedAt) {
@@ -400,13 +402,13 @@ export class Data {
 
       // remove any corps that were deleted
       corpsToDelete.forEach((corp) => {
-        consoleLog('Found duplicate corp ' + corp.corpName + ' - removing');
+        LOGGER.warning('Found duplicate corp ' + corp.corpName + ' - removing');
         this._authenticatedCorps.splice(
           this._authenticatedCorps.indexOf(corp),
           1
         );
       });
-      consoleLog('Upgraded the datastore to new schema.');
+      LOGGER.info('Upgraded the datastore to new schema.');
       await this.save();
     }
     // save in a little while
@@ -442,18 +444,18 @@ export class Data {
       // infinite loop required
       setTimeout(async () => await this.autoSave(), 1);
     } catch (error) {
-      consoleLog('An error occured in autoSave', error);
+      LOGGER.error(error instanceof Error ? error : String(error));
     }
   }
 
   public async save() {
-    consoleLog('Persisting data to filesystem...');
+    LOGGER.info('Persisting data to filesystem...');
     await storage.setItem(Data.CORPS_DATA_KEY, this._authenticatedCorps);
     await storage.setItem(Data.CHANNELS_DATA_KEY, this._channels);
   }
 
   public async backup() {
-    consoleLog('Creating a backup of data to filesystem...');
+    LOGGER.info('Creating a backup of data to filesystem...');
     const tempCorps = await storage.getItem(Data.CORPS_DATA_KEY);
     const tempChannels = await storage.getItem(Data.CHANNELS_DATA_KEY);
     await storage.setItem(
@@ -467,7 +469,7 @@ export class Data {
   }
 
   public async removeChannel(channelId: string) {
-    consoleLog('Removing channel ' + channelId);
+    LOGGER.info('Removing channel ' + channelId);
 
     await this.backup();
 
@@ -475,7 +477,7 @@ export class Data {
     const corpsInChannel = this._authenticatedCorps.filter((c) =>
       c.channelIds.includes(channelId)
     );
-    consoleLog(
+    LOGGER.info(
       'Found ' + corpsInChannel.length + ' corps in channel ' + channelId
     );
     if (corpsInChannel.length > 0) {
@@ -488,7 +490,7 @@ export class Data {
     const corpsWithNoChannels = this._authenticatedCorps.filter(
       (c) => c.channelIds.length == 0
     );
-    consoleLog(
+    LOGGER.info(
       'Found ' + corpsWithNoChannels.length + ' corps with no channels!'
     );
 
@@ -501,6 +503,6 @@ export class Data {
 
   public async clear() {
     await storage.clear();
-    consoleLog('Cleared all persistent storage!!!');
+    LOGGER.warning('Cleared all persistent storage!!!');
   }
 }

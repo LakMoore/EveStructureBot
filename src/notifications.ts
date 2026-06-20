@@ -1,16 +1,17 @@
 import { Client } from 'discord.js';
-import { consoleLog, NOTIFICATION_CHECK_DELAY, data } from './Bot';
+import { NOTIFICATION_CHECK_DELAY, data } from './Bot';
 import { AuthenticatedCorp } from './data/data';
 import { messageTypes } from './data/notification';
 import { getWorkingChars, getAccessToken } from './EveSSO';
 import { EsiClient } from '@localisprimary/esi/dist/client';
 import { GetCharacterNotificationsResponse } from '@localisprimary/esi/dist/types';
+import { LOGGER } from './Logger';
 
 export async function checkNotificationsForCorp(
   corp: AuthenticatedCorp,
   client: Client
 ) {
-  consoleLog('checkNotificationsForCorp ', corp.corpName);
+  LOGGER.info('checkNotificationsForCorp ' + corp.corpName);
 
   const workingChars = getWorkingChars(
     corp,
@@ -21,14 +22,14 @@ export async function checkNotificationsForCorp(
   );
 
   if (!workingChars || workingChars.length == 0) {
-    consoleLog('No available characters to check notifications with!');
+    LOGGER.info('No available characters to check notifications with!');
     return;
   }
 
   const thisChar = workingChars[0];
 
   if (!thisChar || new Date(thisChar.nextNotificationCheck) > new Date()) {
-    consoleLog(
+    LOGGER.info(
       thisChar.characterName + ' is not ready to check notifications!'
     );
     return;
@@ -36,11 +37,11 @@ export async function checkNotificationsForCorp(
 
   const token = await getAccessToken(thisChar);
   if (!token) {
-    consoleLog('No access token for character ' + thisChar.characterName);
+    LOGGER.info('No access token for character ' + thisChar.characterName);
     return;
   }
 
-  consoleLog('Using ' + thisChar.characterName);
+  LOGGER.info('Using ' + thisChar.characterName);
 
   const esi = new EsiClient({
     userAgent: 'EveStructureBot',
@@ -97,7 +98,7 @@ export async function processNotifications(
     const data = messageTypes.get(notification.type);
     if (data) {
       if (process.env.NODE_ENV === 'development') {
-        consoleLog('Handling notification', notification);
+        LOGGER.info('Handling notification ' + JSON.stringify(notification));
       }
       await data.handler(
         client,
@@ -116,7 +117,7 @@ export async function processNotifications(
       }
     } else if (missingTypes.length < 3) {
       // avoid spamming the logs with missing types
-      consoleLog('No handler for message', notification);
+      LOGGER.warning('No handler for message ' + JSON.stringify(notification));
       missingTypes.push(notification.type);
     }
   }

@@ -5,12 +5,14 @@ import {
   TextChannel,
 } from 'discord.js';
 import { Commands } from '../Commands';
-import { consoleLog, data, delay } from '../Bot';
+import { data, delay } from '../Bot';
 import { checkMembership } from '../EveSSO';
 import { initialiseReloadCommandOptions } from '../commands/reload';
 import { checkNotificationsForCorp } from '../notifications';
 import { checkStarbasesForCorp } from '../starbases';
 import { checkStructuresForCorp } from '../structures';
+import GuildFinder from '../GuildFinder';
+import { LOGGER } from '../Logger';
 
 const POLL_ATTEMPT_DELAY = 3000;
 let corpIndex = 0;
@@ -24,7 +26,14 @@ export default (client: Client): void => {
     await initialiseReloadCommandOptions();
     await client.application.commands.set(Commands);
 
-    consoleLog(`${client.user.username} is online`);
+    LOGGER.info(`${client.user.username} is online`);
+
+    // locate our guild and error channel and store it in LOGGER
+    await GuildFinder.findAndStoreErrorChannel(client);
+
+    LOGGER.warning(
+      'Starting polling for structures, starbases and notifications...'
+    );
 
     await startPolling(client);
   });
@@ -42,7 +51,7 @@ async function startPolling(client: Client) {
         await delay(POLL_ATTEMPT_DELAY);
       }
 
-      consoleLog(
+      LOGGER.info(
         `Poll index: ${corpIndex} - Corp Count: ${availableCorps.length}`
       );
 
@@ -61,7 +70,7 @@ async function startPolling(client: Client) {
                     PermissionsBitField.Flags.SendMessages,
                   ])
                 ) {
-                  consoleLog('No permission to post in ' + channel.name);
+                  LOGGER.warning('No permission to post in ' + channel.name);
                   thisCorp.channelIds = thisCorp.channelIds.filter(
                     (c) => c != channelId
                   );
@@ -71,7 +80,7 @@ async function startPolling(client: Client) {
             }
           } catch (error) {
             if (error instanceof DiscordAPIError && error.code === 50001) {
-              consoleLog(
+              LOGGER.warning(
                 'Failed to check permissions for channel ' +
                   channelId +
                   '. Removing channel!'
@@ -89,8 +98,7 @@ async function startPolling(client: Client) {
           thisCorp.serverName = guild.name;
         } catch (error) {
           if (error instanceof DiscordAPIError && error.code === 10004) {
-            consoleLog('Server not found for ID ' + thisCorp.corpName);
-            consoleLog(
+            LOGGER.warning(
               thisCorp.channelIds.length +
                 ' channels found for server ' +
                 thisCorp.corpName
@@ -124,7 +132,7 @@ async function startPolling(client: Client) {
             .map((c) => c.characterName);
 
           if (notAuthedChars.length > 0) {
-            consoleLog('Not Authed', '\n' + notAuthedChars.join('\n'));
+            LOGGER.info('Not Authed: \n' + notAuthedChars.join('\n'));
           }
 
           const authedChars = updatedCorp.members
@@ -165,7 +173,7 @@ async function startPolling(client: Client) {
             })
             .join('\n');
 
-          consoleLog('Authed Chars', '\n' + authedChars);
+          LOGGER.info('Authed Chars: \n' + authedChars);
 
           await checkStructuresForCorp(updatedCorp, client);
           await checkStarbasesForCorp(updatedCorp, client);
@@ -177,7 +185,9 @@ async function startPolling(client: Client) {
         );
       }
     } catch (error) {
-      consoleLog('An error occured in main loop', error);
+      // log as error severity
+      const msg = error instanceof Error ? error : String(error);
+      LOGGER.error(msg);
     }
     corpIndex++;
   } while (true);

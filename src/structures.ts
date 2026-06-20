@@ -1,6 +1,5 @@
 import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import {
-  consoleLog,
   STRUCTURE_CHECK_DELAY,
   NOTIFICATION_CHECK_DELAY,
   data,
@@ -16,12 +15,13 @@ import {
   EsiClient,
   GetCorporationStructuresResponse,
 } from '@localisprimary/esi';
+import { LOGGER } from './Logger';
 
 export async function checkStructuresForCorp(
   corp: AuthenticatedCorp,
   client: Client
 ) {
-  consoleLog('checkStructuresForCorp ', corp.corpName);
+  LOGGER.info('checkStructuresForCorp ' + corp.corpName);
 
   const workingChars = getWorkingChars(
     corp,
@@ -31,24 +31,24 @@ export async function checkStructuresForCorp(
   );
 
   if (!workingChars || workingChars.length == 0) {
-    consoleLog('No available characters to check structures with!');
+    LOGGER.info('No available characters to check structures with!');
     return;
   }
 
   const thisChar = workingChars[0];
 
   if (!thisChar || new Date(thisChar.nextStructureCheck) > new Date()) {
-    consoleLog(thisChar.characterName + ' is not ready to check structures!');
+    LOGGER.info(thisChar.characterName + ' is not ready to check structures!');
     return;
   }
 
   const token = await getAccessToken(thisChar);
   if (!token) {
-    consoleLog('No access token for character ' + thisChar.characterName);
+    LOGGER.info('No access token for character ' + thisChar.characterName);
     return;
   }
 
-  consoleLog('Using ' + thisChar.characterName);
+  LOGGER.info('Using ' + thisChar.characterName);
 
   const esi = new EsiClient({
     userAgent: 'EveStructureBot',
@@ -62,7 +62,7 @@ export async function checkStructuresForCorp(
     Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
   thisChar.nextStructureCheck = new Date(nextCheck);
 
-  //consoleLog("structs", structures);
+  //LOGGER.info("structs", structures);
 
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
@@ -79,7 +79,7 @@ export async function checkStructuresForCorp(
     nextStarbaseCheck: corp.nextStarbaseCheck,
     nextStructureCheck: new Date(nextCheck),
     nextNotificationCheck: corp.nextNotificationCheck,
-    mostRecentNotification: corp.mostRecentNotification,
+    mostRecentNotification: new Date(corp.mostRecentNotification ?? 0),
     setDiscordRoles: corp.setDiscordRoles,
     addedAt: corp.addedAt,
     maxCharacters: corp.maxCharacters,
@@ -95,18 +95,16 @@ async function checkForStructureChangeAndPersist(
   client: Client<boolean>,
   corp: AuthenticatedCorp
 ) {
-  // find the user in our persisted storage
+  // find the corp's index in our persisted storage
+  // (need the index later so don't use find)
   const idx = data.authenticatedCorps.findIndex((thisCorp) => {
     return thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId;
   });
 
   if (idx > -1) {
-    // seen this before, check each structure for changes.
+    // seen this corp before, check each structure for changes.
+
     const oldCorp = data.authenticatedCorps[idx];
-    const oldMostRecentNotification = new Date(oldCorp.mostRecentNotification);
-    if (Number.isNaN(oldMostRecentNotification.getTime())) {
-      oldCorp.mostRecentNotification = new Date(0);
-    }
 
     // check for new structures
     const addedStructs = corp.structures.filter(
@@ -257,10 +255,9 @@ async function checkForStructureChangeAndPersist(
     }
 
     // replace the data in storage
-    corp.mostRecentNotification = oldCorp.mostRecentNotification;
     data.authenticatedCorps[idx] = corp;
   } else {
-    // tracking new structures!
+    // tracking a new corp, not already in the data.
 
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
@@ -280,21 +277,8 @@ async function checkForStructureChangeAndPersist(
       }
     }
 
-    const mostRecentNotification = new Date(corp.mostRecentNotification);
-    if (Number.isNaN(mostRecentNotification.getTime())) {
-      corp.mostRecentNotification = new Date(0);
-    }
-
-    const alreadyTracked = data.authenticatedCorps.some(
-      (existingCorp) =>
-        existingCorp.serverId == corp.serverId &&
-        existingCorp.corpId == corp.corpId
-    );
-
-    if (!alreadyTracked) {
-      // add the data to storage
-      data.authenticatedCorps.push(corp);
-    }
+    // add the data to storage
+    data.authenticatedCorps.push(corp);
   }
 
   await data.save();

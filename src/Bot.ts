@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import ready from './listeners/ready';
 import interactionCreate from './listeners/interactionCreate';
+import { LOGGER } from './Logger';
 import { setup } from './EveSSO';
 import { Data } from './data/data';
 import { initNotifications } from './data/notification';
@@ -26,69 +27,10 @@ export const colours = {
   red: 0xff0000,
 };
 
-const SENSITIVE_KEYS = new Set([
-  'token',
-  'authtoken',
-  'refreshtoken',
-  'access_token',
-  'refresh_token',
-  'authorization',
-  'decoded_access_token',
-  'secret',
-  'password',
-]);
-
-function redactSensitive(value: any, seen = new WeakSet<object>()): any {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    return value
-      .replace(/(Bearer\s+)\S+/gi, '$1[REDACTED]')
-      .replace(
-        /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
-        '[REDACTED_JWT]'
-      );
-  }
-
-  if (typeof value !== 'object') {
-    return value;
-  }
-
-  if (seen.has(value)) {
-    return '[Circular]';
-  }
-  seen.add(value);
-
-  if (value instanceof Error) {
-    return {
-      name: value.name,
-      message: redactSensitive(value.message, seen),
-      stack: redactSensitive(value.stack, seen),
-    };
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => redactSensitive(item, seen));
-  }
-
-  const out: Record<string, any> = {};
-  for (const [key, nestedValue] of Object.entries(value)) {
-    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
-      out[key] = '[REDACTED]';
-    } else {
-      out[key] = redactSensitive(nestedValue, seen);
-    }
-  }
-
-  return out;
-}
-
 async function main() {
   try {
     dotenv.config();
-    consoleLog('Bot is starting...');
+    LOGGER.warning('Bot is starting...');
 
     await data.init();
     initNotifications();
@@ -104,21 +46,15 @@ async function main() {
     // login
     await client.login(process.env.SECRET_TOKEN);
 
-    consoleLog('Logged in!');
+    LOGGER.warning('Logged in!');
 
     setup(client);
   } catch (error) {
-    consoleLog(error);
+    LOGGER.error(error instanceof Error ? error : String(error));
   }
 }
 
 main();
-
-export function consoleLog(message?: any, ...optionalParams: any[]) {
-  const safeMessage = redactSensitive(message);
-  const safeParams = optionalParams.map((value) => redactSensitive(value));
-  console.log(new Date().toISOString() + ': ' + safeMessage, ...safeParams);
-}
 
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -133,12 +69,12 @@ export async function sendMessage(
   type: string
 ) {
   try {
-    consoleLog(
+    LOGGER.info(
       `sending "${type}" message to ${channel.name} in ${channel.guild.name}`
     );
     await channel.send(message);
   } catch (error) {
-    consoleLog('An error occured in sendMessage', error);
+    LOGGER.error(error instanceof Error ? error : String(error));
   }
 }
 

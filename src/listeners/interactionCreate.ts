@@ -7,7 +7,8 @@ import {
   ButtonInteraction,
 } from 'discord.js';
 import { Commands } from '../Commands';
-import { checkBotHasPermissions, consoleLog } from '../Bot';
+import { checkBotHasPermissions } from '../Bot';
+import { LOGGER } from '../Logger';
 
 export default (client: Client): void => {
   client.on('interactionCreate', async (interaction: Interaction) => {
@@ -30,6 +31,7 @@ const handleSlashCommand = async (
       (c) => c.name === interaction.commandName
     );
     if (!slashCommand) {
+      LOGGER.error('Slash command not found: ' + interaction.commandName);
       interaction.reply({ content: 'An error has occurred' });
       return;
     }
@@ -41,7 +43,7 @@ const handleSlashCommand = async (
     try {
       const channel = interaction.channel as TextChannel;
 
-      consoleLog(
+      LOGGER.info(
         `${slashCommand.name} command issued on ${channel.name} in ${channel.guild?.name}`
       );
 
@@ -76,9 +78,9 @@ const handleAutocomplete = async (
     }
   } catch (error) {
     if (error instanceof Error) {
-      console.log('Autocomplete error: ' + error.message);
+      LOGGER.error('Autocomplete error: ' + error.message);
     } else {
-      console.log('Autocomplete error: ' + error);
+      LOGGER.error('Autocomplete error: ' + String(error));
     }
   }
 };
@@ -97,9 +99,9 @@ const handleButton = async (
     }
   } catch (error) {
     if (error instanceof Error) {
-      console.log('Button error: ' + error.message);
+      LOGGER.error('Button error: ' + error.message);
     } else {
-      console.log('Button error: ' + error);
+      LOGGER.error('Button error: ' + String(error));
     }
   }
 };

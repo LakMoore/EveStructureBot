@@ -6,7 +6,7 @@ import {
   TextChannel,
 } from 'discord.js';
 import { Command } from '../Command';
-import { consoleLog, data, sendMessage } from '../Bot';
+import { data } from '../Bot';
 
 const characterNameOption = new SlashCommandStringOption()
   .setName('name')

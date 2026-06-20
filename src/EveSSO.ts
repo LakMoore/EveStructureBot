@@ -3,8 +3,9 @@ import { EsiClient, GetCharacterRolesResponse } from '@localisprimary/esi';
 import SingleSignOn, { HTTPFetchError } from '@after_ice/eve-sso';
 import Koa from 'koa';
 import { AuthenticatedCharacter, AuthenticatedCorp } from './data/data';
-import { GET_ROLES_DELAY, consoleLog, data, sendMessage } from './Bot';
+import { GET_ROLES_DELAY, data, sendMessage } from './Bot';
 import { generateCorpDetailsEmbed } from './embeds/corpDetails';
+import { LOGGER } from './Logger';
 //HTTPS shouldn't be needed if you are behind something like nginx
 //import https from "https";
 
@@ -51,10 +52,13 @@ export function setup(client: Client) {
       // Swap the one-time code for an access token
       const info = await sso().getAccessToken(code);
 
-      consoleLog('SSO token exchange succeeded', {
-        expiresIn: info.expires_in,
-        hasRefreshToken: Boolean(info.refresh_token),
-      });
+      LOGGER.info(
+        'SSO token exchange succeeded\n' +
+          JSON.stringify({
+            expiresIn: info.expires_in,
+            hasRefreshToken: Boolean(info.refresh_token),
+          })
+      );
 
       const subParts = info.decoded_access_token.sub.split(':');
       const charId = Number(subParts.length > 0 ? subParts.at(-1) : '0');
@@ -77,7 +81,6 @@ export function setup(client: Client) {
           const { data: char } = await esiNoToken.getCharacter({
             character_id: charId,
           });
-          consoleLog('char', char);
 
           // char.corporation_id could be up to 6 days old!
           // let's get the history to find the current corp
@@ -85,7 +88,6 @@ export function setup(client: Client) {
             await esiNoToken.getCharacterCorporationhistory({
               character_id: charId,
             });
-          consoleLog('corpHistory', corpHistory);
 
           const corpId =
             corpHistory.length > 0
@@ -245,9 +247,9 @@ export function setup(client: Client) {
                 try {
                   await refreshCharacterRoles(character, info.access_token);
                 } catch (error) {
-                  consoleLog(
-                    'error getting roles after auth for character:',
-                    error
+                  LOGGER.error(
+                    'error getting roles after auth for character:\n' +
+                      String(error)
                   );
                 }
 
@@ -272,7 +274,7 @@ export function setup(client: Client) {
                   await setDiscordRoles(channel.guild, userId);
                 }
               } catch (error) {
-                consoleLog('error', error);
+                LOGGER.error('error during auth process:\n' + String(error));
                 if (error instanceof Response) {
                   const errorObj = await error.json();
                   errMessage += '\nUnable to proceed:\n' + errorObj.error;
@@ -296,13 +298,13 @@ export function setup(client: Client) {
   });
 
   app.listen(CALLBACK_SERVER_PORT, () => {
-    consoleLog(`Server listening on port ${CALLBACK_SERVER_PORT}`);
+    LOGGER.info(`Server listening on port ${CALLBACK_SERVER_PORT}`);
   });
 
   //   This is how to set up HTTPS
   //   Shouldn't be needed if you are behind something like nginx
   //   https.createServer(app.callback()).listen(CALLBACK_SERVER_PORT, () => {
-  //     consoleLog(`Server listening on port ${CALLBACK_SERVER_PORT}`);
+  //     LOGGER.info(`Server listening on port ${CALLBACK_SERVER_PORT}`);
   //   });
 }
 
@@ -366,7 +368,9 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
             try {
               await refreshCharacterRoles(char);
             } catch (error) {
-              consoleLog('error getting roles for character:', error);
+              LOGGER.error(
+                'error getting roles for character:\n' + String(error)
+              );
             }
           }
         } else {
@@ -419,9 +423,8 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
 
       // if this discord member has no characters, remove it
       if (corpMember.characters.length == 0) {
-        consoleLog(
-          'Removing member with no characters: ',
-          corpMember.discordId
+        LOGGER.info(
+          'Removing member with no characters: ' + corpMember.discordId
         );
         const index = corp.members.findIndex(
           (ac) =>
@@ -466,9 +469,8 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
       }
     }
 
-    consoleLog(
-      'Removing channels and server from corp with no members: ',
-      corp.corpName
+    LOGGER.info(
+      'Removing channels and server from corp with no members: ' + corp.corpName
     );
     corp.channelIds = [];
     corp.serverId = '';
@@ -481,7 +483,7 @@ async function setDiscordRoles(guild: Guild, userId: string) {
 
   // ensure the member exists
   if (!member) {
-    consoleLog(
+    LOGGER.error(
       `Unable to find Discord member of ${guild.name} with ID ${userId}`
     );
     return;
@@ -543,7 +545,7 @@ async function setDiscordRoles(guild: Guild, userId: string) {
         corpRole ??= await guild.roles.create({ name: ticker });
 
         if (corpRole == undefined) {
-          consoleLog('Unable to find or create a corp role for ' + ticker);
+          LOGGER.error('Unable to find or create a corp role for ' + ticker);
         } else if (!member.roles.cache.has(corpRole.id)) {
           return member.roles.add(corpRole);
         }
@@ -555,7 +557,7 @@ async function refreshCharacterRoles(
   char: AuthenticatedCharacter,
   authToken?: string
 ) {
-  consoleLog('checking roles for character:', char.characterName);
+  LOGGER.info('checking roles for character: ' + char.characterName);
   const token = authToken ?? (await getAccessToken(char));
 
   if (!token) {
@@ -591,7 +593,7 @@ export function getWorkingChars(
     (new Date(nextCheck).getTime() - Date.now()) / 1000;
   if (secondsUntilNextCheck > 0) {
     // checking this record too soon!
-    consoleLog(
+    LOGGER.info(
       `No characters ready to check (next check for corp ${corp.corpName} in ${secondsUntilNextCheck.toFixed(
         0
       )} seconds)`
@@ -613,7 +615,7 @@ export function getWorkingChars(
         new Date(getNextCheck(b)).getTime()
     );
 
-  consoleLog(
+  LOGGER.info(
     `Found ${workingChars.length} characters ready to check for corp ${corp.corpName}. First up: ${workingChars[0]?.characterName ?? 'none'}`
   );
 
@@ -624,30 +626,29 @@ export async function getAccessToken(thisChar: AuthenticatedCharacter) {
   try {
     if (new Date(thisChar.tokenExpires) <= new Date()) {
       // auth token has expired, let's refresh it
-      consoleLog('refreshing token for ', thisChar.characterName);
+      LOGGER.info('refreshing token for ' + thisChar.characterName);
       const response = await sso().getAccessToken(thisChar.refreshToken, true);
       thisChar.authToken = response.access_token;
       thisChar.refreshToken = response.refresh_token;
       thisChar.tokenExpires = getExpires(response.expires_in);
-      consoleLog('token refreshed');
+      LOGGER.info('token refreshed');
     }
     return thisChar.authToken;
   } catch (error) {
     if (error instanceof HTTPFetchError) {
-      consoleLog(
-        `HttpError ${error.response.status} while refreshing token`,
-        error.message
+      LOGGER.error(
+        `HttpError ${error.response.status} while refreshing token: ${error.message}`
       );
 
       if (error.response.status > 399 && error.response.status < 500) {
         // unauthorised
-        consoleLog('Marking character as needing re-authorisation');
+        LOGGER.info('Marking character as needing re-authorisation');
         thisChar.needsReAuth = true;
         thisChar.authFailedAt = new Date();
         await data.save();
       }
     } else if (error instanceof Error) {
-      consoleLog('Error while refreshing token', error.message);
+      LOGGER.error('Error while refreshing token: ' + error.message);
     }
   }
   return '';

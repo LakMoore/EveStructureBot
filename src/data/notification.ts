@@ -33,7 +33,7 @@
 import { Client, Colors, TextChannel } from 'discord.js';
 import { AuthenticatedCorp, DiscordChannel } from './data';
 import { DOTLAN_MAP_URL } from '../embeds/structureNotification';
-import { consoleLog, data, getRelativeDiscordTime, sendMessage } from '../Bot';
+import { data, getRelativeDiscordTime, sendMessage } from '../Bot';
 import {
   getAllianceName,
   getCharacterName,
@@ -46,6 +46,7 @@ import {
 } from '../starbases';
 import { GetCharacterNotificationsResponse } from '@localisprimary/esi';
 import { generateGeneralNotificationEmbed } from '../embeds/generalNotification';
+import { LOGGER } from '../Logger';
 
 export function parseNotificationText(text?: string) {
   if (text) {
@@ -443,9 +444,9 @@ async function handleSkyhookNotification(
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error
+    LOGGER.error(
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
+        String(error)
     );
   }
 }
@@ -491,7 +492,7 @@ async function handleStructureNotification(
     }
 
     if (!typeId || !systemId) {
-      consoleLog(
+      LOGGER.error(
         `Missing typeId or systemId for structure notification. Values: ${JSON.stringify(values)}`
       );
     }
@@ -552,9 +553,9 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error
+    LOGGER.error(
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
+        String(error)
     );
   }
 }
@@ -578,7 +579,6 @@ async function handleMoonMiningNotification(
     const oresByVolume = await Promise.all(
       Object.entries(values)
         .filter(([key, value]) => {
-          consoleLog('Checking key', key);
           return /^\d+$/.test(key);
         })
         .map(async ([key, value]) => {
@@ -620,7 +620,7 @@ async function handleMoonMiningNotification(
     }
 
     if (!typeId || !systemId) {
-      consoleLog(
+      LOGGER.error(
         `Missing typeId or systemId for structure notification. Values: ${JSON.stringify(values)}`
       );
     }
@@ -678,9 +678,9 @@ Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error
+    LOGGER.error(
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
+        String(error)
     );
   }
 }
@@ -742,9 +742,9 @@ async function handleWarDeclaredNotification(
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleNotification for ${title}. Body: ${note.text}%n`,
-      error
+    LOGGER.error(
+      `An error occured in handleNotification for ${title}. Body: ${note.text}%n` +
+        String(error)
     );
   }
 }
@@ -795,9 +795,6 @@ Where: Planet ${moonName.replace(systemName, '').trim()} in ${systemName} (${reg
 
     const thumbnail = `https://images.evetech.net/types/${values['typeID']}/render?size=64`;
 
-    consoleLog('note', note);
-    consoleLog('details', builtMessage);
-
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
@@ -834,9 +831,9 @@ Where: Planet ${moonName.replace(systemName, '').trim()} in ${systemName} (${reg
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`,
-      error
+    LOGGER.error(
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
+        String(error)
     );
   }
 }
@@ -1020,9 +1017,9 @@ async function handleSovStructureReinforcedNotification(
       }
     }
   } catch (error) {
-    consoleLog(
-      `An error occured in handleSovStructureReinforcedNotification for ${message}. Body: ${note.text}%n`,
-      error
+    LOGGER.error(
+      `An error occured in handleSovStructureReinforcedNotification for ${message}. Body: ${note.text}%n` +
+        String(error)
     );
   }
 }
