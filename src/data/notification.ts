@@ -62,6 +62,11 @@ const NOOP_NOTIFICATIONS: Array<
   'CorpAppNewMsg',
   'InsuranceExpirationMsg',
   'DailyItemRewardAutoClaimed',
+  'InsurancePayoutMsg',
+  'CharAppAcceptMsg',
+  'FreelanceProjectExpired',
+  'FreelanceProjectCompleted',
+  'SeasonalChallengeCompleted',
 ];
 
 export function parseNotificationText(text?: string) {
