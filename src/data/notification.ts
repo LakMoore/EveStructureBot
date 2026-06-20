@@ -48,6 +48,22 @@ import { GetCharacterNotificationsResponse } from '@localisprimary/esi';
 import { generateGeneralNotificationEmbed } from '../embeds/generalNotification';
 import { LOGGER } from '../Logger';
 
+// Static list of notifications the bot should ignore (no action required)
+const NOOP_NOTIFICATIONS: Array<
+  GetCharacterNotificationsResponse[number]['type']
+> = [
+  'KillReportFinalBlow',
+  'NPCStandingsLost',
+  'CorpAllBillMsg',
+  'CloneActivationMsg2',
+  'CharAppWithdrawMsg',
+  'CharLeftCorpMsg',
+  'JumpCloneDeletedMsg2',
+  'CorpAppNewMsg',
+  'InsuranceExpirationMsg',
+  'DailyItemRewardAutoClaimed',
+];
+
 export function parseNotificationText(text?: string) {
   if (text) {
     const lines = text.split('\n');
@@ -359,6 +375,37 @@ export function initNotifications() {
     structureFuelMessage: false,
     miningUpdatesMessage: false,
   });
+}
+
+async function noopHandler(
+  _client: Client<boolean>,
+  _corp: AuthenticatedCorp,
+  _note: GetCharacterNotificationsResponse[number],
+  _message: string,
+  _colour: number,
+  _role_to_mention: (c: DiscordChannel) => string | undefined,
+  _structureStateMessage: boolean,
+  _structureFuelMessage: boolean,
+  _miningUpdatesMessage: boolean
+) {
+  // intentionally do nothing for ignored notification types
+  return Promise.resolve();
+}
+
+export function initNoOpNotifications() {
+  for (const nt of NOOP_NOTIFICATIONS) {
+    if (!messageTypes.has(nt)) {
+      messageTypes.set(nt, {
+        message: `IGNORED: ${nt}`,
+        colour: Colors.Yellow,
+        get_role_to_mention: () => undefined,
+        handler: noopHandler,
+        structureStateMessage: false,
+        structureFuelMessage: false,
+        miningUpdatesMessage: false,
+      });
+    }
+  }
 }
 
 //https://evemaps.dotlan.net/alliance/PUT_THE_FRIES_IN_THE_BAG

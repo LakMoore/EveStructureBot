@@ -13,7 +13,7 @@ import interactionCreate from './listeners/interactionCreate';
 import { LOGGER } from './Logger';
 import { setup } from './EveSSO';
 import { Data } from './data/data';
-import { initNotifications } from './data/notification';
+import { initNoOpNotifications, initNotifications } from './data/notification';
 
 export const data = new Data();
 export const LOW_FUEL_WARNING = 7 * 24 * 60 * 60 * 1000; //7 days
@@ -34,6 +34,8 @@ async function main() {
 
     await data.init();
     initNotifications();
+    // add no-op notifications (ignored types)
+    initNoOpNotifications();
 
     const client = new Client({
       intents: [IntentsBitField.Flags.Guilds],
