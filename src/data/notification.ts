@@ -67,6 +67,9 @@ const NOOP_NOTIFICATIONS: Array<
   'FreelanceProjectExpired',
   'FreelanceProjectCompleted',
   'SeasonalChallengeCompleted',
+  'ContactAdd',
+  'BillPaidCorpAllMsg',
+  'GameTimeAdded',
 ];
 
 export function parseNotificationText(text?: string) {
