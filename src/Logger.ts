@@ -144,13 +144,21 @@ function consoleLog(message?: any, ...optionalParams: any[]) {
   // route basic logs through LOGGER.info so they also go to configured error channel when appropriate
   const safeMessage = redactSensitive(message);
   const safeParams = optionalParams.map((value) => redactSensitive(value));
-  console.log(new Date().toISOString() + ': ' + safeMessage, ...safeParams);
+  if (typeof safeMessage === 'string') {
+    console.log(new Date().toISOString() + ': ' + safeMessage, ...safeParams);
+  } else {
+    console.log(new Date().toISOString() + ':', safeMessage, ...safeParams);
+  }
 }
 
 function consoleError(message: object | string, ...optionalParams: object[]) {
   const safeMessage = redactSensitive(message);
   const safeParams = optionalParams.map((value) => redactSensitive(value));
-  console.error(new Date().toUTCString() + ' ' + safeMessage, ...safeParams);
+  if (typeof safeMessage === 'string') {
+    console.error(new Date().toUTCString() + ' ' + safeMessage, ...safeParams);
+  } else {
+    console.error(new Date().toUTCString() + ':', safeMessage, ...safeParams);
+  }
 }
 
 // function to convert number of milliseconds into timespan string
