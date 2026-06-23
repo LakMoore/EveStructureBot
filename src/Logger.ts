@@ -69,24 +69,35 @@ export class LogHandler {
 
   // always log to console and to error channel on our Discord server
   public error(error: Error | string) {
-    let message: string;
-    if (error instanceof Error) {
-      message = error.message;
-    } else {
-      message = error;
-    }
+    // Preserve Error objects so we can log stack traces and structured info
+    const payload: any =
+      error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : error;
 
-    let safeMessage = redactSensitive(message);
+    const safePayload = redactSensitive(payload);
 
-    // Log the message to console
-    consoleError(safeMessage);
+    // Log the structured payload to console (preserves objects/stacks)
+    consoleError(safePayload);
 
     if (this.errorChannel) {
+      // Prepare a concise text message for Discord
+      let discordMessage: string;
+      if (payload && typeof payload === 'object') {
+        const name = payload.name || 'Error';
+        const msg = payload.message || String(payload);
+        const stack = payload.stack ? `\n\nStack:\n${payload.stack}` : '';
+        discordMessage = `${name}: ${msg}${stack}`;
+      } else {
+        discordMessage = String(payload);
+      }
+
       // Add the dev Role
       if (this.devRole) {
-        safeMessage = `<@&${this.devRole}>\n${safeMessage}`;
+        discordMessage = `<@&${this.devRole}>\n${discordMessage}`;
       }
-      void this.errorChannel.send(safeMessage).catch(() => undefined);
+
+      void this.errorChannel.send(discordMessage).catch(() => undefined);
     }
   }
 }

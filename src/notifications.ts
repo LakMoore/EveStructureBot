@@ -100,17 +100,28 @@ export async function processNotifications(
       if (process.env.NODE_ENV === 'development') {
         LOGGER.info('Handling notification ' + JSON.stringify(notification));
       }
-      await data.handler(
-        client,
-        corp,
-        notification,
-        data.message,
-        data.colour,
-        data.get_role_to_mention,
-        data.structureStateMessage,
-        data.structureFuelMessage,
-        data.miningUpdatesMessage
-      );
+      try {
+        await data.handler(
+          client,
+          corp,
+          notification,
+          data.message,
+          data.colour,
+          data.get_role_to_mention,
+          data.structureStateMessage,
+          data.structureFuelMessage,
+          data.miningUpdatesMessage
+        );
+      } catch (err) {
+        const payload = {
+          note: notification,
+          error:
+            err instanceof Error
+              ? { name: err.name, message: err.message, stack: err.stack }
+              : String(err),
+        };
+        LOGGER.error(new Error(JSON.stringify(payload, null, 2)));
+      }
       const thisDate = new Date(notification.timestamp);
       if (thisDate > mostRecentNotification) {
         mostRecentNotification = thisDate;
