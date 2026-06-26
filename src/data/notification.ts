@@ -70,6 +70,9 @@ const NOOP_NOTIFICATIONS: Array<
   'ContactAdd',
   'BillPaidCorpAllMsg',
   'GameTimeAdded',
+  'RaffleExpired',
+  'CorporationGoalCreated',
+  'CorporationGoalClosed',
 ];
 
 export function parseNotificationText(text?: string) {
