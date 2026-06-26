@@ -52,7 +52,7 @@ async function main() {
 
     setup(client);
   } catch (error) {
-    LOGGER.error(error instanceof Error ? error : String(error));
+    LOGGER.error(error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -76,7 +76,7 @@ export async function sendMessage(
     );
     await channel.send(message);
   } catch (error) {
-    LOGGER.error(error instanceof Error ? error : String(error));
+    LOGGER.error(error instanceof Error ? error : new Error(String(error)));
   }
 }
 

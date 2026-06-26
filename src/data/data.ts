@@ -444,7 +444,7 @@ export class Data {
       // infinite loop required
       setTimeout(async () => await this.autoSave(), 1);
     } catch (error) {
-      LOGGER.error(error instanceof Error ? error : String(error));
+      LOGGER.error(error instanceof Error ? error : new Error(String(error)));
     }
   }
 

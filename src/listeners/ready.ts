@@ -184,10 +184,22 @@ async function startPolling(client: Client) {
           `Checking Structures at ${new Date(Date.now()).toUTCString()}`
         );
       }
-    } catch (error) {
-      // log as error severity
-      const msg = error instanceof Error ? error : String(error);
-      LOGGER.error(msg);
+    } catch (error: unknown) {
+      // ESI package throws an unamed object in the following format: { error: string, status: number }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'error' in error &&
+        'status' in error
+      ) {
+        const esiError = error as { error: string; status: number };
+        LOGGER.error(
+          `ESI Error: ${esiError.error}, Status: ${esiError.status}`
+        );
+      } else {
+        // log as error severity
+        LOGGER.error(error instanceof Error ? error : new Error(String(error)));
+      }
     }
     corpIndex++;
   } while (true);
