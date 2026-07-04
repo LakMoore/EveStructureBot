@@ -48,8 +48,8 @@ export const WhoIs: Command = {
         })
         .filter(
           (char) =>
-            focusedValue.length == 0 ||
-            char.name
+            focusedValue.length == 0
+            || char.name
               ?.toLocaleLowerCase()
               .includes(focusedValue.toLocaleLowerCase())
         );
@@ -70,7 +70,8 @@ export const WhoIs: Command = {
       if (channelCorps.length == 0) {
         content =
           'No data found for this channel.  Use /auth command to begin.';
-      } else {
+      }
+      else {
         const charId = Number(
           interaction.options.get('name')?.value?.toString()
         );
@@ -85,7 +86,8 @@ export const WhoIs: Command = {
           if (character) {
             content = `${character.characterName} is <@${character.discordId}>`;
           }
-        } else {
+        }
+        else {
           content = 'Character not found';
         }
       }

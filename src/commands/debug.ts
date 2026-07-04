@@ -68,9 +68,11 @@ function getEligibleCharacters(
   return flattenCharacters(corp.members)
     .filter(
       (character) =>
-        !character.needsReAuth &&
-        (requiredRole === undefined ||
-          character.roles?.roles?.includes(requiredRole))
+        !character.needsReAuth
+        && (
+          requiredRole === undefined
+          || character.roles?.roles?.includes(requiredRole)
+        )
     )
     .sort((left, right) =>
       left.characterName.localeCompare(right.characterName)
@@ -90,7 +92,8 @@ function getCheckStatus(
     nextCheck = corp.nextStarbaseCheck;
     getCharacterCheck = (character: AuthenticatedCharacter) =>
       character.nextStarbaseCheck;
-  } else if (checkType === 'structures') {
+  }
+  else if (checkType === 'structures') {
     nextCheck = corp.nextStructureCheck;
     getCharacterCheck = (character: AuthenticatedCharacter) =>
       character.nextStructureCheck;
@@ -99,8 +102,8 @@ function getCheckStatus(
 
   const nextCharacter = getEligibleCharacters(corp, requiredRole).sort(
     (left, right) =>
-      new Date(getCharacterCheck(left)).getTime() -
-      new Date(getCharacterCheck(right)).getTime()
+      new Date(getCharacterCheck(left)).getTime()
+      - new Date(getCharacterCheck(right)).getTime()
   )[0];
 
   return {
@@ -145,9 +148,15 @@ function buildChannelDebugEmbed(channelId: string) {
     embed.addFields({
       name: corp.corpName,
       value: [
-        `Notifications: next check in ${notifications.nextCheckSeconds}s | next character ${formatCharacterStatus(notifications)}`,
-        `Starbases: next check in ${starbases.nextCheckSeconds}s | next character ${formatCharacterStatus(starbases)}`,
-        `Structures: next check in ${structures.nextCheckSeconds}s | next character ${formatCharacterStatus(structures)}`,
+        `Notifications: next check in ${
+          notifications.nextCheckSeconds
+        }s | next character ${formatCharacterStatus(notifications)}`,
+        `Starbases: next check in ${
+          starbases.nextCheckSeconds
+        }s | next character ${formatCharacterStatus(starbases)}`,
+        `Structures: next check in ${
+          structures.nextCheckSeconds
+        }s | next character ${formatCharacterStatus(structures)}`,
       ].join('\n'),
     });
   }
@@ -203,16 +212,20 @@ async function stopDebugSession(
 }
 
 function startDebugUpdates(channel: TextChannel, message: Message) {
-  const interval = setInterval(async () => {
-    try {
-      await message.edit({
-        embeds: [buildChannelDebugEmbed(channel.id)],
-        components: getStopButtonRow(),
-      });
-    } catch {
-      await stopDebugSession(channel.id);
-    }
-  }, DEBUG_UPDATE_INTERVAL_MS);
+  const interval = setInterval(
+    async () => {
+      try {
+        await message.edit({
+          embeds: [buildChannelDebugEmbed(channel.id)],
+          components: getStopButtonRow(),
+        });
+      }
+      catch {
+        await stopDebugSession(channel.id);
+      }
+    },
+    DEBUG_UPDATE_INTERVAL_MS
+  );
 
   debugSessions.set(channel.id, { message, interval });
 }
@@ -259,9 +272,12 @@ export const Debug: Command = {
       return;
     }
 
-    await stopDebugSession(interaction.channel.id, {
-      interaction,
-      message: interaction.message,
-    });
+    await stopDebugSession(
+      interaction.channel.id,
+      {
+        interaction,
+        message: interaction.message,
+      }
+    );
   },
 };

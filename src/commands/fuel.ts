@@ -46,8 +46,8 @@ export const Fuel: Command = {
         })
         .filter(
           (struct) =>
-            focusedValue.length == 0 ||
-            struct.name
+            focusedValue.length == 0
+            || struct.name
               ?.toLocaleLowerCase()
               .includes(focusedValue.toLocaleLowerCase())
         )
@@ -103,7 +103,8 @@ export const Fuel: Command = {
           },
           'Fuel expired'
         );
-      } else {
+      }
+      else {
         await interaction.followUp(
           `No structure found with the name ${
             interaction.options.get('name')?.value

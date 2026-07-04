@@ -54,8 +54,8 @@ export const Refuel: Command = {
       const choices = systems
         .filter(
           (system) =>
-            focusedValue.length == 0 ||
-            system.name
+            focusedValue.length == 0
+            || system.name
               ?.toLocaleLowerCase()
               .includes(focusedValue.toLocaleLowerCase())
         )
@@ -97,14 +97,16 @@ export const Refuel: Command = {
         const d = new Date(v.struct.fuel_expires ?? 0);
         if (d < new Date()) {
           return `${v.struct.name} fuel expired ${getRelativeDiscordTime(d)}!!`;
-        } else {
+        }
+        else {
           return `${v.struct.name} fuel expires ${getRelativeDiscordTime(d)}`;
         }
       });
 
       if (result.length > 0) {
         await sendMessage(channel, result.join('\n'), 'System Fuel');
-      } else {
+      }
+      else {
         await interaction.followUp(
           `No structures found in ${interaction.options.get('system')?.value}`
         );

@@ -44,7 +44,8 @@ export const SetPing: Command = {
 
       if (type == 'attack') {
         thisChannel.attack_alert_role = role?.toString();
-      } else if (type == 'fuel') {
+      }
+      else if (type == 'fuel') {
         thisChannel.low_fuel_role = role?.toString();
       }
 
@@ -52,7 +53,8 @@ export const SetPing: Command = {
 
       if (role) {
         await interaction.followUp(`Pings for ${type} set to <@&${role}>`);
-      } else {
+      }
+      else {
         await interaction.followUp(`Pings for ${type} removed`);
       }
     }

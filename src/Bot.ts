@@ -51,7 +51,8 @@ async function main() {
     LOGGER.warning('Logged in!');
 
     setup(client);
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(error instanceof Error ? error : new Error(String(error)));
   }
 }
@@ -75,7 +76,8 @@ export async function sendMessage(
       `sending "${type}" message to ${channel.name} in ${channel.guild.name}`
     );
     await channel.send(message);
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(error instanceof Error ? error : new Error(String(error)));
   }
 }

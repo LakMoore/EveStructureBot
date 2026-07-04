@@ -44,7 +44,10 @@ import {
   getRegionNameFromSystemId,
   getSystemName,
 } from '../starbases';
-import { EsiClient, GetCharacterNotificationsResponse } from '@localisprimary/esi';
+import {
+  EsiClient,
+  GetCharacterNotificationsResponse,
+} from '@localisprimary/esi';
 import { generateGeneralNotificationEmbed } from '../embeds/generalNotification';
 import { LOGGER } from '../Logger';
 
@@ -117,255 +120,330 @@ export const messageTypes = new Map<
 >();
 
 export function initNotifications() {
-  messageTypes.set('SkyhookUnderAttack', {
-    message: 'SKYHOOK UNDER ATTACK',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleSkyhookNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'SkyhookUnderAttack',
+    {
+      message: 'SKYHOOK UNDER ATTACK',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleSkyhookNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('SkyhookLostShields', {
-    message: 'SKYHOOK LOST SHIELDS',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleSkyhookNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'SkyhookLostShields',
+    {
+      message: 'SKYHOOK LOST SHIELDS',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleSkyhookNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('SkyhookDeployed', {
-    message: 'SKYHOOK DEPLOYED',
-    colour: Colors.Green,
-    get_role_to_mention: (c) => undefined,
-    handler: handleSkyhookNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'SkyhookDeployed',
+    {
+      message: 'SKYHOOK DEPLOYED',
+      colour: Colors.Green,
+      get_role_to_mention: (c) => undefined,
+      handler: handleSkyhookNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('SkyhookDestroyed', {
-    message: 'SKYHOOK DESTROYED',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleSkyhookNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'SkyhookDestroyed',
+    {
+      message: 'SKYHOOK DESTROYED',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleSkyhookNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('SkyhookOnline', {
-    message: 'SKYHOOK ONLINE',
-    colour: Colors.Green,
-    get_role_to_mention: (c) => undefined,
-    handler: handleSkyhookNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'SkyhookOnline',
+    {
+      message: 'SKYHOOK ONLINE',
+      colour: Colors.Green,
+      get_role_to_mention: (c) => undefined,
+      handler: handleSkyhookNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureUnderAttack', {
-    message: 'STRUCTURE UNDER ATTACK',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureUnderAttack',
+    {
+      message: 'STRUCTURE UNDER ATTACK',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('MoonminingExtractionStarted', {
-    message: 'Moon mining extraction started',
-    colour: Colors.Blue,
-    get_role_to_mention: () => undefined,
-    handler: handleMoonMiningNotification,
-    structureStateMessage: false,
-    structureFuelMessage: false,
-    miningUpdatesMessage: true,
-  });
+  messageTypes.set(
+    'MoonminingExtractionStarted',
+    {
+      message: 'Moon mining extraction started',
+      colour: Colors.Blue,
+      get_role_to_mention: () => undefined,
+      handler: handleMoonMiningNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
+    }
+  );
 
-  messageTypes.set('MoonminingExtractionFinished', {
-    message: 'Moon mining extraction finished',
-    colour: Colors.Blue,
-    get_role_to_mention: () => undefined,
-    handler: handleMoonMiningNotification,
-    structureStateMessage: false,
-    structureFuelMessage: false,
-    miningUpdatesMessage: true,
-  });
+  messageTypes.set(
+    'MoonminingExtractionFinished',
+    {
+      message: 'Moon mining extraction finished',
+      colour: Colors.Blue,
+      get_role_to_mention: () => undefined,
+      handler: handleMoonMiningNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
+    }
+  );
 
-  messageTypes.set('MoonminingAutomaticFracture', {
-    message: 'Moon mining automatic fracture triggered',
-    colour: Colors.Blue,
-    get_role_to_mention: () => undefined,
-    handler: handleMoonMiningNotification,
-    structureStateMessage: false,
-    structureFuelMessage: false,
-    miningUpdatesMessage: true,
-  });
+  messageTypes.set(
+    'MoonminingAutomaticFracture',
+    {
+      message: 'Moon mining automatic fracture triggered',
+      colour: Colors.Blue,
+      get_role_to_mention: () => undefined,
+      handler: handleMoonMiningNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
+    }
+  );
 
-  messageTypes.set('MoonminingLaserFired', {
-    message: 'Moon mining laser fired',
-    colour: Colors.Blue,
-    get_role_to_mention: () => undefined,
-    handler: handleMoonMiningNotification,
-    structureStateMessage: false,
-    structureFuelMessage: false,
-    miningUpdatesMessage: true,
-  });
+  messageTypes.set(
+    'MoonminingLaserFired',
+    {
+      message: 'Moon mining laser fired',
+      colour: Colors.Blue,
+      get_role_to_mention: () => undefined,
+      handler: handleMoonMiningNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
+    }
+  );
 
-  messageTypes.set('StructureFuelAlert', {
-    message: 'Structure low on fuel',
-    colour: Colors.Yellow,
-    get_role_to_mention: (c) => c.low_fuel_role,
-    handler: handleStructureNotification,
-    structureStateMessage: false,
-    structureFuelMessage: true,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureFuelAlert',
+    {
+      message: 'Structure low on fuel',
+      colour: Colors.Yellow,
+      get_role_to_mention: (c) => c.low_fuel_role,
+      handler: handleStructureNotification,
+      structureStateMessage: false,
+      structureFuelMessage: true,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureImpendingAbandonmentAssetsAtRisk', {
-    message: 'Structure Impending Abandonment (Assets At Risk)',
-    colour: Colors.Orange,
-    get_role_to_mention: (c) => c.low_fuel_role,
-    handler: handleStructureImpendingAbandonmentNotification,
-    structureStateMessage: true,
-    structureFuelMessage: true,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureImpendingAbandonmentAssetsAtRisk',
+    {
+      message: 'Structure Impending Abandonment (Assets At Risk)',
+      colour: Colors.Orange,
+      get_role_to_mention: (c) => c.low_fuel_role,
+      handler: handleStructureImpendingAbandonmentNotification,
+      structureStateMessage: true,
+      structureFuelMessage: true,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureDestroyed', {
-    message: 'Structure destroyed',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureDestroyed',
+    {
+      message: 'Structure destroyed',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureLostArmor', {
-    message: 'Structure armor depleated',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureLostArmor',
+    {
+      message: 'Structure armor depleated',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureLostShields', {
-    message: 'Structure shields depleated',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureLostShields',
+    {
+      message: 'Structure shields depleated',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureOnline', {
-    message: 'Structure online',
-    colour: Colors.Green,
-    get_role_to_mention: (c) => undefined,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureOnline',
+    {
+      message: 'Structure online',
+      colour: Colors.Green,
+      get_role_to_mention: (c) => undefined,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureServicesOffline', {
-    message: 'Structure services offline',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.low_fuel_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureServicesOffline',
+    {
+      message: 'Structure services offline',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.low_fuel_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureUnanchoring', {
-    message: 'Structure has started unanchoring',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => undefined,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureUnanchoring',
+    {
+      message: 'Structure has started unanchoring',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => undefined,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureWentHighPower', {
-    message: 'Structure power restored',
-    colour: Colors.Green,
-    get_role_to_mention: (c) => undefined,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: true,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureWentHighPower',
+    {
+      message: 'Structure power restored',
+      colour: Colors.Green,
+      get_role_to_mention: (c) => undefined,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: true,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureWentLowPower', {
-    message: 'Structure power failed',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.low_fuel_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: true,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureWentLowPower',
+    {
+      message: 'Structure power failed',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.low_fuel_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: true,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('OrbitalAttacked', {
-    message: 'POCO Attacked',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'OrbitalAttacked',
+    {
+      message: 'POCO Attacked',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('OrbitalReinforced', {
-    message: 'POCO Re-inforced',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'OrbitalReinforced',
+    {
+      message: 'POCO Re-inforced',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('TowerAlertMsg', {
-    message: 'POS Under Attack',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleTowerNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'TowerAlertMsg',
+    {
+      message: 'POS Under Attack',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleTowerNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('TowerResourceAlertMsg', {
-    message: 'POS Needs Resources',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => c.low_fuel_role,
-    handler: handleTowerNotification,
-    structureStateMessage: false,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'TowerResourceAlertMsg',
+    {
+      message: 'POS Needs Resources',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => c.low_fuel_role,
+      handler: handleTowerNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('StructureAnchoring', {
-    message: 'Structure Anchoring',
-    colour: Colors.Yellow,
-    get_role_to_mention: (c) => undefined,
-    handler: handleStructureNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'StructureAnchoring',
+    {
+      message: 'Structure Anchoring',
+      colour: Colors.Yellow,
+      get_role_to_mention: (c) => undefined,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
   // TODO: need to parse multiple structures to handle this notification.
   // messageTypes.set('StructuresReinforcementChanged', {
@@ -378,55 +456,70 @@ export function initNotifications() {
   //   miningUpdatesMessage: false,
   // });
 
-  messageTypes.set('WarDeclared', {
-    message: 'War Declared',
-    colour: Colors.Red,
-    get_role_to_mention: (c) => undefined,
-    handler: handleWarDeclaredNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'WarDeclared',
+    {
+      message: 'War Declared',
+      colour: Colors.Red,
+      get_role_to_mention: (c) => undefined,
+      handler: handleWarDeclaredNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('WarInherited', {
-    message: 'War Inherited',
-    colour: Colors.Orange,
-    get_role_to_mention: (c) => undefined,
-    handler: handleWarInheritedNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'WarInherited',
+    {
+      message: 'War Inherited',
+      colour: Colors.Orange,
+      get_role_to_mention: (c) => undefined,
+      handler: handleWarInheritedNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('WarHQRemovedFromSpace', {
-    message: 'War Headquarters No Longer Exists',
-    colour: Colors.Orange,
-    get_role_to_mention: (c) => undefined,
-    handler: handleWarHQRemovedFromSpaceNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'WarHQRemovedFromSpace',
+    {
+      message: 'War Headquarters No Longer Exists',
+      colour: Colors.Orange,
+      get_role_to_mention: (c) => undefined,
+      handler: handleWarHQRemovedFromSpaceNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('CorpNoLongerWarEligible', {
-    message: 'Corporation No Longer War Eligible',
-    colour: Colors.Orange,
-    get_role_to_mention: (c) => undefined,
-    handler: handleCorpNoLongerWarEligibleNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'CorpNoLongerWarEligible',
+    {
+      message: 'Corporation No Longer War Eligible',
+      colour: Colors.Orange,
+      get_role_to_mention: (c) => undefined,
+      handler: handleCorpNoLongerWarEligibleNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
-  messageTypes.set('SovStructureReinforced', {
-    message: 'Sovereignty Hub Reinforced',
-    colour: Colors.Orange,
-    get_role_to_mention: (c) => c.attack_alert_role,
-    handler: handleSovStructureReinforcedNotification,
-    structureStateMessage: true,
-    structureFuelMessage: false,
-    miningUpdatesMessage: false,
-  });
+  messageTypes.set(
+    'SovStructureReinforced',
+    {
+      message: 'Sovereignty Hub Reinforced',
+      colour: Colors.Orange,
+      get_role_to_mention: (c) => c.attack_alert_role,
+      handler: handleSovStructureReinforcedNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 }
 
 async function noopHandler(
@@ -447,15 +540,18 @@ async function noopHandler(
 export function initNoOpNotifications() {
   for (const nt of NOOP_NOTIFICATIONS) {
     if (!messageTypes.has(nt)) {
-      messageTypes.set(nt, {
-        message: `IGNORED: ${nt}`,
-        colour: Colors.Yellow,
-        get_role_to_mention: () => undefined,
-        handler: noopHandler,
-        structureStateMessage: false,
-        structureFuelMessage: false,
-        miningUpdatesMessage: false,
-      });
+      messageTypes.set(
+        nt,
+        {
+          message: `IGNORED: ${nt}`,
+          colour: Colors.Yellow,
+          get_role_to_mention: () => undefined,
+          handler: noopHandler,
+          structureStateMessage: false,
+          structureFuelMessage: false,
+          miningUpdatesMessage: false,
+        }
+      );
     }
   }
 }
@@ -491,18 +587,23 @@ async function handleSkyhookNotification(
 
     let dotLanLink = `Unknown System`;
     if (solarsystemID) {
-      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(
+        ' ',
+        '_'
+      )})`;
     }
 
     const regionName = await getRegionNameFromSystemId(solarsystemID);
 
-    let details = `\n\nWhat: ${typeName}\nWhere: Planet ${planetName.replace(systemName, '').trim()} in ${dotLanLink} (${regionName})`;
+    let details = `\n\nWhat: ${typeName}\nWhere: Planet ${planetName
+      .replace(systemName, '')
+      .trim()} in ${dotLanLink} (${regionName})`;
 
     if (values['timestamp'] && values['vulnerableTime']) {
       const jsTimestamp = filetimeToJsTimestamp(values['timestamp']); // 1764937640000 (ms since 1970)
-      details +=
-        '\n\nThe structure will exit reinforcement ' +
-        getRelativeDiscordTime(new Date(jsTimestamp));
+      details
+        += '\n\nThe structure will exit reinforcement '
+        + getRelativeDiscordTime(new Date(jsTimestamp));
     }
 
     details += await generateStructureAggressorStatement(values);
@@ -516,8 +617,8 @@ async function handleSkyhookNotification(
         const thisChannel = data.channelFor(channel);
 
         if (
-          (structureStateMessage && thisChannel.structureStatus) ||
-          (structureFuelMessage && thisChannel.structureFuel)
+          (structureStateMessage && thisChannel.structureStatus)
+          || (structureFuelMessage && thisChannel.structureFuel)
         ) {
           let content;
           const role = role_to_mention(thisChannel);
@@ -545,10 +646,11 @@ async function handleSkyhookNotification(
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
-        String(error)
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+        + String(error)
     );
   }
 }
@@ -574,28 +676,34 @@ async function handleStructureNotification(
     const typeId =
       thisStruct?.type_id || values['structureTypeID'] || values['typeID'];
     const systemId =
-      thisStruct?.system_id ||
-      values['solarsystemID'] ||
-      values['solarSystemID'];
+      thisStruct?.system_id
+      || values['solarsystemID']
+      || values['solarSystemID'];
     let structureName = thisStruct?.name;
 
     let dotLanLink = `Unknown System`;
     if (systemId) {
       const systemName = await getSystemName(systemId);
-      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(
+        ' ',
+        '_'
+      )})`;
       structureName =
         structureName?.replace(systemName + ' - ', '').trim() || structureName;
     }
 
     if (structureName) {
       structureName = ` called '${structureName}'`;
-    } else {
+    }
+    else {
       structureName = '';
     }
 
     if (!typeId || !systemId) {
       LOGGER.error(
-        `Missing typeId or systemId for structure notification. Values: ${JSON.stringify(values)}`
+        `Missing typeId or systemId for structure notification. Values: ${JSON.stringify(
+          values
+        )}`
       );
     }
 
@@ -604,13 +712,17 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
 
     if (values['timestamp'] && values['vulnerableTime']) {
       const jsTimestamp = filetimeToJsTimestamp(values['timestamp']); // 1764937640000 (ms since 1970)
-      messageDetail +=
-        '\n\nThe structure will exit reinforcement ' +
-        getRelativeDiscordTime(new Date(jsTimestamp));
-    } else if (values['timeLeft']) {
+      messageDetail
+        += '\n\nThe structure will exit reinforcement '
+        + getRelativeDiscordTime(new Date(jsTimestamp));
+    }
+    else if (values['timeLeft']) {
       const currentTime = isoToFiletime(note.timestamp);
       const endTime = currentTime + BigInt(values['timeLeft']);
-      messageDetail += `\n\nAction will be complete ${getRelativeDiscordTime(new Date(filetimeToJsTimestamp(endTime)))}`;
+      messageDetail
+        += `\n\nAction will be complete ${getRelativeDiscordTime(
+          new Date(filetimeToJsTimestamp(endTime))
+        )}`;
     }
 
     messageDetail += await generateStructureAggressorStatement(values);
@@ -624,9 +736,9 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
         const thisChannel = data.channelFor(channel);
 
         if (
-          (structureStateMessage && thisChannel.structureStatus) ||
-          (structureFuelMessage && thisChannel.structureFuel) ||
-          (miningUpdatesMessage && thisChannel.miningUpdates)
+          (structureStateMessage && thisChannel.structureStatus)
+          || (structureFuelMessage && thisChannel.structureFuel)
+          || (miningUpdatesMessage && thisChannel.miningUpdates)
         ) {
           let content;
           const role = role_to_mention(thisChannel);
@@ -654,10 +766,11 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
-        String(error)
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+        + String(error)
     );
   }
 }
@@ -683,24 +796,30 @@ async function handleStructureImpendingAbandonmentNotification(
     const typeId =
       thisStruct?.type_id || values['structureTypeID'] || values['typeID'];
     const systemId =
-      thisStruct?.system_id ||
-      values['solarsystemID'] ||
-      values['solarSystemID'];
+      thisStruct?.system_id
+      || values['solarsystemID']
+      || values['solarSystemID'];
     const daysUntilAbandon = Number(values['daysUntilAbandon']) || 0;
     const isCorpOwned = values['isCorpOwned'] === 'true';
-    let structureName = thisStruct?.name || stripHtmlTags(values['structureLink']);
+    let structureName =
+      thisStruct?.name || stripHtmlTags(values['structureLink']);
 
     let dotLanLink = `Unknown System`;
     if (systemId) {
       const systemName = await getSystemName(systemId);
-      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(
+        ' ',
+        '_'
+      )})`;
       structureName =
         structureName?.replace(systemName + ' - ', '').trim() || structureName;
     }
 
     if (!typeId || !systemId) {
       LOGGER.error(
-        `Missing typeId or systemId for structure abandonment notification. Values: ${JSON.stringify(values)}`
+        `Missing typeId or systemId for structure abandonment notification. Values: ${JSON.stringify(
+          values
+        )}`
       );
     }
 
@@ -710,7 +829,9 @@ async function handleStructureImpendingAbandonmentNotification(
         ? `in ${daysUntilAbandon} day${daysUntilAbandon === 1 ? '' : 's'}`
         : 'soon';
     const messageDetail = `A ${ownership} structure is approaching abandonment ${daysText}, and assets are at risk.
-What: ${await getItemName(typeId)}${structureName ? ` called '${structureName}'` : ''}
+What: ${await getItemName(typeId)}${
+      structureName ? ` called '${structureName}'` : ''
+    }
 Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
 
     const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
@@ -720,9 +841,9 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
         if (
-          (structureStateMessage && thisChannel.structureStatus) ||
-          (structureFuelMessage && thisChannel.structureFuel) ||
-          (miningUpdatesMessage && thisChannel.miningUpdates)
+          (structureStateMessage && thisChannel.structureStatus)
+          || (structureFuelMessage && thisChannel.structureFuel)
+          || (miningUpdatesMessage && thisChannel.miningUpdates)
         ) {
           let content;
           const role = role_to_mention(thisChannel);
@@ -750,10 +871,11 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
-        String(error)
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+        + String(error)
     );
   }
 }
@@ -794,9 +916,9 @@ async function handleMoonMiningNotification(
     const typeId =
       thisStruct?.type_id || values['structureTypeID'] || values['typeID'];
     const systemId =
-      thisStruct?.system_id ||
-      values['solarsystemID'] ||
-      values['solarSystemID'];
+      thisStruct?.system_id
+      || values['solarsystemID']
+      || values['solarSystemID'];
     const regionName = await getRegionNameFromSystemId(systemId);
     let structureName = thisStruct?.name;
 
@@ -805,7 +927,10 @@ async function handleMoonMiningNotification(
     let dotLanLink = `Unknown System`;
     if (systemId) {
       const systemName = await getSystemName(systemId);
-      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(
+        ' ',
+        '_'
+      )})`;
       structureName =
         structureName?.replace(systemName + ' - ', '').trim() || structureName;
       moonName = moonName.replace(systemName, '').trim();
@@ -813,28 +938,37 @@ async function handleMoonMiningNotification(
 
     if (structureName) {
       structureName = ` called '${structureName}'`;
-    } else {
+    }
+    else {
       structureName = '';
     }
 
     if (!typeId || !systemId) {
       LOGGER.error(
-        `Missing typeId or systemId for structure notification. Values: ${JSON.stringify(values)}`
+        `Missing typeId or systemId for structure notification. Values: ${JSON.stringify(
+          values
+        )}`
       );
     }
 
-    let messageDetail = `What: The moon drill on the ${await getItemName(typeId)}${structureName}
+    let messageDetail = `What: The moon drill on the ${await getItemName(
+      typeId
+    )}${structureName}
 Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
 
     if (values['autoTime']) {
       const autoTime = filetimeToJsTimestamp(values['autoTime']);
-      messageDetail += `\nThe chunk will automatically fracture ${getRelativeDiscordTime(new Date(autoTime))}`;
+      messageDetail
+        += `\nThe chunk will automatically fracture ${getRelativeDiscordTime(
+          new Date(autoTime)
+        )}`;
     }
 
     if (oresByVolume.length > 0) {
-      messageDetail += `\n\nEstimated chunk composition:\n${oresByVolume
-        .map((ore) => `- ${ore.typeName}: ${formatOreVolume(ore.volume)}`)
-        .join('\n')}`;
+      messageDetail
+        += `\n\nEstimated chunk composition:\n${oresByVolume
+          .map((ore) => `- ${ore.typeName}: ${formatOreVolume(ore.volume)}`)
+          .join('\n')}`;
     }
 
     const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
@@ -845,9 +979,9 @@ Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
         const thisChannel = data.channelFor(channel);
 
         if (
-          (structureStateMessage && thisChannel.structureStatus) ||
-          (structureFuelMessage && thisChannel.structureFuel) ||
-          (miningUpdatesMessage && thisChannel.miningUpdates)
+          (structureStateMessage && thisChannel.structureStatus)
+          || (structureFuelMessage && thisChannel.structureFuel)
+          || (miningUpdatesMessage && thisChannel.miningUpdates)
         ) {
           let content;
           const role = role_to_mention(thisChannel);
@@ -875,10 +1009,11 @@ Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
-        String(error)
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+        + String(error)
     );
   }
 }
@@ -906,7 +1041,9 @@ async function handleWarDeclaredNotification(
     const war_HQ = values['warHQ'] || 'Unknown Location';
 
     const title = 'War Declared';
-    const war_message = `${declared_by_name} has declared war on ${against_name} with '${stripHtmlTags(war_HQ)}' as the designated war headquarters.`;
+    const war_message = `${declared_by_name} has declared war on ${against_name} with '${stripHtmlTags(
+      war_HQ
+    )}' as the designated war headquarters.`;
     const thumbnail = `https://images.evetech.net/alliances/${declared_by_id}/logo?size=64`;
 
     for (const channelId of corp.channelIds) {
@@ -939,10 +1076,11 @@ async function handleWarDeclaredNotification(
         );
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${title}. Body: ${note.text}%n` +
-        String(error)
+      `An error occured in handleNotification for ${title}. Body: ${note.text}%n`
+        + String(error)
     );
   }
 }
@@ -977,8 +1115,8 @@ async function handleWarInheritedNotification(
     if (allianceId && allianceId !== declaredById) {
       warMessage += `\nAlliance context: ${alliance}.`;
     }
-    warMessage +=
-      '\nThis usually means a corporation left an alliance that is already at war.';
+    warMessage
+      += '\nThis usually means a corporation left an alliance that is already at war.';
 
     const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
 
@@ -1012,10 +1150,11 @@ async function handleWarInheritedNotification(
         );
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
-        String(error)
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n`
+        + String(error)
     );
   }
 }
@@ -1079,10 +1218,11 @@ async function handleWarHQRemovedFromSpaceNotification(
         );
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
-        String(error)
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n`
+        + String(error)
     );
   }
 }
@@ -1107,9 +1247,9 @@ async function handleCorpNoLongerWarEligibleNotification(
     ].filter((id) => id > 0);
 
     const noLongerEligibleCorpId =
-      candidateCorpIds.find((id) => id === corp.corpId) ??
-      candidateCorpIds.find((id) => id !== senderId) ??
-      corp.corpId;
+      candidateCorpIds.find((id) => id === corp.corpId)
+      ?? candidateCorpIds.find((id) => id !== senderId)
+      ?? corp.corpId;
 
     const noLongerEligibleCorpName =
       noLongerEligibleCorpId === corp.corpId
@@ -1151,10 +1291,11 @@ async function handleCorpNoLongerWarEligibleNotification(
         );
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
-        String(error)
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n`
+        + String(error)
     );
   }
 }
@@ -1198,7 +1339,8 @@ async function getWarEntityName(
       if (name) {
         return name;
       }
-    } catch (error) {
+    }
+    catch (error) {
       LOGGER.debug(
         `War entity lookup failed for ${entityId}: ${
           error instanceof Error ? error.message : String(error)
@@ -1230,7 +1372,9 @@ async function handleTowerNotification(
     const regionName = await getRegionNameFromSystemId(values['solarSystemID']);
 
     let builtMessage = `What: ${typeName}
-Where: Planet ${moonName.replace(systemName, '').trim()} in ${systemName} (${regionName})`;
+Where: Planet ${moonName
+      .replace(systemName, '')
+      .trim()} in ${systemName} (${regionName})`;
 
     let fuelMessage = false;
     let statusMessage = false;
@@ -1241,9 +1385,10 @@ Where: Planet ${moonName.replace(systemName, '').trim()} in ${systemName} (${reg
     if (wantedQuantity && wantedTypeID) {
       // POS wants something
       const itemName = await getItemName(wantedTypeID); // spaces are required
-      builtMessage += `\n${wantedQuantity} ${itemName}${
-        wantedQuantity === 1 ? '' : 's'
-      } remain${wantedQuantity === 1 ? 's' : ''}`;
+      builtMessage
+        += `\n${wantedQuantity} ${itemName}${
+          wantedQuantity === 1 ? '' : 's'
+        } remain${wantedQuantity === 1 ? 's' : ''}`;
       fuelMessage = true;
     }
 
@@ -1262,8 +1407,8 @@ Where: Planet ${moonName.replace(systemName, '').trim()} in ${systemName} (${reg
         const thisChannel = data.channelFor(channel);
 
         if (
-          (thisChannel.starbaseFuel && fuelMessage) ||
-          (thisChannel.starbaseStatus && statusMessage)
+          (thisChannel.starbaseFuel && fuelMessage)
+          || (thisChannel.starbaseStatus && statusMessage)
         ) {
           let content;
           const role = role_to_mention(thisChannel);
@@ -1291,10 +1436,11 @@ Where: Planet ${moonName.replace(systemName, '').trim()} in ${systemName} (${reg
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
-        String(error)
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+        + String(error)
     );
   }
 }
@@ -1360,7 +1506,10 @@ async function generateAggressorStatement(
   
 Aggressor: [${aggressorCharName}](https://zkillboard.com/character/${aggressorID}/)
 Corporation: [${corpName}](${dotLanCorpURL}${corpName.replaceAll(' ', '_')})
-Alliance: [${allianceName}](${dotLanAllianceURL}${allianceName.replaceAll(' ', '_')})`;
+Alliance: [${allianceName}](${dotLanAllianceURL}${allianceName.replaceAll(
+    ' ',
+    '_'
+  )})`;
 }
 
 function generateDefenceLevelsStatement(
@@ -1372,13 +1521,19 @@ function generateDefenceLevelsStatement(
   const hullPercentage = values['hullPercentage'] || values['hullValue'];
 
   if (
-    shieldPercentage != undefined &&
-    armorPercentage != undefined &&
-    hullPercentage != undefined
+    shieldPercentage != undefined
+    && armorPercentage != undefined
+    && hullPercentage != undefined
   ) {
     return `
     
-Shield: ${formatPercentage(shieldPercentage, multiplier)} | Armor: ${formatPercentage(armorPercentage, multiplier)} | Hull: ${formatPercentage(hullPercentage, multiplier)}`;
+Shield: ${formatPercentage(
+      shieldPercentage,
+      multiplier
+    )} | Armor: ${formatPercentage(
+      armorPercentage,
+      multiplier
+    )} | Hull: ${formatPercentage(hullPercentage, multiplier)}`;
   }
   return '';
 }
@@ -1388,9 +1543,12 @@ function stripHtmlTags(war_HQ: string) {
 }
 function formatOreVolume(volume: number) {
   // format with commas as thousand separators with 0 decimal places, then add m³ at the end
-  let displayVolume = Math.round(volume).toLocaleString('en-US', {
-    maximumFractionDigits: 0,
-  });
+  let displayVolume = Math.round(volume).toLocaleString(
+    'en-US',
+    {
+      maximumFractionDigits: 0,
+    }
+  );
   return `${displayVolume} m³`;
 }
 
@@ -1434,11 +1592,16 @@ async function handleSovStructureReinforcedNotification(
     if (decloakTime) {
       // decloakTime is a filetime (100ns since 1601-01-01 UTC)
       const decloakDate = new Date(filetimeToJsTimestamp(decloakTime));
-      decloakTimeStr = `Command nodes will begin decloaking ${getRelativeDiscordTime(decloakDate)}`;
+      decloakTimeStr = `Command nodes will begin decloaking ${getRelativeDiscordTime(
+        decloakDate
+      )}`;
     }
     let dotLanLink = 'Unknown System';
     if (solarsystemID) {
-      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(
+        ' ',
+        '_'
+      )})`;
     }
     let messageDetail = `The Sovereignty Hub in ${dotLanLink} (${regionName}) has been reinforced by hostile forces.\n${decloakTimeStr}`;
 
@@ -1477,10 +1640,11 @@ async function handleSovStructureReinforcedNotification(
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     LOGGER.error(
-      `An error occured in handleSovStructureReinforcedNotification for ${message}. Body: ${note.text}%n` +
-        String(error)
+      `An error occured in handleSovStructureReinforcedNotification for ${message}. Body: ${note.text}%n`
+        + String(error)
     );
   }
 }

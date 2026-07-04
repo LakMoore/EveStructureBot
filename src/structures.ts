@@ -160,17 +160,20 @@ async function checkForStructureChangeAndPersist(
             let thisMessage = '';
             // check for structure status changes
             if (s.state != oldStruct?.state) {
-              thisMessage += `\nStatus has changed from ${formatState(
-                oldStruct.state
-              )} to ${formatState(s.state)}`;
+              thisMessage
+                += `\nStatus has changed from ${formatState(
+                  oldStruct.state
+                )} to ${formatState(s.state)}`;
               statusMessage = true;
             }
             if (s.state_timer_end !== oldStruct.state_timer_end) {
               if (s.state_timer_end) {
-                thisMessage += `\nStructure has a timer that ends ${getRelativeDiscordTime(
-                  s.state_timer_end
-                )}`;
-              } else {
+                thisMessage
+                  += `\nStructure has a timer that ends ${getRelativeDiscordTime(
+                    s.state_timer_end
+                  )}`;
+              }
+              else {
                 thisMessage += `\nStructure timer has reset`;
               }
               statusMessage = true;
@@ -178,17 +181,22 @@ async function checkForStructureChangeAndPersist(
             // check for change of fuel (up or down!)
             if (oldStruct.fuel_expires != s.fuel_expires) {
               if (oldStruct.fuel_expires && s.fuel_expires) {
-                thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
-                  oldStruct.fuel_expires
-                )} now expiring ${getRelativeDiscordTime(s.fuel_expires)}`;
-              } else if (oldStruct.fuel_expires) {
-                thisMessage += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
-                  oldStruct.fuel_expires
-                )}. Now has "unknown expiry"`;
-              } else if (s.fuel_expires) {
-                thisMessage += `\nFuel level has changed from "unknown expiry". Now expiring ${getRelativeDiscordTime(
-                  s.fuel_expires
-                )}`;
+                thisMessage
+                  += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
+                    oldStruct.fuel_expires
+                  )} now expiring ${getRelativeDiscordTime(s.fuel_expires)}`;
+              }
+              else if (oldStruct.fuel_expires) {
+                thisMessage
+                  += `\nFuel level has changed. Was expiring ${getRelativeDiscordTime(
+                    oldStruct.fuel_expires
+                  )}. Now has "unknown expiry"`;
+              }
+              else if (s.fuel_expires) {
+                thisMessage
+                  += `\nFuel level has changed from "unknown expiry". Now expiring ${getRelativeDiscordTime(
+                    s.fuel_expires
+                  )}`;
               }
               fuelMessage = true;
             }
@@ -204,33 +212,36 @@ async function checkForStructureChangeAndPersist(
 
               if (
                 // fuel expiry is within one check delay of the super low warning
-                expires <= new Date(Date.now() + SUPER_LOW_FUEL_WARNING) &&
-                expires >=
-                  new Date(
-                    Date.now() +
-                      SUPER_LOW_FUEL_WARNING -
-                      1000 -
-                      NOTIFICATION_CHECK_DELAY / authedCharCount
+                expires <= new Date(Date.now() + SUPER_LOW_FUEL_WARNING)
+                && expires
+                  >= new Date(
+                    Date.now()
+                      + SUPER_LOW_FUEL_WARNING
+                      - 1000
+                      - NOTIFICATION_CHECK_DELAY / authedCharCount
                   )
               ) {
-                thisMessage += `\n@hereURGENT: Fuel will be depleated very soon ${getRelativeDiscordTime(
-                  expires
-                )}`;
+                thisMessage
+                  += `\n@hereURGENT: Fuel will be depleated very soon ${getRelativeDiscordTime(
+                    expires
+                  )}`;
                 fuelMessage = true;
-              } else if (
+              }
+              else if (
                 // fuel expiry is within one check delay of the low warning
-                expires <= new Date(Date.now() + LOW_FUEL_WARNING) &&
-                expires >=
-                  new Date(
-                    Date.now() +
-                      LOW_FUEL_WARNING -
-                      1000 -
-                      NOTIFICATION_CHECK_DELAY / authedCharCount
+                expires <= new Date(Date.now() + LOW_FUEL_WARNING)
+                && expires
+                  >= new Date(
+                    Date.now()
+                      + LOW_FUEL_WARNING
+                      - 1000
+                      - NOTIFICATION_CHECK_DELAY / authedCharCount
                   )
               ) {
-                thisMessage += `\nWarning: Fuel will be depleated ${getRelativeDiscordTime(
-                  expires
-                )}`;
+                thisMessage
+                  += `\nWarning: Fuel will be depleated ${getRelativeDiscordTime(
+                    expires
+                  )}`;
                 fuelMessage = true;
               }
             }
@@ -245,9 +256,11 @@ async function checkForStructureChangeAndPersist(
         }
 
         if (
-          message.length > 0 &&
-          ((channelConfig.structureStatus && statusMessage) ||
-            (channelConfig.structureFuel && fuelMessage))
+          message.length > 0
+          && (
+            (channelConfig.structureStatus && statusMessage)
+            || (channelConfig.structureFuel && fuelMessage)
+          )
         ) {
           await sendMessage(channel, message, 'structures: ' + message);
         }
@@ -256,7 +269,8 @@ async function checkForStructureChangeAndPersist(
 
     // replace the data in storage
     data.authenticatedCorps[idx] = corp;
-  } else {
+  }
+  else {
     // tracking a new corp, not already in the data.
 
     for (const channelId of corp.channelIds) {
@@ -343,21 +357,21 @@ function formatState(
   state: GetCorporationStructuresResponse[number]['state']
 ): string {
   switch (state) {
-    case 'armor_reinforce':
-      return 'shield depleated';
-    case 'armor_vulnerable':
-      return 'partial shields';
-    case 'hull_reinforce':
-      return 'armor depleated';
-    case 'hull_vulnerable':
-      return 'partial armor';
-    case 'anchoring':
-      return 'anchoring';
-    case 'unanchored':
-      return 'unanchored';
-    case 'shield_vulnerable':
-      return 'full shields';
-    default:
-      return 'unknown';
+  case 'armor_reinforce':
+    return 'shield depleated';
+  case 'armor_vulnerable':
+    return 'partial shields';
+  case 'hull_reinforce':
+    return 'armor depleated';
+  case 'hull_vulnerable':
+    return 'partial armor';
+  case 'anchoring':
+    return 'anchoring';
+  case 'unanchored':
+    return 'unanchored';
+  case 'shield_vulnerable':
+    return 'full shields';
+  default:
+    return 'unknown';
   }
 }

@@ -17,12 +17,14 @@ export default class GuildFinder {
               }
             }
           }
-        } catch {
+        }
+        catch {
           // ignore individual guild errors
           continue;
         }
       }
-    } catch (err) {
+    }
+    catch (err) {
       // fail silently; logger not yet configured for Discord channel
       // leave console logging only
       // eslint-disable-next-line no-console

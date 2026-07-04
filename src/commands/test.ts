@@ -40,7 +40,8 @@ export const Test: Command = {
         }
 
         await processNotifications(notifications, client, corp);
-      } catch {
+      }
+      catch {
         await sendMessage(
           channel,
           `Failed to process test notifications.`,

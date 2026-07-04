@@ -20,16 +20,26 @@ export async function generateStructureNotificationEmbed(
   let dotLanLink = `Unknown System`;
   if (thisStruct?.system_id) {
     const systemName = await getSystemName(thisStruct?.system_id);
-    dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+    dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(
+      ' ',
+      '_'
+    )})`;
   }
 
-  const structure_details = `What: ${await getItemName(thisStruct?.type_id)} belonging to ${corpName}
-Where: ${dotLanLink} (${await getRegionNameFromSystemId(thisStruct?.system_id)})\n`;
+  const structure_details = `What: ${await getItemName(
+    thisStruct?.type_id
+  )} belonging to ${corpName}
+Where: ${dotLanLink} (${await getRegionNameFromSystemId(
+    thisStruct?.system_id
+  )})\n`;
 
   const embed = new EmbedBuilder()
     .setColor(colour)
     .setDescription(
-      `${message.replace('[[STRUCTURE_DETAILS]]', structure_details)}\n${getRelativeDiscordTime(timestamp)}`
+      `${message.replace(
+        '[[STRUCTURE_DETAILS]]',
+        structure_details
+      )}\n${getRelativeDiscordTime(timestamp)}`
     );
   if (thisStruct) {
     embed
@@ -38,7 +48,8 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(thisStruct?.system_id)})
       .setThumbnail(
         `https://images.evetech.net/types/${thisStruct.type_id}/render?size=64`
       );
-  } else {
+  }
+  else {
     LOGGER.warning('Failed to find structure');
     embed.setTitle(`Not sure which one!`);
   }

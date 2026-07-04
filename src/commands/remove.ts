@@ -54,13 +54,15 @@ export const Remove: Command = {
           content: 'All channel data deleted',
           components: [],
         });
-      } else if (confirmation.customId === CANCEL_DELETE) {
+      }
+      else if (confirmation.customId === CANCEL_DELETE) {
         await confirmation.update({
           content: 'Action cancelled',
           components: [],
         });
       }
-    } catch (e) {
+    }
+    catch (e) {
       await interaction.editReply({
         content: 'Confirmation not received within 1 minute, cancelling',
         components: [],

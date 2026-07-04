@@ -11,15 +11,20 @@ import { checkBotHasPermissions } from '../Bot';
 import { LOGGER } from '../Logger';
 
 export default (client: Client): void => {
-  client.on('interactionCreate', async (interaction: Interaction) => {
-    if (interaction.isCommand() || interaction.isContextMenuCommand()) {
-      await handleSlashCommand(client, interaction);
-    } else if (interaction.isAutocomplete()) {
-      await handleAutocomplete(client, interaction);
-    } else if (interaction.isButton()) {
-      await handleButton(client, interaction);
+  client.on(
+    'interactionCreate',
+    async (interaction: Interaction) => {
+      if (interaction.isCommand() || interaction.isContextMenuCommand()) {
+        await handleSlashCommand(client, interaction);
+      }
+      else if (interaction.isAutocomplete()) {
+        await handleAutocomplete(client, interaction);
+      }
+      else if (interaction.isButton()) {
+        await handleButton(client, interaction);
+      }
     }
-  });
+  );
 };
 
 const handleSlashCommand = async (
@@ -52,12 +57,14 @@ const handleSlashCommand = async (
       }
 
       await slashCommand.run(client, interaction);
-    } catch (error) {
+    }
+    catch (error) {
       if (error instanceof Error) {
         await interaction.followUp({
           content: 'An error has occurred (' + error.message + ')',
         });
-      } else {
+      }
+      else {
         await interaction.followUp({
           content: 'An unknown error has occurred.',
         });
@@ -76,10 +83,12 @@ const handleAutocomplete = async (
     if (slashCommand?.autocomplete) {
       await slashCommand.autocomplete(client, interaction);
     }
-  } catch (error) {
+  }
+  catch (error) {
     if (error instanceof Error) {
       LOGGER.error('Autocomplete error: ' + error.message);
-    } else {
+    }
+    else {
       LOGGER.error('Autocomplete error: ' + String(error));
     }
   }
@@ -97,10 +106,12 @@ const handleButton = async (
     if (buttonCommand?.button) {
       await buttonCommand.button(client, interaction);
     }
-  } catch (error) {
+  }
+  catch (error) {
     if (error instanceof Error) {
       LOGGER.error('Button error: ' + error.message);
-    } else {
+    }
+    else {
       LOGGER.error('Button error: ' + String(error));
     }
   }

@@ -61,7 +61,8 @@ export const CheckAuth: Command = {
           'No data found for this channel.  Use /auth command to begin.',
           'No data found for this channel.  Use /auth command to begin.'
         );
-      } else if (!found) {
+      }
+      else if (!found) {
         await sendMessage(
           channel,
           'All characters are currently authorised correctly.',

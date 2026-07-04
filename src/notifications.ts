@@ -112,7 +112,8 @@ export async function processNotifications(
           data.structureFuelMessage,
           data.miningUpdatesMessage
         );
-      } catch (err) {
+      }
+      catch (err) {
         const payload = {
           note: notification,
           error:
@@ -126,7 +127,8 @@ export async function processNotifications(
       if (thisDate > mostRecentNotification) {
         mostRecentNotification = thisDate;
       }
-    } else if (missingTypes.length < 3) {
+    }
+    else if (missingTypes.length < 3) {
       // avoid spamming the logs with missing types
       LOGGER.warning('No handler for message ' + JSON.stringify(notification));
       missingTypes.push(notification.type);

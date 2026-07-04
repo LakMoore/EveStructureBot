@@ -21,13 +21,14 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
 
   if (chars.length > 0) {
     for (const c of chars) {
-      authed += `\n${c.characterName}${
-        directors.includes(c)
-          ? ' (Director)'
-          : stationManagers.includes(c)
+      authed
+        += `\n${c.characterName}${
+          directors.includes(c)
+            ? ' (Director)'
+            : stationManagers.includes(c)
             ? ' (Station Manager)'
             : ''
-      }`;
+        }`;
     }
   }
 

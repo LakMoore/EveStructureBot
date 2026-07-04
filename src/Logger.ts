@@ -53,7 +53,8 @@ export class LogHandler {
     let message: string;
     if (error instanceof Error) {
       message = error.message;
-    } else {
+    }
+    else {
       message = error;
     }
     const safeMessage = redactSensitive(message);
@@ -88,7 +89,8 @@ export class LogHandler {
         const msg = payload.message || String(payload);
         const stack = payload.stack ? `\n\nStack:\n${payload.stack}` : '';
         discordMessage = `${name}: ${msg}${stack}`;
-      } else {
+      }
+      else {
         discordMessage = String(payload);
       }
 
@@ -143,7 +145,8 @@ function redactSensitive(value: any, seen = new WeakSet<object>()): any {
   for (const [key, nestedValue] of Object.entries(value)) {
     if (SENSITIVE_KEYS.has(key.toLowerCase())) {
       out[key] = '[REDACTED]';
-    } else {
+    }
+    else {
       out[key] = redactSensitive(nestedValue, seen);
     }
   }
@@ -157,7 +160,8 @@ function consoleLog(message?: any, ...optionalParams: any[]) {
   const safeParams = optionalParams.map((value) => redactSensitive(value));
   if (typeof safeMessage === 'string') {
     console.log(new Date().toISOString() + ': ' + safeMessage, ...safeParams);
-  } else {
+  }
+  else {
     console.log(new Date().toISOString() + ':', safeMessage, ...safeParams);
   }
 }
@@ -167,7 +171,8 @@ function consoleError(message: object | string, ...optionalParams: object[]) {
   const safeParams = optionalParams.map((value) => redactSensitive(value));
   if (typeof safeMessage === 'string') {
     console.error(new Date().toUTCString() + ' ' + safeMessage, ...safeParams);
-  } else {
+  }
+  else {
     console.error(new Date().toUTCString() + ':', safeMessage, ...safeParams);
   }
 }
@@ -205,9 +210,9 @@ export function msToTimeSpan(milliseconds: number): string {
 
   if (parts.length === 0) {
     parts.push(
-      remainingMilliseconds +
-        ' millisecond' +
-        (remainingMilliseconds == 1 ? '' : 's')
+      remainingMilliseconds
+        + ' millisecond'
+        + (remainingMilliseconds == 1 ? '' : 's')
     );
   }
 

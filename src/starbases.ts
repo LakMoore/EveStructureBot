@@ -157,23 +157,28 @@ async function checkForStarbaseChangeAndPersist(
             let thisMessage = '';
             // check for starbase status changes
             if (s.state != oldStarbase?.state) {
-              thisMessage += `\nStatus has changed from ${oldStarbase.state} to ${s.state}`;
+              thisMessage
+                += `\nStatus has changed from ${oldStarbase.state} to ${s.state}`;
             }
             if (s.reinforced_until !== oldStarbase.reinforced_until) {
               if (s.reinforced_until) {
-                thisMessage += `\nStarbase has a reinforcement timer that ends ${getRelativeDiscordTime(
-                  s.reinforced_until
-                )}`;
-              } else {
+                thisMessage
+                  += `\nStarbase has a reinforcement timer that ends ${getRelativeDiscordTime(
+                    s.reinforced_until
+                  )}`;
+              }
+              else {
                 thisMessage += `\nStarbase reinforcement timer has reset`;
               }
             }
             if (s.unanchor_at !== oldStarbase.unanchor_at) {
               if (s.unanchor_at) {
-                thisMessage += `\nStarbase has an unanchor timer that started ${getRelativeDiscordTime(
-                  s.unanchor_at
-                )}`;
-              } else {
+                thisMessage
+                  += `\nStarbase has an unanchor timer that started ${getRelativeDiscordTime(
+                    s.unanchor_at
+                  )}`;
+              }
+              else {
                 thisMessage += `\nStarbase unanchor timer has reset`;
               }
             }
@@ -199,7 +204,8 @@ async function checkForStarbaseChangeAndPersist(
     // replace the data in storage
     corp.mostRecentNotification = oldCorp.mostRecentNotification;
     data.authenticatedCorps[idx] = corp;
-  } else {
+  }
+  else {
     // tracking new starbases!
 
     for (const channelId of corp.channelIds) {
@@ -225,8 +231,8 @@ async function checkForStarbaseChangeAndPersist(
 
     const alreadyTracked = data.authenticatedCorps.some(
       (existingCorp) =>
-        existingCorp.serverId == corp.serverId &&
-        existingCorp.corpId == corp.corpId
+        existingCorp.serverId == corp.serverId
+        && existingCorp.corpId == corp.corpId
     );
 
     if (!alreadyTracked) {
