@@ -918,7 +918,7 @@ async function handleCorpNoLongerWarEligibleNotification(
     const senderId = Number(note.sender_id) || 0;
     const senderName = senderId ? await getCorpName(senderId) : corp.corpName;
 
-    const warMessage = `${senderName} is no longer war eligible.`;
+    const notificationMessage = `${senderName} is no longer war eligible.`;
     const thumbnail = senderId
       ? `https://images.evetech.net/corporations/${senderId}/logo?size=64`
       : undefined;
@@ -942,14 +942,14 @@ async function handleCorpNoLongerWarEligibleNotification(
               generateGeneralNotificationEmbed(
                 colour,
                 title,
-                warMessage,
+                notificationMessage,
                 note.timestamp,
                 corp.corpName,
                 thumbnail
               ),
             ],
           },
-          `War Notification: ${warMessage}`
+          `War Notification: ${notificationMessage}`
         );
       }
     }
