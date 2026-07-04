@@ -226,6 +226,16 @@ export function initNotifications() {
     miningUpdatesMessage: false,
   });
 
+  messageTypes.set('StructureImpendingAbandonmentAssetsAtRisk', {
+    message: 'Structure Impending Abandonment (Assets At Risk)',
+    colour: Colors.Orange,
+    get_role_to_mention: (c) => c.low_fuel_role,
+    handler: handleStructureImpendingAbandonmentNotification,
+    structureStateMessage: true,
+    structureFuelMessage: true,
+    miningUpdatesMessage: false,
+  });
+
   messageTypes.set('StructureDestroyed', {
     message: 'Structure destroyed',
     colour: Colors.Red,
@@ -612,6 +622,102 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
+        if (
+          (structureStateMessage && thisChannel.structureStatus) ||
+          (structureFuelMessage && thisChannel.structureFuel) ||
+          (miningUpdatesMessage && thisChannel.miningUpdates)
+        ) {
+          let content;
+          const role = role_to_mention(thisChannel);
+          if (role) {
+            content = `<@&${role}>`;
+          }
+
+          await sendMessage(
+            channel,
+            {
+              content,
+              embeds: [
+                generateGeneralNotificationEmbed(
+                  colour,
+                  message,
+                  messageDetail,
+                  note.timestamp,
+                  corp.corpName,
+                  thumbnail
+                ),
+              ],
+            },
+            `Structure Notification: ${message}`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    LOGGER.error(
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
+        String(error)
+    );
+  }
+}
+
+async function handleStructureImpendingAbandonmentNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  message: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const values = parseNotificationText(note.text);
+    const structureId = Number(values['structureID']) || 0;
+    const thisStruct = corp.structures.find(
+      (struct) => struct.structure_id === structureId
+    );
+
+    const typeId =
+      thisStruct?.type_id || values['structureTypeID'] || values['typeID'];
+    const systemId =
+      thisStruct?.system_id ||
+      values['solarsystemID'] ||
+      values['solarSystemID'];
+    const daysUntilAbandon = Number(values['daysUntilAbandon']) || 0;
+    const isCorpOwned = values['isCorpOwned'] === 'true';
+    let structureName = thisStruct?.name || stripHtmlTags(values['structureLink']);
+
+    let dotLanLink = `Unknown System`;
+    if (systemId) {
+      const systemName = await getSystemName(systemId);
+      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+      structureName =
+        structureName?.replace(systemName + ' - ', '').trim() || structureName;
+    }
+
+    if (!typeId || !systemId) {
+      LOGGER.error(
+        `Missing typeId or systemId for structure abandonment notification. Values: ${JSON.stringify(values)}`
+      );
+    }
+
+    const ownership = isCorpOwned ? 'corporation-owned' : 'alliance-owned';
+    const daysText =
+      daysUntilAbandon > 0
+        ? `in ${daysUntilAbandon} day${daysUntilAbandon === 1 ? '' : 's'}`
+        : 'soon';
+    const messageDetail = `A ${ownership} structure is approaching abandonment ${daysText}, and assets are at risk.
+What: ${await getItemName(typeId)}${structureName ? ` called '${structureName}'` : ''}
+Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
+
+    const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
         if (
           (structureStateMessage && thisChannel.structureStatus) ||
           (structureFuelMessage && thisChannel.structureFuel) ||
