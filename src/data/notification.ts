@@ -809,104 +809,78 @@ async function handleWarDeclaredNotification(
         );
       }
     }
+  } catch (error) {
+    LOGGER.error(
+      `An error occured in handleNotification for ${title}. Body: ${note.text}%n` +
+        String(error)
+    );
+  }
+}
 
-    async function handleWarInheritedNotification(
-      client: Client<boolean>,
-      corp: AuthenticatedCorp,
-      note: GetCharacterNotificationsResponse[number],
-      title: string,
-      colour: number,
-      role_to_mention: (c: DiscordChannel) => string | undefined,
-      structureStateMessage: boolean,
-      structureFuelMessage: boolean,
-      miningUpdatesMessage: boolean
-    ) {
-      try {
-        const values = parseNotificationText(note.text);
-        const declaredById = Number(values['declaredByID']) || 0;
-        const opponentId =
-          Number(values['opponentID']) || Number(values['againstID']) || 0;
-        const quitterId = Number(values['quitterID']) || 0;
-        const allianceId = Number(values['allianceID']) || 0;
+async function handleWarInheritedNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  title: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const values = parseNotificationText(note.text);
+    const declaredById = Number(values['declaredByID']) || 0;
+    const opponentId =
+      Number(values['opponentID']) || Number(values['againstID']) || 0;
+    const quitterId = Number(values['quitterID']) || 0;
+    const allianceId = Number(values['allianceID']) || 0;
 
-        const declaredBy = await getWarEntityName(declaredById);
-        const opponent = await getWarEntityName(opponentId);
-        const quitter = await getWarEntityName(quitterId);
-        const alliance = await getWarEntityName(allianceId);
+    const declaredBy = await getWarEntityName(declaredById);
+    const opponent = await getWarEntityName(opponentId);
+    const quitter = await getWarEntityName(quitterId);
+    const alliance = await getWarEntityName(allianceId);
 
-        let warMessage = `${quitter} has inherited an active war between ${declaredBy} and ${opponent}.`;
-        if (allianceId && alliance !== declaredBy) {
-          warMessage += `\nAlliance context: ${alliance}.`;
-        }
-        if (quitterId) {
-          warMessage +=
-            '\nIn EVE this typically happens when a corporation leaves an alliance that is already at war, so quitterID is most likely the corporation that left and inherited the war.';
-        }
-
-        const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
-
-        for (const channelId of corp.channelIds) {
-          const channel = client.channels.cache.get(channelId);
-          if (channel instanceof TextChannel) {
-            const thisChannel = data.channelFor(channel);
-
-            let content;
-            const role = role_to_mention(thisChannel);
-            if (role) {
-              content = `<@&${role}>`;
-            }
-
-            await sendMessage(
-              channel,
-              {
-                content,
-                embeds: [
-                  generateGeneralNotificationEmbed(
-                    colour,
-                    title,
-                    warMessage,
-                    note.timestamp,
-                    corp.corpName,
-                    thumbnail
-                  ),
-                ],
-              },
-              `War Notification: ${warMessage}`
-            );
-          }
-        }
-      } catch (error) {
-        LOGGER.error(
-          `An error occured in handleNotification for ${title}. Body: ${note.text}%n` +
-            String(error)
-        );
-      }
+    let warMessage = `${quitter} has inherited an active war between ${declaredBy} and ${opponent}.`;
+    if (allianceId && alliance !== declaredBy) {
+      warMessage += `\nAlliance context: ${alliance}.`;
+    }
+    if (quitterId) {
+      warMessage +=
+        '\nIn EVE this typically happens when a corporation leaves an alliance that is already at war, so quitterID is most likely the corporation that left and inherited the war.';
     }
 
-    async function getWarEntityName(entityId: number) {
-      if (!entityId) {
-        return 'Unknown Entity';
-      }
+    const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
 
-      try {
-        const allianceName = await getAllianceName(entityId);
-        if (allianceName !== 'Unknown Alliance') {
-          return `${allianceName} (Alliance)`;
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
         }
-      } catch {
-        // fallback to corp lookup
-      }
 
-      try {
-        const corpName = await getCorpName(entityId);
-        if (corpName !== 'Unknown Corporation') {
-          return `${corpName} (Corporation)`;
-        }
-      } catch {
-        // ignore
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                colour,
+                title,
+                warMessage,
+                note.timestamp,
+                corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${warMessage}`
+        );
       }
-
-      return `Unknown Entity (${entityId})`;
     }
   } catch (error) {
     LOGGER.error(
@@ -914,6 +888,32 @@ async function handleWarDeclaredNotification(
         String(error)
     );
   }
+}
+
+async function getWarEntityName(entityId: number) {
+  if (!entityId) {
+    return 'Unknown Entity';
+  }
+
+  try {
+    const allianceName = await getAllianceName(entityId);
+    if (allianceName !== 'Unknown Alliance') {
+      return `${allianceName} (Alliance)`;
+    }
+  } catch {
+    // fallback to corp lookup
+  }
+
+  try {
+    const corpName = await getCorpName(entityId);
+    if (corpName !== 'Unknown Corporation') {
+      return `${corpName} (Corporation)`;
+    }
+  } catch {
+    // ignore
+  }
+
+  return `Unknown Entity (${entityId})`;
 }
 
 async function handleTowerNotification(
