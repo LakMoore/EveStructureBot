@@ -10,7 +10,7 @@ import { Commands } from '../Commands';
 import { checkBotHasPermissions } from '../Bot';
 import { LOGGER } from '../Logger';
 
-export default (client: Client): void => {
+export default function interactionCreate(client: Client): void {
   client.on(
     'interactionCreate',
     async (interaction: Interaction) => {
@@ -25,7 +25,7 @@ export default (client: Client): void => {
       }
     }
   );
-};
+}
 
 const handleSlashCommand = async (
   client: Client,

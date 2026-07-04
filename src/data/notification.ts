@@ -51,6 +51,18 @@ import {
 import { generateGeneralNotificationEmbed } from '../embeds/generalNotification';
 import { LOGGER } from '../Logger';
 
+interface NotificationDetails {
+  client: Client<boolean>;
+  corp: AuthenticatedCorp;
+  note: GetCharacterNotificationsResponse[number];
+  message: string;
+  colour: number;
+  role_to_mention: (c: DiscordChannel) => string | undefined;
+  structureStateMessage: boolean;
+  structureFuelMessage: boolean;
+  miningUpdatesMessage: boolean;
+}
+
 // Static list of notifications the bot should ignore (no action required)
 const NOOP_NOTIFICATIONS: Array<
   GetCharacterNotificationsResponse[number]['type']
@@ -101,18 +113,8 @@ export const messageTypes = new Map<
   {
     message: string;
     colour: number;
-    get_role_to_mention: (c: DiscordChannel) => string | undefined;
-    handler: (
-      client: Client<boolean>,
-      corp: AuthenticatedCorp,
-      note: GetCharacterNotificationsResponse[number],
-      message: string,
-      colour: number,
-      role_to_mention: (c: DiscordChannel) => string | undefined,
-      structureStateMessage: boolean,
-      structureFuelMessage: boolean,
-      miningUpdatesMessage: boolean
-    ) => Promise<void>;
+    role_to_mention: (c: DiscordChannel) => string | undefined;
+    handler: (details: NotificationDetails) => Promise<void>;
     structureStateMessage: boolean;
     structureFuelMessage: boolean;
     miningUpdatesMessage: boolean;
@@ -125,7 +127,7 @@ export function initNotifications() {
     {
       message: 'SKYHOOK UNDER ATTACK',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleSkyhookNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -138,7 +140,7 @@ export function initNotifications() {
     {
       message: 'SKYHOOK LOST SHIELDS',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleSkyhookNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -151,7 +153,7 @@ export function initNotifications() {
     {
       message: 'SKYHOOK DEPLOYED',
       colour: Colors.Green,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleSkyhookNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -164,7 +166,7 @@ export function initNotifications() {
     {
       message: 'SKYHOOK DESTROYED',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleSkyhookNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -177,7 +179,7 @@ export function initNotifications() {
     {
       message: 'SKYHOOK ONLINE',
       colour: Colors.Green,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleSkyhookNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -190,7 +192,7 @@ export function initNotifications() {
     {
       message: 'STRUCTURE UNDER ATTACK',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -203,7 +205,7 @@ export function initNotifications() {
     {
       message: 'Moon mining extraction started',
       colour: Colors.Blue,
-      get_role_to_mention: () => undefined,
+      role_to_mention: () => undefined,
       handler: handleMoonMiningNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
@@ -216,7 +218,7 @@ export function initNotifications() {
     {
       message: 'Moon mining extraction finished',
       colour: Colors.Blue,
-      get_role_to_mention: () => undefined,
+      role_to_mention: () => undefined,
       handler: handleMoonMiningNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
@@ -229,7 +231,7 @@ export function initNotifications() {
     {
       message: 'Moon mining automatic fracture triggered',
       colour: Colors.Blue,
-      get_role_to_mention: () => undefined,
+      role_to_mention: () => undefined,
       handler: handleMoonMiningNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
@@ -242,7 +244,7 @@ export function initNotifications() {
     {
       message: 'Moon mining laser fired',
       colour: Colors.Blue,
-      get_role_to_mention: () => undefined,
+      role_to_mention: () => undefined,
       handler: handleMoonMiningNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
@@ -255,7 +257,7 @@ export function initNotifications() {
     {
       message: 'Structure low on fuel',
       colour: Colors.Yellow,
-      get_role_to_mention: (c) => c.low_fuel_role,
+      role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: false,
       structureFuelMessage: true,
@@ -268,7 +270,7 @@ export function initNotifications() {
     {
       message: 'Structure Impending Abandonment (Assets At Risk)',
       colour: Colors.Orange,
-      get_role_to_mention: (c) => c.low_fuel_role,
+      role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureImpendingAbandonmentNotification,
       structureStateMessage: true,
       structureFuelMessage: true,
@@ -281,7 +283,7 @@ export function initNotifications() {
     {
       message: 'Structure destroyed',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -294,7 +296,7 @@ export function initNotifications() {
     {
       message: 'Structure armor depleated',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -307,7 +309,7 @@ export function initNotifications() {
     {
       message: 'Structure shields depleated',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -320,7 +322,7 @@ export function initNotifications() {
     {
       message: 'Structure online',
       colour: Colors.Green,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -333,7 +335,7 @@ export function initNotifications() {
     {
       message: 'Structure services offline',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.low_fuel_role,
+      role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -346,7 +348,7 @@ export function initNotifications() {
     {
       message: 'Structure has started unanchoring',
       colour: Colors.Red,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -359,7 +361,7 @@ export function initNotifications() {
     {
       message: 'Structure power restored',
       colour: Colors.Green,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: true,
@@ -372,7 +374,7 @@ export function initNotifications() {
     {
       message: 'Structure power failed',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.low_fuel_role,
+      role_to_mention: (c) => c.low_fuel_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: true,
@@ -385,7 +387,7 @@ export function initNotifications() {
     {
       message: 'POCO Attacked',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -398,7 +400,7 @@ export function initNotifications() {
     {
       message: 'POCO Re-inforced',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -411,7 +413,7 @@ export function initNotifications() {
     {
       message: 'POS Under Attack',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleTowerNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -424,7 +426,7 @@ export function initNotifications() {
     {
       message: 'POS Needs Resources',
       colour: Colors.Red,
-      get_role_to_mention: (c) => c.low_fuel_role,
+      role_to_mention: (c) => c.low_fuel_role,
       handler: handleTowerNotification,
       structureStateMessage: false,
       structureFuelMessage: false,
@@ -437,7 +439,7 @@ export function initNotifications() {
     {
       message: 'Structure Anchoring',
       colour: Colors.Yellow,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -449,7 +451,7 @@ export function initNotifications() {
   // messageTypes.set('StructuresReinforcementChanged', {
   //   message: 'Structure Reinforcement Time Changed',
   //   colour: Colors.Yellow,
-  //   get_role_to_mention: (c) => undefined,
+  //   role_to_mention: (c) => undefined,
   //   handler: handleStructureNotification,
   //   structureStateMessage: true,
   //   structureFuelMessage: false,
@@ -461,7 +463,7 @@ export function initNotifications() {
     {
       message: 'War Declared',
       colour: Colors.Red,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleWarDeclaredNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -474,7 +476,7 @@ export function initNotifications() {
     {
       message: 'War Inherited',
       colour: Colors.Orange,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleWarInheritedNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -487,7 +489,7 @@ export function initNotifications() {
     {
       message: 'War Headquarters No Longer Exists',
       colour: Colors.Orange,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleWarHQRemovedFromSpaceNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -500,7 +502,7 @@ export function initNotifications() {
     {
       message: 'Corporation No Longer War Eligible',
       colour: Colors.Orange,
-      get_role_to_mention: (c) => undefined,
+      role_to_mention: (c) => undefined,
       handler: handleCorpNoLongerWarEligibleNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -513,7 +515,7 @@ export function initNotifications() {
     {
       message: 'Sovereignty Hub Reinforced',
       colour: Colors.Orange,
-      get_role_to_mention: (c) => c.attack_alert_role,
+      role_to_mention: (c) => c.attack_alert_role,
       handler: handleSovStructureReinforcedNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -522,19 +524,9 @@ export function initNotifications() {
   );
 }
 
-async function noopHandler(
-  _client: Client<boolean>,
-  _corp: AuthenticatedCorp,
-  _note: GetCharacterNotificationsResponse[number],
-  _message: string,
-  _colour: number,
-  _role_to_mention: (c: DiscordChannel) => string | undefined,
-  _structureStateMessage: boolean,
-  _structureFuelMessage: boolean,
-  _miningUpdatesMessage: boolean
-) {
+async function noopHandler(details: NotificationDetails) {
   // intentionally do nothing for ignored notification types
-  return Promise.resolve();
+  return;
 }
 
 export function initNoOpNotifications() {
@@ -545,7 +537,7 @@ export function initNoOpNotifications() {
         {
           message: `IGNORED: ${nt}`,
           colour: Colors.Yellow,
-          get_role_to_mention: () => undefined,
+          role_to_mention: () => undefined,
           handler: noopHandler,
           structureStateMessage: false,
           structureFuelMessage: false,
@@ -564,19 +556,9 @@ const warEntityLookupEsi = new EsiClient({
   userAgent: 'EveStructureBot',
 });
 
-async function handleSkyhookNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  message: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
-) {
+async function handleSkyhookNotification(details: NotificationDetails) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
     // don't use itemID, it cannot be resolved via ESI
     const planetID = Number(values['planetID']) || 0;
     const planetName = await getPlanetName(planetID);
@@ -595,33 +577,33 @@ async function handleSkyhookNotification(
 
     const regionName = await getRegionNameFromSystemId(solarsystemID);
 
-    let details = `\n\nWhat: ${typeName}\nWhere: Planet ${planetName
+    let messageBody = `\n\nWhat: ${typeName}\nWhere: Planet ${planetName
       .replace(systemName, '')
       .trim()} in ${dotLanLink} (${regionName})`;
 
     if (values['timestamp'] && values['vulnerableTime']) {
       const jsTimestamp = filetimeToJsTimestamp(values['timestamp']); // 1764937640000 (ms since 1970)
-      details
+      messageBody
         += '\n\nThe structure will exit reinforcement '
         + getRelativeDiscordTime(new Date(jsTimestamp));
     }
 
-    details += await generateStructureAggressorStatement(values);
-    details += generateDefenceLevelsStatement(values, 1); // Skyhooks give shield/armor/hull values as 0-100
+    messageBody += await generateStructureAggressorStatement(values);
+    messageBody += generateDefenceLevelsStatement(values, 1); // Skyhooks give shield/armor/hull values as 0-100
 
     const thumbnail = `https://images.evetech.net/types/${typeID}/render?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
         if (
-          (structureStateMessage && thisChannel.structureStatus)
-          || (structureFuelMessage && thisChannel.structureFuel)
+          (details.structureStateMessage && thisChannel.structureStatus)
+          || (details.structureFuelMessage && thisChannel.structureFuel)
         ) {
           let content;
-          const role = role_to_mention(thisChannel);
+          const role = details.role_to_mention(thisChannel);
           if (role) {
             content = `<@&${role}>`;
           }
@@ -632,16 +614,16 @@ async function handleSkyhookNotification(
               content,
               embeds: [
                 generateGeneralNotificationEmbed(
-                  colour,
-                  message,
-                  details,
-                  note.timestamp,
-                  corp.corpName,
+                  details.colour,
+                  details.message,
+                  messageBody,
+                  details.note.timestamp,
+                  details.corp.corpName,
                   thumbnail
                 ),
               ],
             },
-            `Structure Notification: ${message}`
+            `Structure Notification: ${details.message}`
           );
         }
       }
@@ -649,27 +631,17 @@ async function handleSkyhookNotification(
   }
   catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+      `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
 }
 
-async function handleStructureNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  message: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
-) {
+async function handleStructureNotification(details: NotificationDetails) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
     const structId = Number(values['structureID']) || 0;
-    const thisStruct = corp.structures.find(
+    const thisStruct = details.corp.structures.find(
       (struct) => struct.structure_id === structId
     );
 
@@ -717,7 +689,7 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
         + getRelativeDiscordTime(new Date(jsTimestamp));
     }
     else if (values['timeLeft']) {
-      const currentTime = isoToFiletime(note.timestamp);
+      const currentTime = isoToFiletime(details.note.timestamp);
       const endTime = currentTime + BigInt(values['timeLeft']);
       messageDetail
         += `\n\nAction will be complete ${getRelativeDiscordTime(
@@ -730,18 +702,18 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
 
     const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
         if (
-          (structureStateMessage && thisChannel.structureStatus)
-          || (structureFuelMessage && thisChannel.structureFuel)
-          || (miningUpdatesMessage && thisChannel.miningUpdates)
+          (details.structureStateMessage && thisChannel.structureStatus)
+          || (details.structureFuelMessage && thisChannel.structureFuel)
+          || (details.miningUpdatesMessage && thisChannel.miningUpdates)
         ) {
           let content;
-          const role = role_to_mention(thisChannel);
+          const role = details.role_to_mention(thisChannel);
           if (role) {
             content = `<@&${role}>`;
           }
@@ -752,16 +724,16 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
               content,
               embeds: [
                 generateGeneralNotificationEmbed(
-                  colour,
-                  message,
+                  details.colour,
+                  details.message,
                   messageDetail,
-                  note.timestamp,
-                  corp.corpName,
+                  details.note.timestamp,
+                  details.corp.corpName,
                   thumbnail
                 ),
               ],
             },
-            `Structure Notification: ${message}`
+            `Structure Notification: ${details.message}`
           );
         }
       }
@@ -769,27 +741,19 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   }
   catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+      `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
 }
 
 async function handleStructureImpendingAbandonmentNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  message: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
+  details: NotificationDetails
 ) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
     const structureId = Number(values['structureID']) || 0;
-    const thisStruct = corp.structures.find(
+    const thisStruct = details.corp.structures.find(
       (struct) => struct.structure_id === structureId
     );
 
@@ -836,17 +800,17 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
 
     const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
         if (
-          (structureStateMessage && thisChannel.structureStatus)
-          || (structureFuelMessage && thisChannel.structureFuel)
-          || (miningUpdatesMessage && thisChannel.miningUpdates)
+          (details.structureStateMessage && thisChannel.structureStatus)
+          || (details.structureFuelMessage && thisChannel.structureFuel)
+          || (details.miningUpdatesMessage && thisChannel.miningUpdates)
         ) {
           let content;
-          const role = role_to_mention(thisChannel);
+          const role = details.role_to_mention(thisChannel);
           if (role) {
             content = `<@&${role}>`;
           }
@@ -857,16 +821,16 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
               content,
               embeds: [
                 generateGeneralNotificationEmbed(
-                  colour,
-                  message,
+                  details.colour,
+                  details.message,
                   messageDetail,
-                  note.timestamp,
-                  corp.corpName,
+                  details.note.timestamp,
+                  details.corp.corpName,
                   thumbnail
                 ),
               ],
             },
-            `Structure Notification: ${message}`
+            `Structure Notification: ${details.message}`
           );
         }
       }
@@ -874,30 +838,21 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   }
   catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+      `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
 }
 
-async function handleMoonMiningNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  message: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
-) {
+async function handleMoonMiningNotification(details: NotificationDetails) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
 
     // Ores by volume is sent in the notification text as a string like "\n  16264: 5000\n  16265: 10000\n"
     // filter values by those with keys that start with two spaces followed by only digits
     const oresByVolume = await Promise.all(
-      Object.entries(values)
+      Object
+        .entries(values)
         .filter(([key, value]) => {
           return /^\d+$/.test(key);
         })
@@ -909,7 +864,7 @@ async function handleMoonMiningNotification(
     );
 
     const structId = Number(values['structureID']) || 0;
-    const thisStruct = corp.structures.find(
+    const thisStruct = details.corp.structures.find(
       (struct) => struct.structure_id === structId
     );
 
@@ -973,18 +928,18 @@ Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
 
     const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
         if (
-          (structureStateMessage && thisChannel.structureStatus)
-          || (structureFuelMessage && thisChannel.structureFuel)
-          || (miningUpdatesMessage && thisChannel.miningUpdates)
+          (details.structureStateMessage && thisChannel.structureStatus)
+          || (details.structureFuelMessage && thisChannel.structureFuel)
+          || (details.miningUpdatesMessage && thisChannel.miningUpdates)
         ) {
           let content;
-          const role = role_to_mention(thisChannel);
+          const role = details.role_to_mention(thisChannel);
           if (role) {
             content = `<@&${role}>`;
           }
@@ -995,16 +950,16 @@ Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
               content,
               embeds: [
                 generateGeneralNotificationEmbed(
-                  colour,
-                  message,
+                  details.colour,
+                  details.message,
                   messageDetail,
-                  note.timestamp,
-                  corp.corpName,
+                  details.note.timestamp,
+                  details.corp.corpName,
                   thumbnail
                 ),
               ],
             },
-            `Structure Notification: ${message}`
+            `Structure Notification: ${details.message}`
           );
         }
       }
@@ -1012,25 +967,15 @@ Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
   }
   catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+      `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
 }
 
-async function handleWarDeclaredNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  title: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
-) {
+async function handleWarDeclaredNotification(details: NotificationDetails) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
 
     const declared_by_id = Number(values['declaredByID']) || 0;
     const declared_by_name = await getWarEntityName(declared_by_id);
@@ -1040,19 +985,18 @@ async function handleWarDeclaredNotification(
 
     const war_HQ = values['warHQ'] || 'Unknown Location';
 
-    const title = 'War Declared';
     const war_message = `${declared_by_name} has declared war on ${against_name} with '${stripHtmlTags(
       war_HQ
     )}' as the designated war headquarters.`;
     const thumbnail = `https://images.evetech.net/alliances/${declared_by_id}/logo?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
         let content;
-        const role = role_to_mention(thisChannel);
+        const role = details.role_to_mention(thisChannel);
         if (role) {
           content = `<@&${role}>`;
         }
@@ -1063,11 +1007,11 @@ async function handleWarDeclaredNotification(
             content,
             embeds: [
               generateGeneralNotificationEmbed(
-                colour,
-                title,
+                details.colour,
+                details.message,
                 war_message,
-                note.timestamp,
-                corp.corpName,
+                details.note.timestamp,
+                details.corp.corpName,
                 thumbnail
               ),
             ],
@@ -1079,25 +1023,15 @@ async function handleWarDeclaredNotification(
   }
   catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${title}. Body: ${note.text}%n`
+      `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
 }
 
-async function handleWarInheritedNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  title: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
-) {
+async function handleWarInheritedNotification(details: NotificationDetails) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
     const declaredById = Number(values['declaredByID']) || 0;
     // WarInherited payloads can include either opponentID or againstID for the opposing party.
     const opponentId =
@@ -1120,13 +1054,13 @@ async function handleWarInheritedNotification(
 
     const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
         let content;
-        const role = role_to_mention(thisChannel);
+        const role = details.role_to_mention(thisChannel);
         if (role) {
           content = `<@&${role}>`;
         }
@@ -1137,11 +1071,11 @@ async function handleWarInheritedNotification(
             content,
             embeds: [
               generateGeneralNotificationEmbed(
-                colour,
-                title,
+                details.colour,
+                details.message,
                 warMessage,
-                note.timestamp,
-                corp.corpName,
+                details.note.timestamp,
+                details.corp.corpName,
                 thumbnail
               ),
             ],
@@ -1153,26 +1087,17 @@ async function handleWarInheritedNotification(
   }
   catch (error) {
     LOGGER.error(
-      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n`
+      `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
         + String(error)
     );
   }
 }
 
 async function handleWarHQRemovedFromSpaceNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  title: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
+  details: NotificationDetails
 ) {
   try {
-    const values = parseNotificationText(note.text);
-
+    const values = parseNotificationText(details.note.text);
     const declaredById = Number(values['declaredByID']) || 0;
     const againstId = Number(values['againstID']) || 0;
     const warHQ = values['warHQ'] || 'Unknown Location';
@@ -1188,13 +1113,13 @@ async function handleWarHQRemovedFromSpaceNotification(
       ? `https://images.evetech.net/alliances/${declaredById}/logo?size=64`
       : undefined;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
         let content;
-        const role = role_to_mention(thisChannel);
+        const role = details.role_to_mention(thisChannel);
         if (role) {
           content = `<@&${role}>`;
         }
@@ -1205,11 +1130,11 @@ async function handleWarHQRemovedFromSpaceNotification(
             content,
             embeds: [
               generateGeneralNotificationEmbed(
-                colour,
-                title,
+                details.colour,
+                details.message,
                 notificationMessage,
-                note.timestamp,
-                corp.corpName,
+                details.note.timestamp,
+                details.corp.corpName,
                 thumbnail
               ),
             ],
@@ -1221,39 +1146,31 @@ async function handleWarHQRemovedFromSpaceNotification(
   }
   catch (error) {
     LOGGER.error(
-      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n`
+      `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
         + String(error)
     );
   }
 }
 
 async function handleCorpNoLongerWarEligibleNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  title: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
+  details: NotificationDetails
 ) {
   try {
-    const values = parseNotificationText(note.text);
-    const senderId = Number(note.sender_id) || 0;
+    const values = parseNotificationText(details.note.text);
+    const senderId = Number(details.note.sender_id) || 0;
     const candidateCorpIds = [
       Number(values['againstID']) || 0,
       Number(values['declaredByID']) || 0,
     ].filter((id) => id > 0);
 
     const noLongerEligibleCorpId =
-      candidateCorpIds.find((id) => id === corp.corpId)
+      candidateCorpIds.find((id) => id === details.corp.corpId)
       ?? candidateCorpIds.find((id) => id !== senderId)
-      ?? corp.corpId;
+      ?? details.corp.corpId;
 
     const noLongerEligibleCorpName =
-      noLongerEligibleCorpId === corp.corpId
-        ? corp.corpName
+      noLongerEligibleCorpId === details.corp.corpId
+        ? details.corp.corpName
         : await getCorpName(noLongerEligibleCorpId);
 
     const notificationMessage = `${noLongerEligibleCorpName} is no longer war eligible.`;
@@ -1261,13 +1178,13 @@ async function handleCorpNoLongerWarEligibleNotification(
       ? `https://images.evetech.net/corporations/${noLongerEligibleCorpId}/logo?size=64`
       : undefined;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
         let content;
-        const role = role_to_mention(thisChannel);
+        const role = details.role_to_mention(thisChannel);
         if (role) {
           content = `<@&${role}>`;
         }
@@ -1278,11 +1195,11 @@ async function handleCorpNoLongerWarEligibleNotification(
             content,
             embeds: [
               generateGeneralNotificationEmbed(
-                colour,
-                title,
+                details.colour,
+                details.message,
                 notificationMessage,
-                note.timestamp,
-                corp.corpName,
+                details.note.timestamp,
+                details.corp.corpName,
                 thumbnail
               ),
             ],
@@ -1294,7 +1211,7 @@ async function handleCorpNoLongerWarEligibleNotification(
   }
   catch (error) {
     LOGGER.error(
-      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n`
+      `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
         + String(error)
     );
   }
@@ -1352,19 +1269,9 @@ async function getWarEntityName(
   return `Unknown Entity (${entityId})`;
 }
 
-async function handleTowerNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  message: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
-) {
+async function handleTowerNotification(details: NotificationDetails) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
 
     const typeName = await getItemName(values['typeID']);
     const moonName = await getMoonName(values['moonID']);
@@ -1401,8 +1308,8 @@ Where: Planet ${moonName
 
     const thumbnail = `https://images.evetech.net/types/${values['typeID']}/render?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
 
@@ -1411,7 +1318,7 @@ Where: Planet ${moonName
           || (thisChannel.starbaseStatus && statusMessage)
         ) {
           let content;
-          const role = role_to_mention(thisChannel);
+          const role = details.role_to_mention(thisChannel);
           if (role) {
             content = `<@&${role}>`;
           }
@@ -1422,11 +1329,11 @@ Where: Planet ${moonName
               content,
               embeds: [
                 generateGeneralNotificationEmbed(
-                  colour,
-                  message,
+                  details.colour,
+                  details.message,
                   builtMessage,
-                  note.timestamp,
-                  corp.corpName,
+                  details.note.timestamp,
+                  details.corp.corpName,
                   thumbnail
                 ),
               ],
@@ -1439,7 +1346,7 @@ Where: Planet ${moonName
   }
   catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${message}. Body: ${note.text}%n`
+      `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
@@ -1543,12 +1450,14 @@ function stripHtmlTags(war_HQ: string) {
 }
 function formatOreVolume(volume: number) {
   // format with commas as thousand separators with 0 decimal places, then add m³ at the end
-  let displayVolume = Math.round(volume).toLocaleString(
-    'en-US',
-    {
-      maximumFractionDigits: 0,
-    }
-  );
+  let displayVolume = Math
+    .round(volume)
+    .toLocaleString(
+      'en-US',
+      {
+        maximumFractionDigits: 0,
+      }
+    );
   return `${displayVolume} m³`;
 }
 
@@ -1572,18 +1481,10 @@ function isoToFiletime(isoString: string): bigint {
 
 // Handler for SovStructureReinforced notification
 async function handleSovStructureReinforcedNotification(
-  client: Client<boolean>,
-  corp: AuthenticatedCorp,
-  note: GetCharacterNotificationsResponse[number],
-  message: string,
-  colour: number,
-  role_to_mention: (c: DiscordChannel) => string | undefined,
-  structureStateMessage: boolean,
-  structureFuelMessage: boolean,
-  miningUpdatesMessage: boolean
+  details: NotificationDetails
 ) {
   try {
-    const values = parseNotificationText(note.text);
+    const values = parseNotificationText(details.note.text);
     const solarsystemID = Number(values['solarSystemID']) || 0;
     const systemName = await getSystemName(solarsystemID);
     const regionName = await getRegionNameFromSystemId(solarsystemID);
@@ -1610,13 +1511,13 @@ async function handleSovStructureReinforcedNotification(
 
     const thumbnail = `https://images.evetech.net/alliances/${allianceId}/logo?size=64`;
 
-    for (const channelId of corp.channelIds) {
-      const channel = client.channels.cache.get(channelId);
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
       if (channel instanceof TextChannel) {
         const thisChannel = data.channelFor(channel);
-        if (structureStateMessage && thisChannel.structureStatus) {
+        if (details.structureStateMessage && thisChannel.structureStatus) {
           let content;
-          const role = role_to_mention(thisChannel);
+          const role = details.role_to_mention(thisChannel);
           if (role) {
             content = `<@&${role}>`;
           }
@@ -1626,16 +1527,16 @@ async function handleSovStructureReinforcedNotification(
               content,
               embeds: [
                 generateGeneralNotificationEmbed(
-                  colour,
-                  message,
+                  details.colour,
+                  details.message,
                   messageDetail,
-                  note.timestamp,
+                  details.note.timestamp,
                   allianceName,
                   thumbnail
                 ),
               ],
             },
-            `Sov Structure Notification: ${message}`
+            `Sov Structure Notification: ${details.message}`
           );
         }
       }
@@ -1643,7 +1544,7 @@ async function handleSovStructureReinforcedNotification(
   }
   catch (error) {
     LOGGER.error(
-      `An error occured in handleSovStructureReinforcedNotification for ${message}. Body: ${note.text}%n`
+      `An error occured in handleSovStructureReinforcedNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }

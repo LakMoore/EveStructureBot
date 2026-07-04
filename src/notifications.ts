@@ -97,21 +97,14 @@ export async function processNotifications(
   for (const notification of selectedNotifications) {
     const data = messageTypes.get(notification.type);
     if (data) {
-      if (process.env.NODE_ENV === 'development') {
-        LOGGER.info('Handling notification ' + JSON.stringify(notification));
-      }
+      LOGGER.debug('Handling notification ' + JSON.stringify(notification));
       try {
-        await data.handler(
+        await data.handler({
+          ...data,
           client,
           corp,
-          notification,
-          data.message,
-          data.colour,
-          data.get_role_to_mention,
-          data.structureStateMessage,
-          data.structureFuelMessage,
-          data.miningUpdatesMessage
-        );
+          note: notification,
+        });
       }
       catch (err) {
         const payload = {
