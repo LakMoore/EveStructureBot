@@ -4,8 +4,10 @@ import {
   PermissionsBitField,
   TextChannel,
 } from 'discord.js';
+import { execSync } from 'node:child_process';
+import packageJson from '../../package.json';
 import { Commands } from '../Commands';
-import { data, delay } from '../Bot';
+import { data, delay, sendMessage } from '../Bot';
 import { checkMembership } from '../EveSSO';
 import { initialiseReloadCommandOptions } from '../commands/reload';
 import { checkNotificationsForCorp } from '../notifications';
@@ -18,25 +20,30 @@ const POLL_ATTEMPT_DELAY = 3000;
 let corpIndex = 0;
 
 export default (client: Client): void => {
-  client.on('ready', async () => {
-    if (!client.user || !client.application) {
-      return;
+  client.on(
+    'ready',
+    async () => {
+      if (!client.user || !client.application) {
+        return;
+      }
+
+      await initialiseReloadCommandOptions();
+      await client.application.commands.set(Commands);
+
+      LOGGER.info(`${client.user.username} is online`);
+
+      // locate our guild and error channel and store it in LOGGER
+      await GuildFinder.findAndStoreErrorChannel(client);
+
+      await announceUpdateToRunningSubs(client);
+
+      LOGGER.warning(
+        'Starting polling for structures, starbases and notifications...'
+      );
+
+      await startPolling(client);
     }
-
-    await initialiseReloadCommandOptions();
-    await client.application.commands.set(Commands);
-
-    LOGGER.info(`${client.user.username} is online`);
-
-    // locate our guild and error channel and store it in LOGGER
-    await GuildFinder.findAndStoreErrorChannel(client);
-
-    LOGGER.warning(
-      'Starting polling for structures, starbases and notifications...'
-    );
-
-    await startPolling(client);
-  });
+  );
 };
 
 async function startPolling(client: Client) {
@@ -78,12 +85,13 @@ async function startPolling(client: Client) {
                 }
               }
             }
-          } catch (error) {
+          }
+          catch (error) {
             if (error instanceof DiscordAPIError && error.code === 50001) {
               LOGGER.warning(
-                'Failed to check permissions for channel ' +
-                  channelId +
-                  '. Removing channel!'
+                'Failed to check permissions for channel '
+                  + channelId
+                  + '. Removing channel!'
               );
               thisCorp.channelIds = thisCorp.channelIds.filter(
                 (c) => c != channelId
@@ -96,12 +104,13 @@ async function startPolling(client: Client) {
         try {
           const guild = await client.guilds.fetch(thisCorp.serverId);
           thisCorp.serverName = guild.name;
-        } catch (error) {
+        }
+        catch (error) {
           if (error instanceof DiscordAPIError && error.code === 10004) {
             LOGGER.warning(
-              thisCorp.channelIds.length +
-                ' channels found for server ' +
-                thisCorp.corpName
+              thisCorp.channelIds.length
+                + ' channels found for server '
+                + thisCorp.corpName
             );
             thisCorp.serverId = '';
             await data.save();
@@ -139,36 +148,37 @@ async function startPolling(client: Client) {
             .flatMap((m) => m.characters.filter((c) => !c.needsReAuth))
             .sort(
               (a, b) =>
-                new Date(a.nextNotificationCheck).getTime() -
-                new Date(b.nextNotificationCheck).getTime()
+                new Date(a.nextNotificationCheck).getTime()
+                - new Date(b.nextNotificationCheck).getTime()
             )
             .map((c) => {
               let roleTitle = '';
               if (c.roles?.roles?.includes('Director')) {
                 roleTitle = ' (Director)';
-              } else if (c.roles?.roles?.includes('Station_Manager')) {
+              }
+              else if (c.roles?.roles?.includes('Station_Manager')) {
                 roleTitle = ' (Manager)';
               }
               const secondsUntilNotificationCheck =
-                (new Date(c.nextNotificationCheck).getTime() - Date.now()) /
-                1000;
+                (new Date(c.nextNotificationCheck).getTime() - Date.now())
+                / 1000;
               const secondsUntilStructureCheck =
                 (new Date(c.nextStructureCheck).getTime() - Date.now()) / 1000;
               const secondsUntilStarbaseCheck =
                 (new Date(c.nextStarbaseCheck).getTime() - Date.now()) / 1000;
               return (
-                c.characterName +
-                ' ' +
-                roleTitle +
-                '\tnotifications in ' +
-                secondsUntilNotificationCheck +
-                ' seconds' +
-                '\tstructure checks in ' +
-                secondsUntilStructureCheck +
-                ' seconds' +
-                '\tstarbase checks in ' +
-                secondsUntilStarbaseCheck +
-                ' seconds'
+                c.characterName
+                + ' '
+                + roleTitle
+                + '\tnotifications in '
+                + secondsUntilNotificationCheck
+                + ' seconds'
+                + '\tstructure checks in '
+                + secondsUntilStructureCheck
+                + ' seconds'
+                + '\tstarbase checks in '
+                + secondsUntilStarbaseCheck
+                + ' seconds'
               );
             })
             .join('\n');
@@ -184,23 +194,86 @@ async function startPolling(client: Client) {
           `Checking Structures at ${new Date(Date.now()).toUTCString()}`
         );
       }
-    } catch (error: unknown) {
+    }
+    catch (error: unknown) {
       // ESI package throws an unamed object in the following format: { error: string, status: number }
       if (
-        typeof error === 'object' &&
-        error !== null &&
-        'error' in error &&
-        'status' in error
+        typeof error === 'object'
+        && error !== null
+        && 'error' in error
+        && 'status' in error
       ) {
         const esiError = error as { error: string; status: number };
         LOGGER.error(
           `ESI Error: ${esiError.error}, Status: ${esiError.status}`
         );
-      } else {
+      }
+      else {
         // log as error severity
         LOGGER.error(error instanceof Error ? error : new Error(String(error)));
       }
     }
     corpIndex++;
   } while (true);
+}
+
+function getCurrentBuildId(): string {
+  try {
+    const commit = execSync(
+      'git rev-parse HEAD',
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
+    ).trim();
+    if (commit) {
+      return `git:${commit}`;
+    }
+  }
+  catch {
+    // fall back to the package version
+  }
+
+  return `version:${packageJson.version}`;
+}
+
+async function announceUpdateToRunningSubs(client: Client) {
+  const currentBuildId = getCurrentBuildId();
+  if (data.lastUpdateAnnouncement === currentBuildId) {
+    return;
+  }
+
+  const channelIds = [
+    ...new Set(data.authenticatedCorps.flatMap((corp) => corp.channelIds)),
+  ];
+  if (channelIds.length === 0) {
+    data.lastUpdateAnnouncement = currentBuildId;
+    await data.save();
+    return;
+  }
+
+  LOGGER.warning('Announcing bot update to subscribed channels...');
+
+  for (const channelId of channelIds) {
+    try {
+      const channel = await client.channels.fetch(channelId);
+      if (channel instanceof TextChannel) {
+        await sendMessage(
+          channel,
+          'I have been updated! Join the Eve Apps by Lak Moore Discord: https://discord.gg/9xgRvQf5A',
+          'update announcement'
+        );
+      }
+    }
+    catch (error) {
+      LOGGER.warning(
+        `Failed to send update announcement to channel ${channelId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+
+  data.lastUpdateAnnouncement = currentBuildId;
+  await data.save();
 }

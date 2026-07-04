@@ -76,8 +76,10 @@ const SAVE_DELAY_MS = 5 * 60 * 1000; // 5 mins in milliseconds
 export class Data {
   private static readonly CORPS_DATA_KEY = 'users';
   private static readonly CHANNELS_DATA_KEY = 'channels';
+  private static readonly UPDATE_ANNOUNCEMENT_KEY = 'last_update_announcement';
   private _authenticatedCorps: AuthenticatedCorp[] = [];
   private _channels: DiscordChannel[] = [];
+  private _lastUpdateAnnouncement = '';
 
   public async init() {
     await storage.init();
@@ -121,6 +123,9 @@ export class Data {
     }
 
     this._channels = tempChannels;
+    const tempLastUpdateAnnouncement: string | undefined =
+      await storage.getItem(Data.UPDATE_ANNOUNCEMENT_KEY);
+    this._lastUpdateAnnouncement = tempLastUpdateAnnouncement ?? '';
 
     const corpsToDelete: AuthenticatedCorp[] = [];
 
@@ -157,11 +162,13 @@ export class Data {
               if (charIdx > -1) {
                 // if the member already has this character, copy over the top
                 corpMember.characters[charIdx] = thisCharacter;
-              } else {
+              }
+              else {
                 // if the member does not have this character, add it
                 corpMember.characters.push(thisCharacter);
               }
-            } else {
+            }
+            else {
               // if this member is not in our list, add them with this initial character attached
               thisCorp.members.push({
                 discordId: thisCharacter.discordId,
@@ -223,11 +230,13 @@ export class Data {
                 if (!memberToKeep.characters[charIndex].authToken) {
                   memberToKeep.characters[charIndex] = char;
                 }
-              } else {
+              }
+              else {
                 memberToKeep.characters.push(char);
               }
             }
-          } else {
+          }
+          else {
             corpToKeep.members.push(memberToDelete);
           }
         });
@@ -258,12 +267,12 @@ export class Data {
           .filter((c) => c.corpId == thisCorp.corpId && c.serverName)
           .map((c) => c.serverName);
         LOGGER.warning(
-          '!!! Found a duplicate corp across ' +
-            serverCountForCorp +
-            ' servers: ' +
-            thisCorp.corpName +
-            '\nServers:\n' +
-            allServerNames.join('\n')
+          '!!! Found a duplicate corp across '
+            + serverCountForCorp
+            + ' servers: '
+            + thisCorp.corpName
+            + '\nServers:\n'
+            + allServerNames.join('\n')
         );
       }
 
@@ -303,7 +312,8 @@ export class Data {
 
             if (existingIndex == -1) {
               dedupedCharacters.push(character);
-            } else {
+            }
+            else {
               const existing = dedupedCharacters[existingIndex];
 
               const existingAuthAt = new Date(
@@ -317,9 +327,11 @@ export class Data {
               let other = character;
 
               if (
-                !Number.isNaN(incomingAuthAt) &&
-                (Number.isNaN(existingAuthAt) ||
-                  incomingAuthAt > existingAuthAt)
+                !Number.isNaN(incomingAuthAt)
+                && (
+                  Number.isNaN(existingAuthAt)
+                  || incomingAuthAt > existingAuthAt
+                )
               ) {
                 merged = character;
                 other = existing;
@@ -337,9 +349,11 @@ export class Data {
               ).getTime();
               const otherTokenExpires = new Date(other.tokenExpires).getTime();
               if (
-                !Number.isNaN(otherTokenExpires) &&
-                (Number.isNaN(mergedTokenExpires) ||
-                  otherTokenExpires > mergedTokenExpires)
+                !Number.isNaN(otherTokenExpires)
+                && (
+                  Number.isNaN(mergedTokenExpires)
+                  || otherTokenExpires > mergedTokenExpires
+                )
               ) {
                 merged.tokenExpires = other.tokenExpires;
               }
@@ -347,8 +361,8 @@ export class Data {
               merged.needsReAuth = merged.needsReAuth && other.needsReAuth;
 
               if (
-                merged.roles?.roles == undefined &&
-                other.roles?.roles != undefined
+                merged.roles?.roles == undefined
+                && other.roles?.roles != undefined
               ) {
                 merged.roles = other.roles;
               }
@@ -373,7 +387,8 @@ export class Data {
           if (!character.mostRecentAuthAt) {
             if (character.needsReAuth) {
               character.mostRecentAuthAt = new Date(0);
-            } else {
+            }
+            else {
               character.mostRecentAuthAt = new Date();
             }
             upgraded = true;
@@ -381,7 +396,8 @@ export class Data {
           if (!character.authFailedAt) {
             if (character.needsReAuth) {
               character.authFailedAt = new Date();
-            } else {
+            }
+            else {
               character.authFailedAt = new Date(0);
             }
             upgraded = true;
@@ -419,6 +435,14 @@ export class Data {
     return this._authenticatedCorps;
   }
 
+  get lastUpdateAnnouncement() {
+    return this._lastUpdateAnnouncement;
+  }
+
+  set lastUpdateAnnouncement(value: string) {
+    this._lastUpdateAnnouncement = value;
+  }
+
   public channelFor(channel: TextChannel) {
     let tempChannel = this._channels.find((c) => c.channelId == channel.id);
     if (!tempChannel) {
@@ -443,7 +467,8 @@ export class Data {
       await delay(SAVE_DELAY_MS);
       // infinite loop required
       setTimeout(async () => await this.autoSave(), 1);
-    } catch (error) {
+    }
+    catch (error) {
       LOGGER.error(error instanceof Error ? error : new Error(String(error)));
     }
   }
@@ -452,6 +477,10 @@ export class Data {
     LOGGER.info('Persisting data to filesystem...');
     await storage.setItem(Data.CORPS_DATA_KEY, this._authenticatedCorps);
     await storage.setItem(Data.CHANNELS_DATA_KEY, this._channels);
+    await storage.setItem(
+      Data.UPDATE_ANNOUNCEMENT_KEY,
+      this._lastUpdateAnnouncement
+    );
   }
 
   public async backup() {
