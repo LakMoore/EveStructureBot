@@ -257,7 +257,7 @@ async function announceUpdateToSubscribedChannels(client: Client) {
       if (channel instanceof TextChannel) {
         announcedToAnyChannel = true;
         await channel.send(
-          'I have been updated! Join the EVE Apps by Lak Moore Discord: https://discord.gg/9xgRvQf5A'
+          'EveStructureBot has been updated! Join the Eve Apps by Lak Moore Discord to learn more: https://discord.gg/9xgRvQf5A'
         );
       }
       else {
