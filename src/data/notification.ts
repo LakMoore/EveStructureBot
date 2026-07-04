@@ -931,8 +931,10 @@ async function handleWarHQRemovedFromSpaceNotification(
     const againstId = Number(values['againstID']) || 0;
     const warHQ = values['warHQ'] || 'Unknown Location';
 
-    const declaredBy = await getWarEntityName(declaredById);
-    const against = await getWarEntityName(againstId);
+    const [declaredBy, against] = await Promise.all([
+      getWarEntityName(declaredById),
+      getWarEntityName(againstId),
+    ]);
     const cleanWarHQ = stripHtmlTags(warHQ);
 
     const notificationMessage = `The designated war headquarters for the war between ${declaredBy} and ${against} no longer exists in space.\nLast known war headquarters: '${cleanWarHQ}'.`;
