@@ -73,6 +73,7 @@ const NOOP_NOTIFICATIONS: Array<
   'RaffleExpired',
   'CorporationGoalCreated',
   'CorporationGoalClosed',
+  'KillReportVictim',
 ];
 
 export function parseNotificationText(text?: string) {
