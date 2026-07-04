@@ -44,7 +44,7 @@ import {
   getRegionNameFromSystemId,
   getSystemName,
 } from '../starbases';
-import { GetCharacterNotificationsResponse } from '@localisprimary/esi';
+import { EsiClient, GetCharacterNotificationsResponse } from '@localisprimary/esi';
 import { generateGeneralNotificationEmbed } from '../embeds/generalNotification';
 import { LOGGER } from '../Logger';
 
@@ -226,6 +226,16 @@ export function initNotifications() {
     miningUpdatesMessage: false,
   });
 
+  messageTypes.set('StructureImpendingAbandonmentAssetsAtRisk', {
+    message: 'Structure Impending Abandonment (Assets At Risk)',
+    colour: Colors.Orange,
+    get_role_to_mention: (c) => c.low_fuel_role,
+    handler: handleStructureImpendingAbandonmentNotification,
+    structureStateMessage: true,
+    structureFuelMessage: true,
+    miningUpdatesMessage: false,
+  });
+
   messageTypes.set('StructureDestroyed', {
     message: 'Structure destroyed',
     colour: Colors.Red,
@@ -377,6 +387,36 @@ export function initNotifications() {
     miningUpdatesMessage: false,
   });
 
+  messageTypes.set('WarInherited', {
+    message: 'War Inherited',
+    colour: Colors.Orange,
+    get_role_to_mention: (c) => undefined,
+    handler: handleWarInheritedNotification,
+    structureStateMessage: true,
+    structureFuelMessage: false,
+    miningUpdatesMessage: false,
+  });
+
+  messageTypes.set('WarHQRemovedFromSpace', {
+    message: 'War Headquarters No Longer Exists',
+    colour: Colors.Orange,
+    get_role_to_mention: (c) => undefined,
+    handler: handleWarHQRemovedFromSpaceNotification,
+    structureStateMessage: true,
+    structureFuelMessage: false,
+    miningUpdatesMessage: false,
+  });
+
+  messageTypes.set('CorpNoLongerWarEligible', {
+    message: 'Corporation No Longer War Eligible',
+    colour: Colors.Orange,
+    get_role_to_mention: (c) => undefined,
+    handler: handleCorpNoLongerWarEligibleNotification,
+    structureStateMessage: true,
+    structureFuelMessage: false,
+    miningUpdatesMessage: false,
+  });
+
   messageTypes.set('SovStructureReinforced', {
     message: 'Sovereignty Hub Reinforced',
     colour: Colors.Orange,
@@ -423,6 +463,9 @@ export function initNoOpNotifications() {
 const dotLanAllianceURL = 'https://evemaps.dotlan.net/alliance/';
 //https://evemaps.dotlan.net/corp/Another_Drone_Regions_Crab_Corp
 const dotLanCorpURL = 'https://evemaps.dotlan.net/corp/';
+const warEntityLookupEsi = new EsiClient({
+  userAgent: 'EveStructureBot',
+});
 
 async function handleSkyhookNotification(
   client: Client<boolean>,
@@ -618,6 +661,102 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   }
 }
 
+async function handleStructureImpendingAbandonmentNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  message: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const values = parseNotificationText(note.text);
+    const structureId = Number(values['structureID']) || 0;
+    const thisStruct = corp.structures.find(
+      (struct) => struct.structure_id === structureId
+    );
+
+    const typeId =
+      thisStruct?.type_id || values['structureTypeID'] || values['typeID'];
+    const systemId =
+      thisStruct?.system_id ||
+      values['solarsystemID'] ||
+      values['solarSystemID'];
+    const daysUntilAbandon = Number(values['daysUntilAbandon']) || 0;
+    const isCorpOwned = values['isCorpOwned'] === 'true';
+    let structureName = thisStruct?.name || stripHtmlTags(values['structureLink']);
+
+    let dotLanLink = `Unknown System`;
+    if (systemId) {
+      const systemName = await getSystemName(systemId);
+      dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`;
+      structureName =
+        structureName?.replace(systemName + ' - ', '').trim() || structureName;
+    }
+
+    if (!typeId || !systemId) {
+      LOGGER.error(
+        `Missing typeId or systemId for structure abandonment notification. Values: ${JSON.stringify(values)}`
+      );
+    }
+
+    const ownership = isCorpOwned ? 'corporation-owned' : 'alliance-owned';
+    const daysText =
+      daysUntilAbandon > 0
+        ? `in ${daysUntilAbandon} day${daysUntilAbandon === 1 ? '' : 's'}`
+        : 'soon';
+    const messageDetail = `A ${ownership} structure is approaching abandonment ${daysText}, and assets are at risk.
+What: ${await getItemName(typeId)}${structureName ? ` called '${structureName}'` : ''}
+Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
+
+    const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+        if (
+          (structureStateMessage && thisChannel.structureStatus) ||
+          (structureFuelMessage && thisChannel.structureFuel) ||
+          (miningUpdatesMessage && thisChannel.miningUpdates)
+        ) {
+          let content;
+          const role = role_to_mention(thisChannel);
+          if (role) {
+            content = `<@&${role}>`;
+          }
+
+          await sendMessage(
+            channel,
+            {
+              content,
+              embeds: [
+                generateGeneralNotificationEmbed(
+                  colour,
+                  message,
+                  messageDetail,
+                  note.timestamp,
+                  corp.corpName,
+                  thumbnail
+                ),
+              ],
+            },
+            `Structure Notification: ${message}`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    LOGGER.error(
+      `An error occured in handleNotification for ${message}. Body: ${note.text}%n` +
+        String(error)
+    );
+  }
+}
+
 async function handleMoonMiningNotification(
   client: Client<boolean>,
   corp: AuthenticatedCorp,
@@ -758,10 +897,10 @@ async function handleWarDeclaredNotification(
     const values = parseNotificationText(note.text);
 
     const declared_by_id = Number(values['declaredByID']) || 0;
-    const declared_by_name = await getAllianceName(declared_by_id);
+    const declared_by_name = await getWarEntityName(declared_by_id);
 
     const against_id = Number(values['againstID']) || 0;
-    const against_name = await getAllianceName(against_id);
+    const against_name = await getWarEntityName(against_id);
 
     const war_HQ = values['warHQ'] || 'Unknown Location';
 
@@ -805,6 +944,255 @@ async function handleWarDeclaredNotification(
         String(error)
     );
   }
+}
+
+async function handleWarInheritedNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  title: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const values = parseNotificationText(note.text);
+    const declaredById = Number(values['declaredByID']) || 0;
+    // WarInherited payloads can include either opponentID or againstID for the opposing party.
+    const opponentId =
+      Number(values['opponentID']) || Number(values['againstID']) || 0;
+    const quitterId = Number(values['quitterID']) || 0;
+    const allianceId = Number(values['allianceID']) || 0;
+
+    const declaredBy = await getWarEntityName(declaredById, 'alliance');
+    const opponent = await getWarEntityName(opponentId, 'alliance');
+    const quitter = await getWarEntityName(quitterId, 'corporation');
+    const alliance = await getWarEntityName(allianceId, 'alliance');
+
+    let warMessage = `${quitter} has inherited an active war between ${declaredBy} and ${opponent}.`;
+    // allianceID can refer to the alliance context of the inheritance event and is not always equal to declaredByID.
+    if (allianceId && allianceId !== declaredById) {
+      warMessage += `\nAlliance context: ${alliance}.`;
+    }
+    warMessage +=
+      '\nThis usually means a corporation left an alliance that is already at war.';
+
+    const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                colour,
+                title,
+                warMessage,
+                note.timestamp,
+                corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${warMessage}`
+        );
+      }
+    }
+  } catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
+        String(error)
+    );
+  }
+}
+
+async function handleWarHQRemovedFromSpaceNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  title: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const values = parseNotificationText(note.text);
+
+    const declaredById = Number(values['declaredByID']) || 0;
+    const againstId = Number(values['againstID']) || 0;
+    const warHQ = values['warHQ'] || 'Unknown Location';
+
+    const [declaredBy, against] = await Promise.all([
+      getWarEntityName(declaredById),
+      getWarEntityName(againstId),
+    ]);
+    const cleanWarHQ = stripHtmlTags(warHQ);
+
+    const notificationMessage = `The designated war headquarters for the war between ${declaredBy} and ${against} no longer exists in space.\nLast known war headquarters: '${cleanWarHQ}'.`;
+    const thumbnail = declaredById
+      ? `https://images.evetech.net/alliances/${declaredById}/logo?size=64`
+      : undefined;
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                colour,
+                title,
+                notificationMessage,
+                note.timestamp,
+                corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  } catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
+        String(error)
+    );
+  }
+}
+
+async function handleCorpNoLongerWarEligibleNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  title: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const senderId = Number(note.sender_id) || 0;
+    const senderName = senderId ? await getCorpName(senderId) : corp.corpName;
+
+    const notificationMessage = `${senderName} is no longer war eligible.`;
+    const thumbnail = senderId
+      ? `https://images.evetech.net/corporations/${senderId}/logo?size=64`
+      : undefined;
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                colour,
+                title,
+                notificationMessage,
+                note.timestamp,
+                corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  } catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
+        String(error)
+    );
+  }
+}
+
+async function getWarEntityName(
+  entityId: number,
+  preferredType?: 'alliance' | 'corporation'
+) {
+  if (!entityId) {
+    return 'Unknown Entity';
+  }
+
+  const lookupAlliance = async () => {
+    const { data: allianceResult } = await warEntityLookupEsi.getAlliance({
+      alliance_id: entityId,
+    });
+    if (allianceResult?.name) {
+      return `${allianceResult.name} (Alliance)`;
+    }
+    return undefined;
+  };
+
+  const lookupCorporation = async () => {
+    const { data: corpResult } = await warEntityLookupEsi.getCorporation({
+      corporation_id: entityId,
+    });
+    if (corpResult?.name) {
+      return `${corpResult.name} (Corporation)`;
+    }
+    return undefined;
+  };
+
+  const orderedLookups =
+    preferredType === 'corporation'
+      ? [lookupCorporation, lookupAlliance]
+      : [lookupAlliance, lookupCorporation];
+
+  for (const lookup of orderedLookups) {
+    try {
+      const name = await lookup();
+      if (name) {
+        return name;
+      }
+    } catch (error) {
+      LOGGER.debug(
+        `War entity lookup failed for ${entityId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+
+  return `Unknown Entity (${entityId})`;
 }
 
 async function handleTowerNotification(
