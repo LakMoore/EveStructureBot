@@ -839,10 +839,10 @@ async function handleWarInheritedNotification(
     const quitterId = Number(values['quitterID']) || 0;
     const allianceId = Number(values['allianceID']) || 0;
 
-    const declaredBy = await getWarEntityName(declaredById);
-    const opponent = await getWarEntityName(opponentId);
-    const quitter = await getWarEntityName(quitterId);
-    const alliance = await getWarEntityName(allianceId);
+    const declaredBy = await getWarEntityName(declaredById, 'alliance');
+    const opponent = await getWarEntityName(opponentId, 'alliance');
+    const quitter = await getWarEntityName(quitterId, 'corporation');
+    const alliance = await getWarEntityName(allianceId, 'alliance');
 
     let warMessage = `${quitter} has inherited an active war between ${declaredBy} and ${opponent}.`;
     if (allianceId && allianceId !== declaredById) {
@@ -885,37 +885,54 @@ async function handleWarInheritedNotification(
     }
   } catch (error) {
     LOGGER.error(
-      `An error occurred in handleNotification for ${title}. Body: ${note.text}%n` +
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
         String(error)
     );
   }
 }
 
-async function getWarEntityName(entityId: number) {
+async function getWarEntityName(
+  entityId: number,
+  preferredType?: 'alliance' | 'corporation'
+) {
   if (!entityId) {
     return 'Unknown Entity';
   }
 
-  try {
+  const lookupAlliance = async () => {
     const { data: allianceResult } = await warEntityLookupEsi.getAlliance({
       alliance_id: entityId,
     });
     if (allianceResult?.name) {
       return `${allianceResult.name} (Alliance)`;
     }
-  } catch {
-    // fallback to corp lookup
-  }
+    return undefined;
+  };
 
-  try {
+  const lookupCorporation = async () => {
     const { data: corpResult } = await warEntityLookupEsi.getCorporation({
       corporation_id: entityId,
     });
     if (corpResult?.name) {
       return `${corpResult.name} (Corporation)`;
     }
-  } catch {
-    // ignore
+    return undefined;
+  };
+
+  const orderedLookups =
+    preferredType === 'corporation'
+      ? [lookupCorporation, lookupAlliance]
+      : [lookupAlliance, lookupCorporation];
+
+  for (const lookup of orderedLookups) {
+    try {
+      const name = await lookup();
+      if (name) {
+        return name;
+      }
+    } catch {
+      // try fallback lookup
+    }
   }
 
   return `Unknown Entity (${entityId})`;
