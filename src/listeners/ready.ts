@@ -4,7 +4,6 @@ import {
   PermissionsBitField,
   TextChannel,
 } from 'discord.js';
-import { spawnSync } from 'node:child_process';
 import packageJson from '../../package.json';
 import { Commands } from '../Commands';
 import { data, delay } from '../Bot';
@@ -218,39 +217,9 @@ async function startPolling(client: Client) {
 }
 
 /**
- * Returns the current build identifier as `git:<hash>` or `version:<semver>`.
+ * Returns the current version identifier as `version:<semver>`.
  */
 function getCurrentBuildId(): string {
-  try {
-    const result = spawnSync(
-      'git',
-      ['rev-parse', 'HEAD'],
-      {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      }
-    );
-    const commit = result.stdout?.trim();
-    if (result.status === 0 && commit) {
-      return `git:${commit}`;
-    }
-
-    LOGGER.warning(
-      `Unable to read git commit hash for update announcements; falling back to package version (${
-        result.error instanceof Error
-          ? result.error.message
-          : result.stderr?.trim() || 'unknown error'
-      }).`
-    );
-  }
-  catch (error) {
-    LOGGER.warning(
-      `Unable to read git commit hash for update announcements; falling back to package version (${
-        error instanceof Error ? error.message : String(error)
-      }).`
-    );
-  }
-
   return `version:${packageJson.version}`;
 }
 
