@@ -387,6 +387,16 @@ export function initNotifications() {
     miningUpdatesMessage: false,
   });
 
+  messageTypes.set('CorpNoLongerWarEligible', {
+    message: 'Corporation No Longer War Eligible',
+    colour: Colors.Orange,
+    get_role_to_mention: (c) => undefined,
+    handler: handleCorpNoLongerWarEligibleNotification,
+    structureStateMessage: true,
+    structureFuelMessage: false,
+    miningUpdatesMessage: false,
+  });
+
   messageTypes.set('SovStructureReinforced', {
     message: 'Sovereignty Hub Reinforced',
     colour: Colors.Orange,
@@ -854,6 +864,64 @@ async function handleWarInheritedNotification(
       '\nThis usually means a corporation left an alliance that is already at war.';
 
     const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                colour,
+                title,
+                warMessage,
+                note.timestamp,
+                corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${warMessage}`
+        );
+      }
+    }
+  } catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
+        String(error)
+    );
+  }
+}
+
+async function handleCorpNoLongerWarEligibleNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  title: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const senderId = Number(note.sender_id) || 0;
+    const senderName = senderId ? await getCorpName(senderId) : corp.corpName;
+
+    const warMessage = `${senderName} is no longer war eligible.`;
+    const thumbnail = senderId
+      ? `https://images.evetech.net/corporations/${senderId}/logo?size=64`
+      : undefined;
 
     for (const channelId of corp.channelIds) {
       const channel = client.channels.cache.get(channelId);
