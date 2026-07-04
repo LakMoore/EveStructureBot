@@ -433,6 +433,9 @@ export function initNoOpNotifications() {
 const dotLanAllianceURL = 'https://evemaps.dotlan.net/alliance/';
 //https://evemaps.dotlan.net/corp/Another_Drone_Regions_Crab_Corp
 const dotLanCorpURL = 'https://evemaps.dotlan.net/corp/';
+const warEntityLookupEsi = new EsiClient({
+  userAgent: 'EveStructureBot',
+});
 
 async function handleSkyhookNotification(
   client: Client<boolean>,
@@ -842,7 +845,7 @@ async function handleWarInheritedNotification(
     const alliance = await getWarEntityName(allianceId);
 
     let warMessage = `${quitter} has inherited an active war between ${declaredBy} and ${opponent}.`;
-    if (allianceId && alliance !== declaredBy) {
+    if (allianceId && allianceId !== declaredById) {
       warMessage += `\nAlliance context: ${alliance}.`;
     }
     warMessage +=
@@ -893,12 +896,8 @@ async function getWarEntityName(entityId: number) {
     return 'Unknown Entity';
   }
 
-  const esi = new EsiClient({
-    userAgent: 'EveStructureBot',
-  });
-
   try {
-    const { data: allianceResult } = await esi.getAlliance({
+    const { data: allianceResult } = await warEntityLookupEsi.getAlliance({
       alliance_id: entityId,
     });
     if (allianceResult?.name) {
@@ -909,7 +908,7 @@ async function getWarEntityName(entityId: number) {
   }
 
   try {
-    const { data: corpResult } = await esi.getCorporation({
+    const { data: corpResult } = await warEntityLookupEsi.getCorporation({
       corporation_id: entityId,
     });
     if (corpResult?.name) {
