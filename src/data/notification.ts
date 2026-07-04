@@ -387,6 +387,16 @@ export function initNotifications() {
     miningUpdatesMessage: false,
   });
 
+  messageTypes.set('WarHQRemovedFromSpace', {
+    message: 'War Headquarters No Longer Exists',
+    colour: Colors.Orange,
+    get_role_to_mention: (c) => undefined,
+    handler: handleWarHQRemovedFromSpaceNotification,
+    structureStateMessage: true,
+    structureFuelMessage: false,
+    miningUpdatesMessage: false,
+  });
+
   messageTypes.set('CorpNoLongerWarEligible', {
     message: 'Corporation No Longer War Eligible',
     colour: Colors.Orange,
@@ -892,6 +902,71 @@ async function handleWarInheritedNotification(
             ],
           },
           `War Notification: ${warMessage}`
+        );
+      }
+    }
+  } catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}\n` +
+        String(error)
+    );
+  }
+}
+
+async function handleWarHQRemovedFromSpaceNotification(
+  client: Client<boolean>,
+  corp: AuthenticatedCorp,
+  note: GetCharacterNotificationsResponse[number],
+  title: string,
+  colour: number,
+  role_to_mention: (c: DiscordChannel) => string | undefined,
+  structureStateMessage: boolean,
+  structureFuelMessage: boolean,
+  miningUpdatesMessage: boolean
+) {
+  try {
+    const values = parseNotificationText(note.text);
+
+    const declaredById = Number(values['declaredByID']) || 0;
+    const againstId = Number(values['againstID']) || 0;
+    const warHQ = values['warHQ'] || 'Unknown Location';
+
+    const declaredBy = await getWarEntityName(declaredById);
+    const against = await getWarEntityName(againstId);
+    const cleanWarHQ = stripHtmlTags(warHQ);
+
+    const notificationMessage = `The designated war headquarters for the war between ${declaredBy} and ${against} no longer exists in space.\nLast known war headquarters: '${cleanWarHQ}'.`;
+    const thumbnail = declaredById
+      ? `https://images.evetech.net/alliances/${declaredById}/logo?size=64`
+      : undefined;
+
+    for (const channelId of corp.channelIds) {
+      const channel = client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                colour,
+                title,
+                notificationMessage,
+                note.timestamp,
+                corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
         );
       }
     }
