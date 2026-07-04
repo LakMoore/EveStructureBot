@@ -845,11 +845,12 @@ async function handleWarInheritedNotification(
     const alliance = await getWarEntityName(allianceId, 'alliance');
 
     let warMessage = `${quitter} has inherited an active war between ${declaredBy} and ${opponent}.`;
+    // allianceID can refer to the alliance context of the inheritance event and is not always equal to declaredByID.
     if (allianceId && allianceId !== declaredById) {
       warMessage += `\nAlliance context: ${alliance}.`;
     }
     warMessage +=
-      '\nIn EVE this typically happens when a corporation leaves an alliance that is already at war, so quitterID is most likely the corporation that left and inherited the war.';
+      '\nThis war was inherited after a corporation left an alliance that is already at war (quitterID identifies that corporation).';
 
     const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
 
@@ -930,8 +931,12 @@ async function getWarEntityName(
       if (name) {
         return name;
       }
-    } catch {
-      // try fallback lookup
+    } catch (error) {
+      LOGGER.debug(
+        `War entity lookup failed for ${entityId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 
