@@ -190,7 +190,17 @@ async function startPolling(client: Client) {
         }
 
         client.user?.setActivity(
-          `Checking Structures at ${new Date(Date.now()).toUTCString()}`
+          `${new Date(Date.now()).toLocaleString(
+            'en-GB',
+            {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            }
+          )}: checking structures...`
         );
       }
     }
