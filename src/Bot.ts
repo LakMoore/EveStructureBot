@@ -1,10 +1,12 @@
 import dotenv from 'dotenv';
-import {
-  Client,
+import type {
   CommandInteraction,
-  IntentsBitField,
   MessageCreateOptions,
   MessagePayload,
+} from 'discord.js';
+import {
+  Client,
+  IntentsBitField,
   PermissionsBitField,
   TextChannel,
 } from 'discord.js';
@@ -42,8 +44,8 @@ async function main() {
     });
 
     // setup listeners
-    ready(client);
-    interactionCreate(client);
+    const readyFunc = ready(client);
+    const interactionCreateFunc = interactionCreate(client);
 
     // login
     await client.login(process.env.SECRET_TOKEN);
@@ -51,13 +53,15 @@ async function main() {
     LOGGER.warning('Logged in!');
 
     setup(client);
+
+    await Promise.all([readyFunc, interactionCreateFunc]);
   }
   catch (error) {
     LOGGER.error(error instanceof Error ? error : new Error(String(error)));
   }
 }
 
-main();
+void main();
 
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));

@@ -1,8 +1,10 @@
-import { Client, Guild, HTTPError, TextChannel } from 'discord.js';
-import { EsiClient, GetCharacterRolesResponse } from '@localisprimary/esi';
+import type { Client, Guild, HTTPError } from 'discord.js';
+import { TextChannel } from 'discord.js';
+import type { GetCharacterRolesResponse } from '@localisprimary/esi';
+import { EsiClient } from '@localisprimary/esi';
 import SingleSignOn, { HTTPFetchError } from '@after_ice/eve-sso';
 import Koa from 'koa';
-import { AuthenticatedCharacter, AuthenticatedCorp } from './data/data';
+import type { AuthenticatedCharacter, AuthenticatedCorp } from './data/data';
 import { GET_ROLES_DELAY, data, sendMessage } from './Bot';
 import { generateCorpDetailsEmbed } from './embeds/corpDetails';
 import { LOGGER } from './Logger';

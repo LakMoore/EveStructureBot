@@ -1,19 +1,17 @@
-import {
+import type {
   Interaction,
-  Client,
-  ChatInputCommandInteraction,
   AutocompleteInteraction,
   TextChannel,
   ButtonInteraction,
 } from 'discord.js';
+import { Client, ChatInputCommandInteraction } from 'discord.js';
 import { Commands } from '../Commands';
 import { checkBotHasPermissions } from '../Bot';
 import { LOGGER } from '../Logger';
 
-export default function interactionCreate(client: Client): void {
-  client.on(
-    'interactionCreate',
-    async (interaction: Interaction) => {
+export default async function interactionCreate(client: Client) {
+  for await (const interactions of Client.on(client, 'interactionCreate')) {
+    for (const interaction of interactions) {
       if (interaction.isCommand() || interaction.isContextMenuCommand()) {
         await handleSlashCommand(client, interaction);
       }
@@ -24,7 +22,7 @@ export default function interactionCreate(client: Client): void {
         await handleButton(client, interaction);
       }
     }
-  );
+  }
 }
 
 const handleSlashCommand = async (
@@ -37,7 +35,7 @@ const handleSlashCommand = async (
     );
     if (!slashCommand) {
       LOGGER.error('Slash command not found: ' + interaction.commandName);
-      interaction.reply({ content: 'An error has occurred' });
+      await interaction.reply({ content: 'An error has occurred' });
       return;
     }
 

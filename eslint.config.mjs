@@ -4,21 +4,32 @@ import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 
-export default defineConfig({
-  files: ['./src/**/*.{js,mjs,cjs,ts,mts,cts}'],
-  ignores: ['dist/**', 'node_modules/**'],
-  extends: [
-    js.configs.recommended,
-    tseslint.configs.strict,
-    eslintConfigPrettier,
-  ],
-  languageOptions: {
-    parserOptions: {
-      project: './tsconfig.json',
+export default defineConfig([
+  {
+    files: ['./src/**/*.{js,mjs,cjs,ts,mts,cts}'],
+    ignores: ['dist/**', 'node_modules/**'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.strict,
+      eslintConfigPrettier,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+      globals: globals.node,
     },
-    globals: globals.node,
+    rules: {
+      'no-console': 'warn',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+    },
   },
-  rules: {
-    'no-console': 'warn',
-  },
-});
+]);

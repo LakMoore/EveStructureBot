@@ -14,41 +14,40 @@ import { checkStarbasesForCorp } from '../starbases';
 import { checkStructuresForCorp } from '../structures';
 import GuildFinder from '../GuildFinder';
 import { LOGGER } from '../Logger';
-import { AuthenticatedCorp } from '../data/data';
+import type { AuthenticatedCorp } from '../data/data';
 
 const POLL_ATTEMPT_DELAY = 3000;
 let corpIndex = 0;
 
-export default function ready(client: Client): void {
-  client.on(
-    'ready',
-    async () => {
-      if (!client.user || !client.application) {
+export default async function ready(client: Client) {
+  for await (const theseClients of Client.on(client, 'ready')) {
+    for (const thisClient of theseClients) {
+      if (!thisClient.user || !thisClient.application) {
         return;
       }
 
       await initialiseReloadCommandOptions();
-      await client.application.commands.set(Commands);
+      await thisClient.application.commands.set(Commands);
 
-      LOGGER.info(`${client.user.username} is online`);
+      LOGGER.info(`${thisClient.user.username} is online`);
 
       // locate our guild and error channel and store it in LOGGER
-      await GuildFinder.findAndStoreErrorChannel(client);
+      await GuildFinder.findAndStoreErrorChannel(thisClient);
 
-      await announceUpdateToSubscribedChannels(client);
+      await announceUpdateToSubscribedChannels(thisClient);
 
       LOGGER.warning(
         'Starting polling for structures, starbases and notifications...'
       );
 
-      await startPolling(client);
+      await startPolling(thisClient);
     }
-  );
+  }
 }
 
 async function startPolling(client: Client) {
   // infinite loop required
-  do {
+  while (true) {
     try {
       await doOnePoll(client);
     }
@@ -71,7 +70,7 @@ async function startPolling(client: Client) {
       }
     }
     corpIndex++;
-  } while (true);
+  }
 }
 
 async function checkChannelPermissions(
