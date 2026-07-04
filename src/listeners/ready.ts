@@ -4,10 +4,10 @@ import {
   PermissionsBitField,
   TextChannel,
 } from 'discord.js';
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import packageJson from '../../package.json';
 import { Commands } from '../Commands';
-import { data, delay, sendMessage } from '../Bot';
+import { data, delay } from '../Bot';
 import { checkMembership } from '../EveSSO';
 import { initialiseReloadCommandOptions } from '../commands/reload';
 import { checkNotificationsForCorp } from '../notifications';
@@ -35,7 +35,7 @@ export default (client: Client): void => {
       // locate our guild and error channel and store it in LOGGER
       await GuildFinder.findAndStoreErrorChannel(client);
 
-      await announceUpdateToRunningSubs(client);
+      await announceUpdateToSubscribedChannels(client);
 
       LOGGER.warning(
         'Starting polling for structures, starbases and notifications...'
@@ -217,61 +217,106 @@ async function startPolling(client: Client) {
   } while (true);
 }
 
+/**
+ * Returns the current build identifier as `git:<hash>` or `version:<semver>`.
+ */
 function getCurrentBuildId(): string {
   try {
-    const commit = execSync(
-      'git rev-parse HEAD',
+    const result = spawnSync(
+      'git',
+      ['rev-parse', 'HEAD'],
       {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
       }
-    ).trim();
-    if (commit) {
+    );
+    const commit = result.stdout?.trim();
+    if (result.status === 0 && commit) {
       return `git:${commit}`;
     }
+
+    LOGGER.warning(
+      `Unable to read git commit hash for update announcements; falling back to package version (${
+        result.error instanceof Error
+          ? result.error.message
+          : result.stderr?.trim() || 'unknown error'
+      }).`
+    );
   }
-  catch {
-    // fall back to the package version
+  catch (error) {
+    LOGGER.warning(
+      `Unable to read git commit hash for update announcements; falling back to package version (${
+        error instanceof Error ? error.message : String(error)
+      }).`
+    );
   }
 
   return `version:${packageJson.version}`;
 }
 
-async function announceUpdateToRunningSubs(client: Client) {
+/**
+ * Sends the update announcement to all configured channels and records the current build id.
+ */
+async function announceUpdateToSubscribedChannels(client: Client) {
   const currentBuildId = getCurrentBuildId();
   if (data.lastUpdateAnnouncement === currentBuildId) {
+    LOGGER.debug(
+      'Skipping update announcement because the build id has not changed.'
+    );
     return;
   }
 
   const channelIds = [
+    // Send one announcement per subscribed channel, even if multiple corps share it.
     ...new Set(data.authenticatedCorps.flatMap((corp) => corp.channelIds)),
   ];
   if (channelIds.length === 0) {
-    data.lastUpdateAnnouncement = currentBuildId;
-    await data.save();
+    LOGGER.debug(
+      'Skipping update announcement because no channels are configured.'
+    );
     return;
   }
 
   LOGGER.warning('Announcing bot update to subscribed channels...');
 
+  let announcedToAnyChannel = false;
+  let allAnnouncementsSucceeded = true;
+
   for (const channelId of channelIds) {
     try {
       const channel = await client.channels.fetch(channelId);
       if (channel instanceof TextChannel) {
-        await sendMessage(
-          channel,
-          'I have been updated! Join the Eve Apps by Lak Moore Discord: https://discord.gg/9xgRvQf5A',
-          'update announcement'
+        announcedToAnyChannel = true;
+        await channel.send(
+          'I have been updated! Join the EVE Apps by Lak Moore Discord: https://discord.gg/9xgRvQf5A'
         );
+      }
+      else {
+        allAnnouncementsSucceeded = false;
       }
     }
     catch (error) {
+      allAnnouncementsSucceeded = false;
       LOGGER.warning(
         `Failed to send update announcement to channel ${channelId}: ${
           error instanceof Error ? error.message : String(error)
         }`
       );
     }
+  }
+
+  if (!announcedToAnyChannel) {
+    LOGGER.debug(
+      'Skipping update announcement persistence because no text channels were available.'
+    );
+    return;
+  }
+
+  if (!allAnnouncementsSucceeded) {
+    LOGGER.warning(
+      'Update announcement was not sent to every subscribed channel; will retry on the next restart.'
+    );
+    return;
   }
 
   data.lastUpdateAnnouncement = currentBuildId;
