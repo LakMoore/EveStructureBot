@@ -834,6 +834,7 @@ async function handleWarInheritedNotification(
   try {
     const values = parseNotificationText(note.text);
     const declaredById = Number(values['declaredByID']) || 0;
+    // WarInherited payloads can include either opponentID or againstID for the opposing party.
     const opponentId =
       Number(values['opponentID']) || Number(values['againstID']) || 0;
     const quitterId = Number(values['quitterID']) || 0;
@@ -850,7 +851,7 @@ async function handleWarInheritedNotification(
       warMessage += `\nAlliance context: ${alliance}.`;
     }
     warMessage +=
-      '\nThis war was inherited after a corporation left an alliance that is already at war (quitterID identifies that corporation).';
+      '\nThis usually means a corporation left an alliance that is already at war.';
 
     const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
 
