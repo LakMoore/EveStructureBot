@@ -44,7 +44,7 @@ import {
   getRegionNameFromSystemId,
   getSystemName,
 } from '../starbases';
-import { GetCharacterNotificationsResponse } from '@localisprimary/esi';
+import { EsiClient, GetCharacterNotificationsResponse } from '@localisprimary/esi';
 import { generateGeneralNotificationEmbed } from '../embeds/generalNotification';
 import { LOGGER } from '../Logger';
 
@@ -845,10 +845,8 @@ async function handleWarInheritedNotification(
     if (allianceId && alliance !== declaredBy) {
       warMessage += `\nAlliance context: ${alliance}.`;
     }
-    if (quitterId) {
-      warMessage +=
-        '\nIn EVE this typically happens when a corporation leaves an alliance that is already at war, so quitterID is most likely the corporation that left and inherited the war.';
-    }
+    warMessage +=
+      '\nIn EVE this typically happens when a corporation leaves an alliance that is already at war, so quitterID is most likely the corporation that left and inherited the war.';
 
     const thumbnail = `https://images.evetech.net/corporations/${quitterId}/logo?size=64`;
 
@@ -884,7 +882,7 @@ async function handleWarInheritedNotification(
     }
   } catch (error) {
     LOGGER.error(
-      `An error occured in handleNotification for ${title}. Body: ${note.text}%n` +
+      `An error occurred in handleNotification for ${title}. Body: ${note.text}%n` +
         String(error)
     );
   }
@@ -895,19 +893,27 @@ async function getWarEntityName(entityId: number) {
     return 'Unknown Entity';
   }
 
+  const esi = new EsiClient({
+    userAgent: 'EveStructureBot',
+  });
+
   try {
-    const allianceName = await getAllianceName(entityId);
-    if (allianceName !== 'Unknown Alliance') {
-      return `${allianceName} (Alliance)`;
+    const { data: allianceResult } = await esi.getAlliance({
+      alliance_id: entityId,
+    });
+    if (allianceResult?.name) {
+      return `${allianceResult.name} (Alliance)`;
     }
   } catch {
     // fallback to corp lookup
   }
 
   try {
-    const corpName = await getCorpName(entityId);
-    if (corpName !== 'Unknown Corporation') {
-      return `${corpName} (Corporation)`;
+    const { data: corpResult } = await esi.getCorporation({
+      corporation_id: entityId,
+    });
+    if (corpResult?.name) {
+      return `${corpResult.name} (Corporation)`;
     }
   } catch {
     // ignore
