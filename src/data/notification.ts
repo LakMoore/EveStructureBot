@@ -1099,12 +1099,26 @@ async function handleCorpNoLongerWarEligibleNotification(
   miningUpdatesMessage: boolean
 ) {
   try {
+    const values = parseNotificationText(note.text);
     const senderId = Number(note.sender_id) || 0;
-    const senderName = senderId ? await getCorpName(senderId) : corp.corpName;
+    const candidateCorpIds = [
+      Number(values['againstID']) || 0,
+      Number(values['declaredByID']) || 0,
+    ].filter((id) => id > 0);
 
-    const notificationMessage = `${senderName} is no longer war eligible.`;
-    const thumbnail = senderId
-      ? `https://images.evetech.net/corporations/${senderId}/logo?size=64`
+    const noLongerEligibleCorpId =
+      candidateCorpIds.find((id) => id === corp.corpId) ??
+      candidateCorpIds.find((id) => id !== senderId) ??
+      corp.corpId;
+
+    const noLongerEligibleCorpName =
+      noLongerEligibleCorpId === corp.corpId
+        ? corp.corpName
+        : await getCorpName(noLongerEligibleCorpId);
+
+    const notificationMessage = `${noLongerEligibleCorpName} is no longer war eligible.`;
+    const thumbnail = noLongerEligibleCorpId
+      ? `https://images.evetech.net/corporations/${noLongerEligibleCorpId}/logo?size=64`
       : undefined;
 
     for (const channelId of corp.channelIds) {
