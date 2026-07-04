@@ -1,7 +1,7 @@
 {
-  "name": "discordbotts",
+  "name": "EveStructureBot",
   "version": "1.0.0",
-  "description": "Boilerplate code for a Typescript Discord Bot",
+  "description": "A bot for Eve Online that tracks structures and sends fuel and attack notifications to your own Discord server.",
   "engines": {
     "node": "24.13.1"
   },
