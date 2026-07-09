@@ -105,6 +105,9 @@ async function checkForStructureChangeAndPersist(
     // seen this corp before, check each structure for changes.
 
     const oldCorp = data.authenticatedCorps[idx];
+    LOGGER.info(
+      `Structure check for ${corp.corpName} (corpId=${corp.corpId}): oldCount=${oldCorp.structures?.length ?? 0}, newCount=${corp.structures?.length ?? 0}`
+    );
 
     // check for new structures
     const addedStructs = corp.structures.filter(

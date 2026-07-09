@@ -481,6 +481,17 @@ export class Data {
       Data.UPDATE_ANNOUNCEMENT_KEY,
       this._lastUpdateAnnouncement
     );
+    // Debug: log a brief summary of persisted corps and structure counts
+    try {
+      for (const c of this._authenticatedCorps) {
+        LOGGER.info(
+          `Persisted corp ${c.corpName} (corpId=${c.corpId}) with ${c.structures?.length ?? 0} structures and ${c.channelIds.length} channels.`
+        );
+      }
+    }
+    catch (err) {
+      LOGGER.error('Error while logging persisted corp summary: ' + String(err));
+    }
   }
 
   public async backup() {
