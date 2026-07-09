@@ -12,7 +12,6 @@ import { initialiseReloadCommandOptions } from '../commands/reload';
 import { checkNotificationsForCorp } from '../notifications';
 import { checkStarbasesForCorp } from '../starbases';
 import { checkStructuresForCorp } from '../structures';
-import GuildFinder from '../GuildFinder';
 import { LOGGER } from '../Logger';
 import type { AuthenticatedCorp } from '../data/data';
 
@@ -20,28 +19,30 @@ const POLL_ATTEMPT_DELAY = 3000;
 let corpIndex = 0;
 
 export default async function ready(client: Client) {
-  for await (const theseClients of Client.on(client, 'ready')) {
-    for (const thisClient of theseClients) {
-      if (!thisClient.user || !thisClient.application) {
-        return;
-      }
-
-      await initialiseReloadCommandOptions();
-      await thisClient.application.commands.set(Commands);
-
-      LOGGER.info(`${thisClient.user.username} is online`);
-
-      // locate our guild and error channel and store it in LOGGER
-      await GuildFinder.findAndStoreErrorChannel(thisClient);
-
-      await announceUpdateToSubscribedChannels(thisClient);
-
-      LOGGER.warning(
-        'Starting polling for structures, starbases and notifications...'
-      );
-
-      await startPolling(thisClient);
+  for await (const [thisClient] of Client.on(client, 'ready')) {
+    if (!thisClient.user || !thisClient.application) {
+      return;
     }
+
+    LOGGER.setErrorChannel(
+      client.channels.cache.get(
+        process.env.DISCORD_ERROR_CHANNEL_ID ?? ''
+      ) as TextChannel
+    );
+
+    await thisClient.application.commands.set(Commands);
+
+    await initialiseReloadCommandOptions();
+
+    LOGGER.info(`${thisClient.user.username} is online`);
+
+    await announceUpdateToSubscribedChannels(thisClient);
+
+    LOGGER.warning(
+      'Starting polling for structures, starbases and notifications...'
+    );
+
+    await startPolling(thisClient);
   }
 }
 

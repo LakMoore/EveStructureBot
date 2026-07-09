@@ -642,7 +642,7 @@ async function handleStructureNotification(details: NotificationDetails) {
     const values = parseNotificationText(details.note.text);
     const structId = Number(values['structureID']) || 0;
     const thisStruct = details.corp.structures.find(
-      (struct) => struct.structure_id === structId
+      (struct) => String(struct.structure_id) === String(structId)
     );
 
     const typeId =
@@ -754,7 +754,7 @@ async function handleStructureImpendingAbandonmentNotification(
     const values = parseNotificationText(details.note.text);
     const structureId = Number(values['structureID']) || 0;
     const thisStruct = details.corp.structures.find(
-      (struct) => struct.structure_id === structureId
+      (struct) => String(struct.structure_id) === String(structureId)
     );
 
     const typeId =
@@ -865,7 +865,7 @@ async function handleMoonMiningNotification(details: NotificationDetails) {
 
     const structId = Number(values['structureID']) || 0;
     const thisStruct = details.corp.structures.find(
-      (struct) => struct.structure_id === structId
+      (struct) => String(struct.structure_id) === String(structId)
     );
 
     const typeId =

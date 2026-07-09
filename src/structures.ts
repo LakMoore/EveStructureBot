@@ -109,7 +109,9 @@ async function checkForStructureChangeAndPersist(
     // check for new structures
     const addedStructs = corp.structures.filter(
       (s1) =>
-        !oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
+        !oldCorp.structures.some(
+          (s2) => String(s1.structure_id) === String(s2.structure_id)
+        )
     );
 
     for (const channelId of corp.channelIds) {
@@ -133,7 +135,9 @@ async function checkForStructureChangeAndPersist(
         // check for removed structures
         const removedStructs = oldCorp.structures.filter(
           (s1) =>
-            !corp.structures.some((s2) => s1.structure_id === s2.structure_id)
+            !corp.structures.some(
+              (s2) => String(s1.structure_id) === String(s2.structure_id)
+            )
         );
 
         if (channelConfig.structureStatus) {
@@ -150,11 +154,13 @@ async function checkForStructureChangeAndPersist(
         }
 
         const matchingStructs = corp.structures.filter((s1) =>
-          oldCorp.structures.some((s2) => s1.structure_id === s2.structure_id)
+          oldCorp.structures.some(
+            (s2) => String(s1.structure_id) === String(s2.structure_id)
+          )
         );
         for (const s of matchingStructs) {
           const oldStruct = oldCorp.structures.find(
-            (o) => o.structure_id === s.structure_id
+            (o) => String(o.structure_id) === String(s.structure_id)
           );
           if (oldStruct) {
             let thisMessage = '';

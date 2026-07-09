@@ -6,6 +6,12 @@ Low fuel and attack alerts for structures and POS can be sent to a channel on yo
 
 Join the EVE Apps by Lak Moore Discord to learn more: https://discord.gg/9xgRvQf5A
 
+## Change Log
+
+v1.1.1 [July 2026]
+
+- Candidate fix for a bug that caused structures to constantly be seen as "new".
+
 Use this link to add the hosted bot to your Discord server: https://discord.com/oauth2/authorize?client_id=1104364770418753616
 
 Development Version: https://discord.com/oauth2/authorize?client_id=1102649535265775666

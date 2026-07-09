@@ -115,7 +115,9 @@ async function checkForStarbaseChangeAndPersist(
           // check for new starbase
           const addedStarbase = corp.starbases.filter(
             (s1) =>
-              !oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+              !oldCorp.starbases.some(
+                (s2) => String(s1.starbase_id) === String(s2.starbase_id)
+              )
           );
 
           for (const s of addedStarbase) {
@@ -131,7 +133,9 @@ async function checkForStarbaseChangeAndPersist(
           // check for removed starbases
           const removedStarbases = oldCorp.starbases.filter(
             (s1) =>
-              !corp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+              !corp.starbases.some(
+                (s2) => String(s1.starbase_id) === String(s2.starbase_id)
+              )
           );
 
           // max embeds per message is 10
@@ -147,11 +151,13 @@ async function checkForStarbaseChangeAndPersist(
         }
 
         const matchingStarbases = corp.starbases.filter((s1) =>
-          oldCorp.starbases.some((s2) => s1.starbase_id === s2.starbase_id)
+          oldCorp.starbases.some(
+            (s2) => String(s1.starbase_id) === String(s2.starbase_id)
+          )
         );
         for (const s of matchingStarbases) {
           const oldStarbase = oldCorp.starbases.find(
-            (o) => o.starbase_id === s.starbase_id
+            (o) => String(o.starbase_id) === String(s.starbase_id)
           );
           if (oldStarbase) {
             let thisMessage = '';
