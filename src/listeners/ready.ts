@@ -152,11 +152,27 @@ async function announceUpdateToSubscribedChannels(client: Client) {
     }
     catch (error) {
       allAnnouncementsSucceeded = false;
-      LOGGER.warning(
-        `Failed to send update announcement to channel ${channelId}: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      // If the channel is unknown, remove it from configured corps and persist
+      if (error instanceof DiscordAPIError && error.code === 10003) {
+        LOGGER.warning(
+          'Failed to send update announcement: Unknown Channel '
+            + channelId
+            + '. Removing from configured channels.'
+        );
+        for (const corp of data.authenticatedCorps) {
+          if (corp.channelIds.includes(channelId)) {
+            corp.channelIds = corp.channelIds.filter((c) => c !== channelId);
+          }
+        }
+        await data.save();
+      }
+      else {
+        LOGGER.warning(
+          `Failed to send update announcement to channel ${channelId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
     }
   }
 
