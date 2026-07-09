@@ -485,12 +485,19 @@ export class Data {
     try {
       for (const c of this._authenticatedCorps) {
         LOGGER.info(
-          `Persisted corp ${c.corpName} (corpId=${c.corpId}) with ${c.structures?.length ?? 0} structures and ${c.channelIds.length} channels.`
+          `Persisted corp ${c.corpName} (${c.corpId}) on Server ${c.serverName} (${c.serverId}) with ${c.structures?.length ?? 0} structures and ${c.channelIds.length} channels.`
         );
+        if (c.corpId == 98170261) {
+          LOGGER.info(
+            `Full dump for ${c.corpName} (${c.corpId}): ${JSON.stringify(c, null, 2)}`
+          );
+        }
       }
     }
     catch (err) {
-      LOGGER.error('Error while logging persisted corp summary: ' + String(err));
+      LOGGER.error(
+        'Error while logging persisted corp summary: ' + String(err)
+      );
     }
   }
 
