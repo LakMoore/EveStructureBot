@@ -317,6 +317,8 @@ async function checkForStructureChangeAndPersist(
 
     if (existingIndex > -1) {
       const existing = data.authenticatedCorps[existingIndex];
+      const prevServerId = existing.serverId;
+      const prevChannelCount = (existing.channelIds ?? []).length;
       // prefer non-empty serverId/serverName
       if ((!existing.serverId || existing.serverId == '') && corp.serverId) {
         existing.serverId = corp.serverId;
@@ -334,6 +336,16 @@ async function checkForStructureChangeAndPersist(
           ...(corp.channelIds ?? []),
         ]),
       ];
+      if (!prevServerId && existing.serverId) {
+        LOGGER.info(
+          `Merged corp ${corp.corpName} (${corp.corpId}) filled serverId from structures check.`
+        );
+      }
+      if (prevChannelCount < (existing.channelIds ?? []).length) {
+        LOGGER.info(
+          `Merged corp ${corp.corpName} (${corp.corpId}) added ${((existing.channelIds ?? []).length - prevChannelCount)} channel(s) from structures check.`
+        );
+      }
       // replace structures with the newly-fetched list
       existing.structures = corp.structures;
       // set nextStructureCheck to the earliest (minimum) desired check time
@@ -351,6 +363,11 @@ async function checkForStructureChangeAndPersist(
     }
     else {
       data.authenticatedCorps.push(corp);
+      if (!corp.serverId || (corp.channelIds ?? []).length == 0) {
+        LOGGER.warning(
+          `structures: adding corp ${corp.corpName} (${corp.corpId}) with serverId="${corp.serverId}" channels=${JSON.stringify(corp.channelIds)}`
+        );
+      }
     }
   }
 

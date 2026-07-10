@@ -9,7 +9,7 @@ import type { TextChannel } from 'discord.js';
 import { LOGGER } from '../Logger';
 
 export interface AuthenticatedCharacter {
-  roles: GetCharacterRolesResponse;
+  roles?: GetCharacterRolesResponse;
   // compact role map for frequently checked roles
   roleMap?: {
     Director?: boolean;
@@ -130,8 +130,6 @@ export class Data {
     const tempLastUpdateAnnouncement: string | undefined =
       await storage.getItem(Data.UPDATE_ANNOUNCEMENT_KEY);
     this._lastUpdateAnnouncement = tempLastUpdateAnnouncement ?? '';
-
-    const corpsToDelete: AuthenticatedCorp[] = [];
 
     for (const thisCorp of this._authenticatedCorps) {
       if (!thisCorp.members) {
@@ -315,10 +313,18 @@ export class Data {
               merged.needsReAuth = merged.needsReAuth && other.needsReAuth;
 
               if (
-                merged.roles?.roles == undefined
+                // migrate legacy full roles payload into compact roleMap when merging
+                (!merged.roleMap || Object.keys(merged.roleMap).length === 0)
                 && other.roles?.roles != undefined
               ) {
-                merged.roles = other.roles;
+                merged.roleMap = {
+                  Director: other.roles.roles.includes('Director'),
+                  Station_Manager:
+                    other.roles.roles.includes('Station_Manager'),
+                  Starbase_Fuel_Technician: other.roles.roles.includes(
+                    'Starbase_Fuel_Technician'
+                  ),
+                };
               }
 
               dedupedCharacters[existingIndex] = merged;
@@ -357,9 +363,23 @@ export class Data {
             upgraded = true;
           }
 
-          // Roles system changed and must now have roles.roles
-          if (character.roles?.roles == undefined) {
-            character.roles = {};
+          // Ensure compact roleMap exists. If legacy roles are present, migrate them.
+          if (character.roles?.roles != undefined) {
+            character.roleMap = {
+              Director: character.roles.roles.includes('Director'),
+              Station_Manager:
+                character.roles.roles.includes('Station_Manager'),
+              Starbase_Fuel_Technician: character.roles.roles.includes(
+                'Starbase_Fuel_Technician'
+              ),
+            };
+            upgraded = true;
+          }
+          else if (!character.roleMap) {
+            character.roleMap = {};
+            upgraded = true;
+          }
+          if (!character.nextRolesCheck) {
             character.nextRolesCheck = new Date();
             upgraded = true;
           }
@@ -515,10 +535,9 @@ export class Data {
             for (const ch of m.characters) {
               // remove the heavy roles payload; keep compact roleMap only
               try {
-                // @ts-ignore - delete for persistence only
                 delete ch.roles;
               }
-              catch (err) {
+              catch {
                 // ignore
               }
             }
@@ -539,12 +558,12 @@ export class Data {
           }
         }
       }
-      catch (err) {
+      catch {
         // ignore telemetry failures
       }
       await storage.setItem(Data.CORPS_DATA_KEY, persistCopy);
     }
-    catch (err) {
+    catch {
       // fallback to saving the original if something unexpected happens
       await storage.setItem(Data.CORPS_DATA_KEY, this._authenticatedCorps);
     }

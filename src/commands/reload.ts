@@ -1,9 +1,6 @@
-import {
-  ChatInputCommandInteraction,
-  Client,
-  SlashCommandStringOption,
-} from 'discord.js';
-import { Command } from '../Command';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import { SlashCommandStringOption } from 'discord.js';
+import type { Command } from '../Command';
 
 function createCommandOption(commandNames: string[] = []) {
   const option = new SlashCommandStringOption()
@@ -68,10 +65,7 @@ export const Reload: Command = {
       await client.application.commands.delete(deployedCommand.id);
     }
 
-    const { run, autocomplete, button, deferReply, ephemeral, ...commandData } =
-      sourceCommand;
-
-    await client.application.commands.create(commandData);
+    await client.application.commands.create(sourceCommand);
 
     await interaction.editReply({
       content: `Reloaded command \`${commandName}\`.`,

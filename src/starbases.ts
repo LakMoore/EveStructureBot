@@ -246,6 +246,11 @@ async function checkForStarbaseChangeAndPersist(
     if (!alreadyTracked) {
       // add the data to storage
       data.authenticatedCorps.push(corp);
+      if (!corp.serverId || (corp.channelIds ?? []).length == 0) {
+        LOGGER.warning(
+          `starbases: adding corp ${corp.corpName} (${corp.corpId}) with serverId="${corp.serverId}" channels=${JSON.stringify(corp.channelIds)}`
+        );
+      }
     }
   }
 

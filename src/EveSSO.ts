@@ -187,6 +187,9 @@ export function setup(client: Client) {
                     mostRecentAuthAt: new Date(),
                   };
                   data.authenticatedCorps.push(thisCorp);
+                  LOGGER.info(
+                    `auth: added corp ${thisCorp.corpName} (${thisCorp.corpId}) for server ${channel.guildId} channel ${channelId}`
+                  );
                 }
 
                 // this used to be nullable so just set it
