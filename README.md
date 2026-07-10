@@ -8,6 +8,10 @@ Join the EVE Apps by Lak Moore Discord to learn more: https://discord.gg/9xgRvQf
 
 ## Change Log
 
+v1.1.2 [July 2026]
+
+- refactors for stability and performance
+
 v1.1.1 [July 2026]
 
 - Candidate fix for a bug that caused structures to constantly be seen as "new".

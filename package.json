@@ -1,6 +1,6 @@
 {
   "name": "EveStructureBot",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A bot for Eve Online that tracks structures and sends fuel and attack notifications to your own Discord server.",
   "engines": {
     "node": "24.13.1"
