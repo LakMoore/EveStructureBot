@@ -71,6 +71,7 @@ function getEligibleCharacters(
         !character.needsReAuth
         && (
           requiredRole === undefined
+          || Boolean((character as any).roleMap?.[requiredRole])
           || character.roles?.roles?.includes(requiredRole)
         )
     )

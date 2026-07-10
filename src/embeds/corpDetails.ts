@@ -1,5 +1,5 @@
 import { EmbedBuilder } from 'discord.js';
-import { AuthenticatedCorp, AuthenticatedCharacter } from '../data/data';
+import type { AuthenticatedCorp, AuthenticatedCharacter } from '../data/data';
 import { NOTIFICATION_CHECK_DELAY, STRUCTURE_CHECK_DELAY } from '../Bot';
 
 export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
@@ -8,9 +8,15 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
   );
   const chars = allChars.filter((c) => !c.needsReAuth);
   const needReauth = allChars.filter((c) => c.needsReAuth);
-  const directors = chars.filter((c) => c.roles?.roles?.includes('Director'));
-  const stationManagers = chars.filter((c) =>
-    c.roles?.roles?.includes('Station_Manager')
+  const directors = chars.filter(
+    (c) =>
+      Boolean(c.roleMap?.Director)
+      || Boolean(c.roles?.roles?.includes('Director'))
+  );
+  const stationManagers = chars.filter(
+    (c) =>
+      Boolean(c.roleMap?.Station_Manager)
+      || Boolean(c.roles?.roles?.includes('Station_Manager'))
   );
 
   const fields = [];
@@ -26,8 +32,8 @@ export function generateCorpDetailsEmbed(thisCorp: AuthenticatedCorp) {
           directors.includes(c)
             ? ' (Director)'
             : stationManagers.includes(c)
-            ? ' (Station Manager)'
-            : ''
+              ? ' (Station Manager)'
+              : ''
         }`;
     }
   }

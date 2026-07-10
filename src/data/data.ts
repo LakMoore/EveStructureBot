@@ -1,17 +1,21 @@
-import {
+import type {
   GetCharacterRolesResponse,
   GetCorporationStarbasesResponse,
   GetCorporationStructuresResponse,
-  // GetCorporationsCorporationIdStarbases200Ok,
-  // GetCorporationsCorporationIdStructures200Ok,
 } from '@localisprimary/esi';
 import storage from 'node-persist';
 import { delay } from '../Bot';
-import { TextChannel } from 'discord.js';
+import type { TextChannel } from 'discord.js';
 import { LOGGER } from '../Logger';
 
 export interface AuthenticatedCharacter {
   roles: GetCharacterRolesResponse;
+  // compact role map for frequently checked roles
+  roleMap?: {
+    Director?: boolean;
+    Station_Manager?: boolean;
+    Starbase_Fuel_Technician?: boolean;
+  };
   discordId: string;
   characterId: number;
   characterName: string;

@@ -469,8 +469,11 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
     corp.members.reduce(
       (acc, member) =>
         acc
-        + member.characters.filter((c) => c.roles?.roles?.includes('Director'))
-          .length,
+        + member.characters.filter(
+          (c) =>
+            Boolean(c.roleMap?.Director)
+            || Boolean(c.roles?.roles?.includes('Director'))
+        ).length,
       0
     ),
     corp.maxDirectors
@@ -597,6 +600,14 @@ async function refreshCharacterRoles(
 
   if (roles.roles) {
     char.roles = roles;
+    // populate compact roleMap for frequently checked roles
+    char.roleMap = {
+      Director: roles.roles.includes('Director'),
+      Station_Manager: roles.roles.includes('Station_Manager'),
+      Starbase_Fuel_Technician: roles.roles.includes(
+        'Starbase_Fuel_Technician'
+      ),
+    };
     char.nextRolesCheck = new Date(Date.now() + GET_ROLES_DELAY + 5000);
     await data.save();
   }
@@ -627,11 +638,23 @@ export function getWorkingChars(
   // find all the chars that are currently authenticated
   const workingChars = corp.members
     .flatMap((m) => m.characters)
-    .filter(
-      (c) =>
-        !c.needsReAuth
-        && (requiredRole == undefined || c.roles?.roles?.includes(requiredRole))
-    )
+    .filter((c) => {
+      if (c.needsReAuth) return false;
+      if (!requiredRole) return true;
+      // if we have a compact map and the requiredRole is one we track, use it
+      const compactRoles = [
+        'Director',
+        'Station_Manager',
+        'Starbase_Fuel_Technician',
+      ];
+      if (compactRoles.includes(requiredRole) && c.roleMap) {
+        return Boolean(
+          (c.roleMap as Record<string, boolean | undefined>)[requiredRole]
+        );
+      }
+      // fallback to the full roles list
+      return Boolean(c.roles?.roles?.includes(requiredRole));
+    })
     .sort(
       (a, b) =>
         new Date(getNextCheck(a)).getTime()
