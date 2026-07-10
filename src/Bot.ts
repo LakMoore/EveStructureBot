@@ -34,7 +34,7 @@ async function main() {
     dotenv.config();
     LOGGER.warning('Bot is starting...');
 
-    await data.init();
+    const initPromise = data.init();
     initNotifications();
     // add no-op notifications (ignored types)
     initNoOpNotifications();
@@ -54,7 +54,7 @@ async function main() {
 
     setup(client);
 
-    await Promise.all([readyFunc, interactionCreateFunc]);
+    await Promise.all([readyFunc, interactionCreateFunc, initPromise]);
   }
   catch (error) {
     LOGGER.error(error instanceof Error ? error : new Error(String(error)));

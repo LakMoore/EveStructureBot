@@ -343,7 +343,7 @@ async function checkForStructureChangeAndPersist(
       }
       if (prevChannelCount < (existing.channelIds ?? []).length) {
         LOGGER.info(
-          `Merged corp ${corp.corpName} (${corp.corpId}) added ${((existing.channelIds ?? []).length - prevChannelCount)} channel(s) from structures check.`
+          `Merged corp ${corp.corpName} (${corp.corpId}) added ${(existing.channelIds ?? []).length - prevChannelCount} channel(s) from structures check.`
         );
       }
       // replace structures with the newly-fetched list
@@ -370,7 +370,6 @@ async function checkForStructureChangeAndPersist(
       }
     }
   }
-
   await data.save();
 }
 

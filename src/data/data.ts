@@ -4,9 +4,9 @@ import type {
   GetCorporationStructuresResponse,
 } from '@localisprimary/esi';
 import storage from 'node-persist';
-import { delay } from '../Bot';
 import type { TextChannel } from 'discord.js';
 import { LOGGER } from '../Logger';
+import { setInterval } from 'node:timers/promises';
 
 export interface AuthenticatedCharacter {
   roles?: GetCharacterRolesResponse;
@@ -76,8 +76,6 @@ export interface DiscordChannel {
 }
 
 const SAVE_DELAY_MS = 5 * 60 * 1000; // 5 mins in milliseconds
-const CLEANUP_RECENT_AUTH_DAYS = 7; // recent activity window
-const CLEANUP_GRACE_DAYS = 30; // grace period before removal
 
 export class Data {
   private static readonly CORPS_DATA_KEY = 'users';
@@ -522,8 +520,8 @@ export class Data {
     catch (err) {
       LOGGER.error('Error during cleanup pass: ' + String(err));
     }
-    // save in a little while
-    setTimeout(() => this.autoSave(), SAVE_DELAY_MS);
+    // save in a little while (do not await here, let it run in the background)
+    return this.autoSave();
   }
 
   get authenticatedCorps() {
@@ -558,10 +556,10 @@ export class Data {
 
   private async autoSave() {
     try {
-      await this.save();
-      await delay(SAVE_DELAY_MS);
       // infinite loop required
-      setTimeout(async () => await this.autoSave(), 1);
+      for await (const _ of setInterval(SAVE_DELAY_MS)) {
+        await this.save();
+      }
     }
     catch (error) {
       LOGGER.error(error instanceof Error ? error : new Error(String(error)));

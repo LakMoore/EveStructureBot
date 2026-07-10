@@ -1,6 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import { getRelativeDiscordTime } from '../Bot';
-import { GetCorporationStructuresResponse } from '@localisprimary/esi';
+import type { GetCorporationStructuresResponse } from '@localisprimary/esi';
 import {
   getItemName,
   getRegionNameFromSystemId,

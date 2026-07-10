@@ -465,11 +465,11 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
   }
 
   // update some stats
-  corp.maxCharacters = Math.max(
+  const maxCharacters = Math.max(
     corp.members.reduce((acc, member) => acc + member.characters.length, 0),
     corp.maxCharacters
   );
-  corp.maxDirectors = Math.max(
+  const maxDirectors = Math.max(
     corp.members.reduce(
       (acc, member) =>
         acc
@@ -482,7 +482,15 @@ export async function checkMembership(client: Client, corp: AuthenticatedCorp) {
     ),
     corp.maxDirectors
   );
-  await data.save();
+
+  if (
+    corp.maxCharacters != maxCharacters
+    || corp.maxDirectors != maxDirectors
+  ) {
+    corp.maxCharacters = maxCharacters;
+    corp.maxDirectors = maxDirectors;
+    await data.save();
+  }
 
   // if this corp has no members, remove it
   if (corp.members.length == 0) {
@@ -632,7 +640,7 @@ export function getWorkingChars(
   if (secondsUntilNextCheck > 0) {
     // checking this record too soon!
     LOGGER.info(
-      `No characters ready to check (next check for corp ${
+      `Too soon! Next check for corp ${
         corp.corpName
       } in ${secondsUntilNextCheck.toFixed(0)} seconds)`
     );
