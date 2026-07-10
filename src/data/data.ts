@@ -76,6 +76,8 @@ export interface DiscordChannel {
 }
 
 const SAVE_DELAY_MS = 5 * 60 * 1000; // 5 mins in milliseconds
+const CLEANUP_RECENT_AUTH_DAYS = 7; // recent activity window
+const CLEANUP_GRACE_DAYS = 30; // grace period before removal
 
 export class Data {
   private static readonly CORPS_DATA_KEY = 'users';
@@ -387,94 +389,163 @@ export class Data {
       }
     }
 
-    if (upgraded) {
-      await this.backup();
-      // Perform deterministic dedupe/merge across all authenticatedCorps.
-      const mergedMap: { [key: string]: AuthenticatedCorp } = {};
-      for (const c of this._authenticatedCorps) {
-        const key = String(c.corpId);
-        if (!mergedMap[key]) {
-          // clone to avoid mutating original while iterating
-          mergedMap[key] = structuredClone(c);
+    // Perform deterministic dedupe/merge across all authenticatedCorps.
+    const mergedMap: { [key: string]: AuthenticatedCorp } = {};
+    for (const c of this._authenticatedCorps) {
+      const key = String(c.corpId);
+      if (!mergedMap[key]) {
+        // clone to avoid mutating original while iterating
+        mergedMap[key] = structuredClone(c);
+      }
+      else {
+        const existing = mergedMap[key];
+        // prefer non-empty serverId/serverName
+        if ((!existing.serverId || existing.serverId == '') && c.serverId) {
+          existing.serverId = c.serverId;
         }
-        else {
-          const existing = mergedMap[key];
-          // prefer non-empty serverId/serverName
-          if ((!existing.serverId || existing.serverId == '') && c.serverId) {
-            existing.serverId = c.serverId;
+        if (
+          (!existing.serverName || existing.serverName == '')
+          && c.serverName
+        ) {
+          existing.serverName = c.serverName;
+        }
+        // union channelIds
+        existing.channelIds = [
+          ...new Set([...(existing.channelIds ?? []), ...(c.channelIds ?? [])]),
+        ];
+        // merge members: combine members by discordId
+        for (const m of c.members) {
+          const mi = existing.members.findIndex(
+            (x) => x.discordId == m.discordId
+          );
+          if (mi == -1) {
+            existing.members.push(m);
           }
-          if (
-            (!existing.serverName || existing.serverName == '')
-            && c.serverName
-          ) {
-            existing.serverName = c.serverName;
-          }
-          // union channelIds
-          existing.channelIds = [
-            ...new Set([
-              ...(existing.channelIds ?? []),
-              ...(c.channelIds ?? []),
-            ]),
-          ];
-          // merge members: combine members by discordId
-          for (const m of c.members) {
-            const mi = existing.members.findIndex(
-              (x) => x.discordId == m.discordId
-            );
-            if (mi == -1) {
-              existing.members.push(m);
-            }
-            else {
-              // merge characters, prefer those with authToken and latest mostRecentAuthAt
-              for (const ch of m.characters) {
-                const chi = existing.members[mi].characters.findIndex(
-                  (x) => x.characterId == ch.characterId
-                );
-                if (chi == -1) {
-                  existing.members[mi].characters.push(ch);
-                }
-                else {
-                  const existingChar = existing.members[mi].characters[chi];
-                  if (!existingChar.authToken && ch.authToken) {
-                    existing.members[mi].characters[chi] = ch;
-                  }
+          else {
+            // merge characters, prefer those with authToken and latest mostRecentAuthAt
+            for (const ch of m.characters) {
+              const chi = existing.members[mi].characters.findIndex(
+                (x) => x.characterId == ch.characterId
+              );
+              if (chi == -1) {
+                existing.members[mi].characters.push(ch);
+              }
+              else {
+                const existingChar = existing.members[mi].characters[chi];
+                if (!existingChar.authToken && ch.authToken) {
+                  existing.members[mi].characters[chi] = ch;
                 }
               }
             }
           }
-          // prefer earliest nextStructureCheck
-          try {
-            const existingNext = new Date(
-              existing.nextStructureCheck
-            ).getTime();
-            const cNext = new Date(c.nextStructureCheck).getTime();
-            existing.nextStructureCheck = new Date(
-              Math.min(existingNext || Infinity, cNext || Infinity)
-            );
-          }
-          catch {
-            // ignore
-          }
-          // prefer latest mostRecentAuthAt
-          try {
-            const existingMostRecent = new Date(
-              existing.mostRecentAuthAt
-            ).getTime();
-            const cMostRecent = new Date(c.mostRecentAuthAt).getTime();
-            existing.mostRecentAuthAt = new Date(
-              Math.max(existingMostRecent || 0, cMostRecent || 0)
-            );
-          }
-          catch {
-            // ignore
-          }
+        }
+        // prefer earliest nextStructureCheck
+        try {
+          const existingNext = new Date(existing.nextStructureCheck).getTime();
+          const cNext = new Date(c.nextStructureCheck).getTime();
+          existing.nextStructureCheck = new Date(
+            Math.min(existingNext || Infinity, cNext || Infinity)
+          );
+        }
+        catch {
+          // ignore
+        }
+        // prefer latest mostRecentAuthAt
+        try {
+          const existingMostRecent = new Date(
+            existing.mostRecentAuthAt
+          ).getTime();
+          const cMostRecent = new Date(c.mostRecentAuthAt).getTime();
+          existing.mostRecentAuthAt = new Date(
+            Math.max(existingMostRecent || 0, cMostRecent || 0)
+          );
+        }
+        catch {
+          // ignore
         }
       }
+    }
+
+    const originalHash = JSON.stringify(this._authenticatedCorps);
+    const mergedHash = JSON.stringify(Object.values(mergedMap));
+
+    if (upgraded || originalHash != mergedHash) {
+      await this.backup();
 
       // Replace with merged list
-      this._authenticatedCorps = Object.values(mergedMap);
+      if (originalHash != mergedHash) {
+        LOGGER.warning('Replacing saved Corps with merged Corps object.');
+        this._authenticatedCorps = Object.values(mergedMap);
+      }
+      if (upgraded) {
+        LOGGER.warning('Upgraded the datastore to new schema.');
+      }
       LOGGER.info('Upgraded the datastore to new schema.');
       await this.save();
+    }
+
+    // Perform conservative cleanup of corps with missing server/channel info.
+    try {
+      const now = Date.now();
+      const recentWindowMs = CLEANUP_RECENT_AUTH_DAYS * 24 * 60 * 60 * 1000;
+      const graceMs = CLEANUP_GRACE_DAYS * 24 * 60 * 60 * 1000;
+      const toKeep: AuthenticatedCorp[] = [];
+      const toRemove: { corp: AuthenticatedCorp; reason: string }[] = [];
+
+      for (const c of this._authenticatedCorps) {
+        const channelsLen = (c.channelIds ?? []).length;
+        if (channelsLen === 0) {
+          // If truly empty and no members, safe to remove immediately
+          if (!c.members || c.members.length === 0) {
+            toRemove.push({ corp: c, reason: 'no channels and no members' });
+            continue;
+          }
+
+          // If any character has a valid authToken or a recent auth timestamp, keep
+          const allChars = c.members.flatMap((m) => m.characters ?? []);
+          const anyActive = allChars.some((ch) => {
+            if (ch.authToken) return true;
+            const mostRecent = new Date(ch.mostRecentAuthAt).getTime();
+            if (Number.isNaN(mostRecent)) return false;
+            return now - mostRecent <= recentWindowMs;
+          });
+
+          if (anyActive) {
+            toKeep.push(c);
+            continue;
+          }
+
+          // If no recent activity and corp-level mostRecentAuthAt older than grace, remove
+          const corpMostRecent = new Date(c.mostRecentAuthAt).getTime();
+          if (Number.isNaN(corpMostRecent) || now - corpMostRecent > graceMs) {
+            toRemove.push({
+              corp: c,
+              reason: 'no channels, members inactive past grace period',
+            });
+            continue;
+          }
+        }
+
+        // default: keep
+        toKeep.push(c);
+      }
+
+      if (toRemove.length > 0) {
+        // backup before destructive changes
+        await this.backup();
+        for (const r of toRemove) {
+          LOGGER.warning(
+            `Removing corp due to missing server/channel info: ${r.corp.corpName} (${r.corp.corpId}) reason=${r.reason} serverId="${r.corp.serverId}" channels=${JSON.stringify(r.corp.channelIds)}`
+          );
+        }
+        // apply removal
+        this._authenticatedCorps = toKeep;
+        // persist the cleaned dataset
+        await this.save();
+      }
+    }
+    catch (err) {
+      LOGGER.error('Error during cleanup pass: ' + String(err));
     }
     // save in a little while
     setTimeout(() => this.autoSave(), SAVE_DELAY_MS);
