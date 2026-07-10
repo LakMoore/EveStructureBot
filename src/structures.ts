@@ -277,8 +277,9 @@ async function checkForStructureChangeAndPersist(
       }
     }
 
-    // replace the data in storage
-    oldCorp = corp;
+    // replace the data in storage by mutating the existing object so
+    // any external references remain valid and the array element is updated
+    Object.assign(oldCorp, corp);
   }
   else {
     // tracking a new corp, not already in the data.
