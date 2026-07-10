@@ -89,6 +89,7 @@ const NOOP_NOTIFICATIONS: Array<
   'CorporationGoalCreated',
   'CorporationGoalClosed',
   'KillReportVictim',
+  'StructureItemsDelivered',
 ];
 
 export function parseNotificationText(text?: string) {
@@ -491,6 +492,19 @@ export function initNotifications() {
       colour: Colors.Orange,
       role_to_mention: (c) => undefined,
       handler: handleWarHQRemovedFromSpaceNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
+    'WarRetractedByConcord',
+    {
+      message: 'War Retracted by CONCORD',
+      colour: Colors.Orange,
+      role_to_mention: (c) => undefined,
+      handler: handleWarRetractedByConcordNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
@@ -1109,6 +1123,76 @@ async function handleWarHQRemovedFromSpaceNotification(
     const cleanWarHQ = stripHtmlTags(warHQ);
 
     const notificationMessage = `The designated war headquarters for the war between ${declaredBy} and ${against} no longer exists in space.\nLast known war headquarters: '${cleanWarHQ}'.`;
+    const thumbnail = declaredById
+      ? `https://images.evetech.net/alliances/${declaredById}/logo?size=64`
+      : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = details.role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                notificationMessage,
+                details.note.timestamp,
+                details.corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleWarRetractedByConcordNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+
+    const declaredById = Number(values['declaredByID']) || 0;
+    const againstId = Number(values['againstID']) || 0;
+
+    const [declaredBy, against] = await Promise.all([
+      getWarEntityName(declaredById),
+      getWarEntityName(againstId),
+    ]);
+
+    let endDateNote = '';
+    if (values['endDate']) {
+      try {
+        const jsTs = filetimeToJsTimestamp(values['endDate']);
+        endDateNote = `\nWar ended: ${getRelativeDiscordTime(new Date(jsTs))}`;
+      }
+      catch {
+        // ignore parse errors and omit date
+      }
+    }
+
+    const notificationMessage = `CONCORD has retracted the war between ${declaredBy} and ${against}.${endDateNote}`;
+
     const thumbnail = declaredById
       ? `https://images.evetech.net/alliances/${declaredById}/logo?size=64`
       : undefined;
