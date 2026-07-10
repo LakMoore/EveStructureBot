@@ -484,46 +484,21 @@ export class Data {
       await this.save();
     }
 
-    // Perform conservative cleanup of corps with missing server/channel info.
+    // Perform cleanup of corps with missing server/channel info.
     try {
-      const now = Date.now();
-      const recentWindowMs = CLEANUP_RECENT_AUTH_DAYS * 24 * 60 * 60 * 1000;
-      const graceMs = CLEANUP_GRACE_DAYS * 24 * 60 * 60 * 1000;
       const toKeep: AuthenticatedCorp[] = [];
       const toRemove: { corp: AuthenticatedCorp; reason: string }[] = [];
 
       for (const c of this._authenticatedCorps) {
         const channelsLen = (c.channelIds ?? []).length;
         if (channelsLen === 0) {
-          // If truly empty and no members, safe to remove immediately
-          if (!c.members || c.members.length === 0) {
-            toRemove.push({ corp: c, reason: 'no channels and no members' });
-            continue;
-          }
+          toRemove.push({ corp: c, reason: 'no channels' });
+          continue;
+        }
 
-          // If any character has a valid authToken or a recent auth timestamp, keep
-          const allChars = c.members.flatMap((m) => m.characters ?? []);
-          const anyActive = allChars.some((ch) => {
-            if (ch.authToken) return true;
-            const mostRecent = new Date(ch.mostRecentAuthAt).getTime();
-            if (Number.isNaN(mostRecent)) return false;
-            return now - mostRecent <= recentWindowMs;
-          });
-
-          if (anyActive) {
-            toKeep.push(c);
-            continue;
-          }
-
-          // If no recent activity and corp-level mostRecentAuthAt older than grace, remove
-          const corpMostRecent = new Date(c.mostRecentAuthAt).getTime();
-          if (Number.isNaN(corpMostRecent) || now - corpMostRecent > graceMs) {
-            toRemove.push({
-              corp: c,
-              reason: 'no channels, members inactive past grace period',
-            });
-            continue;
-          }
+        if (!c.serverId || c.serverId == '' || c.serverId == 'undefined') {
+          toRemove.push({ corp: c, reason: 'no serverId' });
+          continue;
         }
 
         // default: keep
