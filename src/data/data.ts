@@ -195,59 +195,9 @@ export class Data {
       }
 
       // check whether this corp is already in the list
-      const thisIndex = this._authenticatedCorps.indexOf(thisCorp);
-      const otherIndex = this._authenticatedCorps.findIndex(
-        (c) => c.corpId == thisCorp.corpId && c.serverId == thisCorp.serverId
-      );
-
-      if (otherIndex < thisIndex && otherIndex > -1) {
-        const corpToKeep = this._authenticatedCorps[otherIndex];
-        const keepMostRecentMs = new Date(
-          corpToKeep.mostRecentNotification
-        ).getTime();
-        const deleteMostRecentMs = new Date(
-          thisCorp.mostRecentNotification
-        ).getTime();
-        corpToKeep.mostRecentNotification = new Date(
-          Math.max(
-            Number.isNaN(keepMostRecentMs) ? 0 : keepMostRecentMs,
-            Number.isNaN(deleteMostRecentMs) ? 0 : deleteMostRecentMs
-          )
-        );
-        // merge channelIds
-        corpToKeep.channelIds = [
-          ...new Set([...corpToKeep.channelIds, ...thisCorp.channelIds]),
-        ];
-        // merge members, merging characters if necessary
-        thisCorp.members.forEach((memberToDelete) => {
-          const memberIndex = corpToKeep.members.findIndex(
-            (m) => m.discordId == memberToDelete.discordId
-          );
-          if (memberIndex > -1) {
-            const memberToKeep = corpToKeep.members[memberIndex];
-            for (const char of memberToDelete.characters) {
-              const charIndex = memberToKeep.characters.findIndex(
-                (c) => c.characterId == char.characterId
-              );
-              if (charIndex > -1) {
-                // keep whichever character has an authToken
-                if (!memberToKeep.characters[charIndex].authToken) {
-                  memberToKeep.characters[charIndex] = char;
-                }
-              }
-              else {
-                memberToKeep.characters.push(char);
-              }
-            }
-          }
-          else {
-            corpToKeep.members.push(memberToDelete);
-          }
-        });
-
-        corpsToDelete.push(thisCorp);
-        upgraded = true;
-      }
+      // Improved dedupe: merge entries by corpId; prefer non-empty serverId and
+      // union channelIds. Build a map of corps to merge deterministically.
+      // We'll perform a pass after collecting all entries.
 
       if (!thisCorp.serverName) {
         thisCorp.serverName = '';
@@ -419,15 +369,90 @@ export class Data {
 
     if (upgraded) {
       await this.backup();
+      // Perform deterministic dedupe/merge across all authenticatedCorps.
+      const mergedMap: { [key: string]: AuthenticatedCorp } = {};
+      for (const c of this._authenticatedCorps) {
+        const key = String(c.corpId);
+        if (!mergedMap[key]) {
+          // clone to avoid mutating original while iterating
+          mergedMap[key] = structuredClone(c);
+        }
+        else {
+          const existing = mergedMap[key];
+          // prefer non-empty serverId/serverName
+          if ((!existing.serverId || existing.serverId == '') && c.serverId) {
+            existing.serverId = c.serverId;
+          }
+          if (
+            (!existing.serverName || existing.serverName == '')
+            && c.serverName
+          ) {
+            existing.serverName = c.serverName;
+          }
+          // union channelIds
+          existing.channelIds = [
+            ...new Set([
+              ...(existing.channelIds ?? []),
+              ...(c.channelIds ?? []),
+            ]),
+          ];
+          // merge members: combine members by discordId
+          for (const m of c.members) {
+            const mi = existing.members.findIndex(
+              (x) => x.discordId == m.discordId
+            );
+            if (mi == -1) {
+              existing.members.push(m);
+            }
+            else {
+              // merge characters, prefer those with authToken and latest mostRecentAuthAt
+              for (const ch of m.characters) {
+                const chi = existing.members[mi].characters.findIndex(
+                  (x) => x.characterId == ch.characterId
+                );
+                if (chi == -1) {
+                  existing.members[mi].characters.push(ch);
+                }
+                else {
+                  const existingChar = existing.members[mi].characters[chi];
+                  if (!existingChar.authToken && ch.authToken) {
+                    existing.members[mi].characters[chi] = ch;
+                  }
+                }
+              }
+            }
+          }
+          // prefer earliest nextStructureCheck
+          try {
+            const existingNext = new Date(
+              existing.nextStructureCheck
+            ).getTime();
+            const cNext = new Date(c.nextStructureCheck).getTime();
+            existing.nextStructureCheck = new Date(
+              Math.min(existingNext || Infinity, cNext || Infinity)
+            );
+          }
+          catch {
+            // ignore
+          }
+          // prefer latest mostRecentAuthAt
+          try {
+            const existingMostRecent = new Date(
+              existing.mostRecentAuthAt
+            ).getTime();
+            const cMostRecent = new Date(c.mostRecentAuthAt).getTime();
+            existing.mostRecentAuthAt = new Date(
+              Math.max(existingMostRecent || 0, cMostRecent || 0)
+            );
+          }
+          catch {
+            // ignore
+          }
+        }
+      }
 
-      // remove any corps that were deleted
-      corpsToDelete.forEach((corp) => {
-        LOGGER.warning('Found duplicate corp ' + corp.corpName + ' - removing');
-        this._authenticatedCorps.splice(
-          this._authenticatedCorps.indexOf(corp),
-          1
-        );
-      });
+      // Replace with merged list
+      this._authenticatedCorps = Object.values(mergedMap);
       LOGGER.info('Upgraded the datastore to new schema.');
       await this.save();
     }
@@ -479,7 +504,50 @@ export class Data {
 
   public async save() {
     LOGGER.info('Persisting data to filesystem...');
-    await storage.setItem(Data.CORPS_DATA_KEY, this._authenticatedCorps);
+    // create a copy and strip large `roles` payloads from characters before persisting
+    try {
+      const persistCopy: AuthenticatedCorp[] = structuredClone(
+        this._authenticatedCorps
+      );
+      for (const c of persistCopy) {
+        if (c.members) {
+          for (const m of c.members) {
+            for (const ch of m.characters) {
+              // remove the heavy roles payload; keep compact roleMap only
+              try {
+                // @ts-ignore - delete for persistence only
+                delete ch.roles;
+              }
+              catch (err) {
+                // ignore
+              }
+            }
+          }
+        }
+      }
+      // telemetry: report corps with missing serverId or empty channelIds
+      try {
+        for (const c of persistCopy) {
+          if (
+            !c.serverId
+            || c.serverId == ''
+            || (c.channelIds ?? []).length == 0
+          ) {
+            LOGGER.warning(
+              `Persisting corp with missing server/channel info: ${c.corpName} (${c.corpId}) serverId="${c.serverId}" channels=${JSON.stringify(c.channelIds)}`
+            );
+          }
+        }
+      }
+      catch (err) {
+        // ignore telemetry failures
+      }
+      await storage.setItem(Data.CORPS_DATA_KEY, persistCopy);
+    }
+    catch (err) {
+      // fallback to saving the original if something unexpected happens
+      await storage.setItem(Data.CORPS_DATA_KEY, this._authenticatedCorps);
+    }
     await storage.setItem(Data.CHANNELS_DATA_KEY, this._channels);
     await storage.setItem(
       Data.UPDATE_ANNOUNCEMENT_KEY,

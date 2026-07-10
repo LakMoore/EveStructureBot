@@ -1,4 +1,5 @@
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
+import type { Client } from 'discord.js';
+import { EmbedBuilder, TextChannel } from 'discord.js';
 import {
   STRUCTURE_CHECK_DELAY,
   NOTIFICATION_CHECK_DELAY,
@@ -10,11 +11,9 @@ import {
   sendMessage,
 } from './Bot';
 import { getAccessToken, getWorkingChars } from './EveSSO';
-import { AuthenticatedCorp } from './data/data';
-import {
-  EsiClient,
-  GetCorporationStructuresResponse,
-} from '@localisprimary/esi';
+import type { AuthenticatedCorp } from './data/data';
+import type { GetCorporationStructuresResponse } from '@localisprimary/esi';
+import { EsiClient } from '@localisprimary/esi';
 import { LOGGER } from './Logger';
 
 export async function checkStructuresForCorp(
@@ -58,9 +57,12 @@ export async function checkStructuresForCorp(
     corporation_id: corp.corpId,
   });
 
-  const nextCheck =
-    Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
-  thisChar.nextStructureCheck = new Date(nextCheck);
+  // character-level cache: each character should be held for the full delay
+  const charNextCheck = Date.now() + STRUCTURE_CHECK_DELAY + 3000;
+  thisChar.nextStructureCheck = new Date(charNextCheck);
+  // corp-level next check should be distributed across available characters
+  const corpNextCheck =
+    Date.now() + Math.floor(STRUCTURE_CHECK_DELAY / workingChars.length) + 3000;
 
   //LOGGER.info("structs", structures);
 
@@ -77,7 +79,7 @@ export async function checkStructuresForCorp(
     starbases: corp.starbases,
     structures: structures,
     nextStarbaseCheck: corp.nextStarbaseCheck,
-    nextStructureCheck: new Date(nextCheck),
+    nextStructureCheck: new Date(corpNextCheck),
     nextNotificationCheck: corp.nextNotificationCheck,
     mostRecentNotification: new Date(corp.mostRecentNotification ?? 0),
     setDiscordRoles: corp.setDiscordRoles,
@@ -97,14 +99,13 @@ async function checkForStructureChangeAndPersist(
 ) {
   // find the corp's index in our persisted storage
   // (need the index later so don't use find)
-  const idx = data.authenticatedCorps.findIndex((thisCorp) => {
+  let oldCorp = data.authenticatedCorps.find((thisCorp) => {
     return thisCorp.serverId == corp.serverId && thisCorp.corpId == corp.corpId;
   });
 
-  if (idx > -1) {
+  if (oldCorp != undefined) {
     // seen this corp before, check each structure for changes.
 
-    const oldCorp = data.authenticatedCorps[idx];
     LOGGER.info(
       `Structure check for ${corp.corpName} (corpId=${corp.corpId}): oldCount=${oldCorp.structures?.length ?? 0}, newCount=${corp.structures?.length ?? 0}`
     );
@@ -112,7 +113,7 @@ async function checkForStructureChangeAndPersist(
     // check for new structures
     const addedStructs = corp.structures.filter(
       (s1) =>
-        !oldCorp.structures.some(
+        !oldCorp?.structures.some(
           (s2) => String(s1.structure_id) === String(s2.structure_id)
         )
     );
@@ -157,7 +158,7 @@ async function checkForStructureChangeAndPersist(
         }
 
         const matchingStructs = corp.structures.filter((s1) =>
-          oldCorp.structures.some(
+          oldCorp?.structures.some(
             (s2) => String(s1.structure_id) === String(s2.structure_id)
           )
         );
@@ -277,7 +278,7 @@ async function checkForStructureChangeAndPersist(
     }
 
     // replace the data in storage
-    data.authenticatedCorps[idx] = corp;
+    oldCorp = corp;
   }
   else {
     // tracking a new corp, not already in the data.
@@ -300,8 +301,57 @@ async function checkForStructureChangeAndPersist(
       }
     }
 
-    // add the data to storage
-    data.authenticatedCorps.push(corp);
+    // add the data to storage, but avoid creating duplicates: prefer to merge
+    // into an existing entry that has the same corpId and (preferably)
+    // non-empty serverId. Also union channelIds and keep the earliest
+    // nextStructureCheck.
+    const existingIndex = data.authenticatedCorps.findIndex(
+      (existing) =>
+        existing.corpId == corp.corpId
+        && (
+          existing.serverId == corp.serverId
+          || !existing.serverId
+          || !corp.serverId
+        )
+    );
+
+    if (existingIndex > -1) {
+      const existing = data.authenticatedCorps[existingIndex];
+      // prefer non-empty serverId/serverName
+      if ((!existing.serverId || existing.serverId == '') && corp.serverId) {
+        existing.serverId = corp.serverId;
+      }
+      if (
+        (!existing.serverName || existing.serverName == '')
+        && corp.serverName
+      ) {
+        existing.serverName = corp.serverName;
+      }
+      // union channelIds
+      existing.channelIds = [
+        ...new Set([
+          ...(existing.channelIds ?? []),
+          ...(corp.channelIds ?? []),
+        ]),
+      ];
+      // replace structures with the newly-fetched list
+      existing.structures = corp.structures;
+      // set nextStructureCheck to the earliest (minimum) desired check time
+      try {
+        const existingNext = new Date(existing.nextStructureCheck).getTime();
+        const corpNext = new Date(corp.nextStructureCheck).getTime();
+        existing.nextStructureCheck = new Date(
+          Math.min(existingNext || Infinity, corpNext || Infinity)
+        );
+      }
+      catch {
+        // ignore and leave existing value
+      }
+      data.authenticatedCorps[existingIndex] = existing;
+    }
+    else {
+      data.authenticatedCorps.push(corp);
+    }
   }
 
   await data.save();

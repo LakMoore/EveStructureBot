@@ -1,4 +1,5 @@
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
+import type { Client } from 'discord.js';
+import { EmbedBuilder, TextChannel } from 'discord.js';
 import {
   colours,
   data,
@@ -6,12 +7,10 @@ import {
   sendMessage,
   STRUCTURE_CHECK_DELAY,
 } from './Bot';
-import { AuthenticatedCorp } from './data/data';
+import type { AuthenticatedCorp } from './data/data';
 import { getWorkingChars, getAccessToken } from './EveSSO';
-import {
-  EsiClient,
-  GetCorporationStarbasesResponse,
-} from '@localisprimary/esi';
+import type { GetCorporationStarbasesResponse } from '@localisprimary/esi';
+import { EsiClient } from '@localisprimary/esi';
 import { LOGGER } from './Logger';
 
 export async function checkStarbasesForCorp(
@@ -55,9 +54,12 @@ export async function checkStarbasesForCorp(
     corporation_id: corp.corpId,
   });
 
-  const nextCheck =
-    Date.now() + STRUCTURE_CHECK_DELAY / workingChars.length + 3000;
-  thisChar.nextStarbaseCheck = new Date(nextCheck);
+  // character-level cache: each character should be held for the full delay
+  const charNextCheck = Date.now() + STRUCTURE_CHECK_DELAY + 1000;
+  thisChar.nextStarbaseCheck = new Date(charNextCheck);
+  // corp-level next check should be distributed across available characters
+  const corpNextCheck =
+    Date.now() + Math.floor(STRUCTURE_CHECK_DELAY / workingChars.length) + 1000;
 
   // make a new object so we can compare it to the old one
   const c: AuthenticatedCorp = {
@@ -71,7 +73,7 @@ export async function checkStarbasesForCorp(
     characters: undefined,
     starbases: starbases,
     structures: corp.structures,
-    nextStarbaseCheck: new Date(nextCheck),
+    nextStarbaseCheck: new Date(corpNextCheck),
     nextStructureCheck: corp.nextStructureCheck,
     nextNotificationCheck: corp.nextNotificationCheck,
     mostRecentNotification: corp.mostRecentNotification,

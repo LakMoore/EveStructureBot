@@ -193,6 +193,7 @@ export function setup(client: Client) {
                 thisCorp.serverId = channel.guildId;
                 // server names can change so get the current name
                 thisCorp.serverName = channel.guild.name;
+                thisCorp.channelIds ??= [];
                 if (!thisCorp.channelIds.includes(channelId)) {
                   thisCorp.channelIds.push(channelId);
                 }
@@ -266,6 +267,8 @@ export function setup(client: Client) {
                   );
                 }
 
+                await data.save();
+
                 await sendMessage(
                   channel,
                   `Successfully authenticated ${char.name}`,
@@ -279,8 +282,6 @@ export function setup(client: Client) {
                   },
                   'Corp Details'
                 );
-
-                await data.save();
 
                 // use tickers to set Discord Roles - this may not be ready for production
                 if (thisCorp.setDiscordRoles) {
