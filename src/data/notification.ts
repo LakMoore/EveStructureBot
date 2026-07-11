@@ -486,6 +486,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'AllWarCorpJoinedAllianceMsg',
+    {
+      message: 'Corporation Joined Alliance (War Risk)',
+      colour: Colors.Orange,
+      role_to_mention: (c) => c.attack_alert_role,
+      handler: handleAllWarCorpJoinedAllianceNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'WarHQRemovedFromSpace',
     {
       message: 'War Headquarters No Longer Exists',
@@ -1224,6 +1237,64 @@ async function handleWarRetractedByConcordNotification(
             ],
           },
           `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleAllWarCorpJoinedAllianceNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const allianceId = Number(values['allianceID']) || 0;
+    const corpId = Number(values['corpID']) || 0;
+
+    const [allianceName, corpName] = await Promise.all([
+      getWarEntityName(allianceId, 'alliance'),
+      getWarEntityName(corpId, 'corporation'),
+    ]);
+
+    const warningMessage = `${corpName} has joined ${allianceName}. ${corpName} is enlisted in Faction Warfare.  This will expose the alliance to related engagements.`;
+
+    const thumbnail = corpId
+      ? `https://images.evetech.net/corporations/${corpId}/logo?size=64`
+      : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = details.role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                warningMessage,
+                details.note.timestamp,
+                details.corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${warningMessage}`
         );
       }
     }

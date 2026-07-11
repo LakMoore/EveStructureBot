@@ -14,6 +14,7 @@ import { checkStarbasesForCorp } from '../starbases';
 import { checkStructuresForCorp } from '../structures';
 import { LOGGER } from '../Logger';
 import type { AuthenticatedCorp } from '../data/data';
+import { getEveServerStatus } from '../EveESI';
 
 const POLL_ATTEMPT_DELAY = 3000;
 let corpIndex = 0;
@@ -61,9 +62,16 @@ async function startPolling(client: Client) {
         && 'status' in error
       ) {
         const esiError = error as { error: string; status: number };
-        LOGGER.error(
-          `ESI Error: ${esiError.error}, Status: ${esiError.status}`
-        );
+        // ESI Server error
+        if (esiError.status >= 500 && esiError.status < 600) {
+          // check the EVE server status and log the error only if the servers are available
+          const status = await getEveServerStatus();
+          if (status.players > 0) {
+            LOGGER.error(
+              `ESI Error: ${esiError.error}, Status: ${esiError.status}`
+            );
+          }
+        }
       }
       else {
         // log as error severity

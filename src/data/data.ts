@@ -617,23 +617,24 @@ export class Data {
       this._lastUpdateAnnouncement
     );
     // Debug: log a brief summary of persisted corps and structure counts
-    try {
-      for (const c of this._authenticatedCorps) {
-        LOGGER.info(
-          `Persisted corp ${c.corpName} (${c.corpId}) on Server ${c.serverName} (${c.serverId}) with ${c.structures?.length ?? 0} structures and ${c.channelIds.length} channels.`
-        );
-        if (c.corpId == 98170261) {
-          LOGGER.info(
-            `Full dump for ${c.corpName} (${c.corpId}): ${JSON.stringify(c, null, 2)}`
-          );
-        }
-      }
-    }
-    catch (err) {
-      LOGGER.error(
-        'Error while logging persisted corp summary: ' + String(err)
-      );
-    }
+    // Uncomment the following block if you want to see a summary of persisted corps and structure counts on each save. This can be useful for debugging, but may produce a lot of log output in production.
+    // try {
+    //   for (const c of this._authenticatedCorps) {
+    //     LOGGER.info(
+    //       `Persisted corp ${c.corpName} (${c.corpId}) on Server ${c.serverName} (${c.serverId}) with ${c.structures?.length ?? 0} structures and ${c.channelIds.length} channels.`
+    //     );
+    //     if (c.corpId == 98170261) {
+    //       LOGGER.info(
+    //         `Full dump for ${c.corpName} (${c.corpId}): ${JSON.stringify(c, null, 2)}`
+    //       );
+    //     }
+    //   }
+    // }
+    // catch (err) {
+    //   LOGGER.error(
+    //     'Error while logging persisted corp summary: ' + String(err)
+    //   );
+    // }
   }
 
   public async backup() {
