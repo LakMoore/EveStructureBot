@@ -34,7 +34,7 @@ async function main() {
     dotenv.config();
     LOGGER.warning('Bot is starting...');
 
-    const dataPromise = data.init();
+    await data.init();
     initNotifications();
     // add no-op notifications (ignored types)
     initNoOpNotifications();
@@ -54,7 +54,7 @@ async function main() {
 
     setup(client);
 
-    await Promise.all([readyFunc, interactionCreateFunc, dataPromise]);
+    await Promise.all([readyFunc, interactionCreateFunc]);
   }
   catch (error) {
     LOGGER.error(
@@ -63,6 +63,12 @@ async function main() {
         : new Error('Fatal error in main(): ' + String(error))
     );
   }
+
+  // Kill the save loop and wait for any in-flight save to complete. This is called when the bot is shutting down.
+  await data.stopAutoSave();
+
+  // ensure that the process exits.  PM2 will restart the bot if it exits with a non-zero code, so we want to exit with 1 to indicate an error.
+  process.exit(1);
 }
 
 process.on(

@@ -6,7 +6,6 @@ import type {
 import storage from 'node-persist';
 import type { TextChannel } from 'discord.js';
 import { LOGGER } from '../Logger';
-import { setInterval } from 'node:timers/promises';
 
 export interface AuthenticatedCharacter {
   roles?: GetCharacterRolesResponse;
@@ -84,6 +83,8 @@ export class Data {
   private _authenticatedCorps: AuthenticatedCorp[] = [];
   private _channels: DiscordChannel[] = [];
   private _lastUpdateAnnouncement = '';
+  private _autoSaveAbortController?: AbortController;
+  private _autoSavePromise?: Promise<void>;
 
   public async init() {
     await storage.init();
@@ -521,7 +522,13 @@ export class Data {
       LOGGER.error('Error during cleanup pass: ' + String(err));
     }
     // save in a little while (do not await here, let it run in the background)
-    return this.autoSave();
+    // Start cancellable autosave in the background and return immediately
+    this._autoSaveAbortController = new AbortController();
+    this._autoSavePromise = this.autoSave(
+      this._autoSaveAbortController.signal
+    ).catch((err) => {
+      LOGGER.error(err instanceof Error ? err : new Error(String(err)));
+    });
   }
 
   get authenticatedCorps() {
@@ -554,15 +561,56 @@ export class Data {
     return tempChannel;
   }
 
-  private async autoSave() {
+  private async autoSave(signal?: AbortSignal) {
     try {
-      // infinite loop required
-      for await (const _ of setInterval(SAVE_DELAY_MS)) {
+      // loop until signalled to stop. When aborted, allow any in-progress save to finish.
+      while (!signal?.aborted) {
+        // wait for the configured delay or for abort
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(
+            () => {
+              // clear the abort listener and continue
+              resolve();
+            },
+            SAVE_DELAY_MS
+          );
+
+          if (signal) {
+            const onAbort = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            signal.addEventListener('abort', onAbort, { once: true });
+          }
+        });
+
+        // If abort was requested while waiting, break before starting a save.
+        if (signal?.aborted) break;
+
         await this.save();
       }
     }
     catch (error) {
-      LOGGER.error(error instanceof Error ? error : new Error(String(error)));
+      LOGGER.error(
+        error instanceof Error
+          ? new Error('Autosave Error: ' + error.message, { cause: error })
+          : new Error('Autosave Error: ' + String(error))
+      );
+    }
+  }
+
+  // Stop the background autosave loop and wait for any in-flight save to complete.
+  public async stopAutoSave() {
+    if (this._autoSaveAbortController) {
+      this._autoSaveAbortController.abort();
+      if (this._autoSavePromise) {
+        try {
+          await this._autoSavePromise;
+        }
+        catch (err) {
+          LOGGER.error(err instanceof Error ? err : new Error(String(err)));
+        }
+      }
     }
   }
 
