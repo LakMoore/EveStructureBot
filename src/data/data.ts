@@ -616,6 +616,25 @@ export class Data {
 
   public async save() {
     LOGGER.info('Persisting data to filesystem...');
+    const invalidCorps = this._authenticatedCorps.filter(
+      (corp) =>
+        (corp.channelIds ?? []).length == 0
+        || !corp.serverId
+        || corp.serverId == 'undefined'
+    );
+    if (invalidCorps.length > 0) {
+      for (const corp of invalidCorps) {
+        LOGGER.warning(
+          `Removing corp with missing server/channel info: ${corp.corpName} (${corp.corpId}) serverId="${corp.serverId}" channels=${JSON.stringify(corp.channelIds)}`
+        );
+      }
+      this._authenticatedCorps = this._authenticatedCorps.filter(
+        (corp) =>
+          (corp.channelIds ?? []).length > 0
+          && corp.serverId
+          && corp.serverId != 'undefined'
+      );
+    }
     // create a copy and strip large `roles` payloads from characters before persisting
     try {
       const persistCopy: AuthenticatedCorp[] = structuredClone(
@@ -635,23 +654,6 @@ export class Data {
             }
           }
         }
-      }
-      // telemetry: report corps with missing serverId or empty channelIds
-      try {
-        for (const c of persistCopy) {
-          if (
-            !c.serverId
-            || c.serverId == ''
-            || (c.channelIds ?? []).length == 0
-          ) {
-            LOGGER.warning(
-              `Persisting corp with missing server/channel info: ${c.corpName} (${c.corpId}) serverId="${c.serverId}" channels=${JSON.stringify(c.channelIds)}`
-            );
-          }
-        }
-      }
-      catch {
-        // ignore telemetry failures
       }
       await storage.setItem(Data.CORPS_DATA_KEY, persistCopy);
     }
