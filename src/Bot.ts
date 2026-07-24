@@ -34,7 +34,7 @@ async function main() {
     dotenv.config();
     LOGGER.warning('Bot is starting...');
 
-    const initPromise = data.init();
+    const dataPromise = data.init();
     initNotifications();
     // add no-op notifications (ignored types)
     initNoOpNotifications();
@@ -54,12 +54,30 @@ async function main() {
 
     setup(client);
 
-    await Promise.all([readyFunc, interactionCreateFunc, initPromise]);
+    await Promise.all([readyFunc, interactionCreateFunc, dataPromise]);
   }
   catch (error) {
-    LOGGER.error(error instanceof Error ? error : new Error(String(error)));
+    LOGGER.error(
+      error instanceof Error
+        ? new Error('Fatal error in main(): ' + error.message, { cause: error })
+        : new Error('Fatal error in main(): ' + String(error))
+    );
   }
 }
+
+process.on(
+  'unhandledRejection',
+  (reason) => {
+    LOGGER.error('Unhandled promise rejection: ' + reason);
+  }
+);
+
+process.on(
+  'uncaughtException',
+  (err) => {
+    LOGGER.error('Uncaught exception: ' + err);
+  }
+);
 
 void main();
 
