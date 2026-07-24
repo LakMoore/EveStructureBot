@@ -8,6 +8,11 @@ Join the EVE Apps by Lak Moore Discord to learn more: https://discord.gg/9xgRvQf
 
 ## Change Log
 
+v1.1.3 [July 2026]
+
+- Bugfix for recently added ESI server availability check
+- More logging on errors
+
 v1.1.2 [July 2026]
 
 - refactors for stability and performance
