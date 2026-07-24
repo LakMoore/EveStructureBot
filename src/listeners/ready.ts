@@ -288,9 +288,10 @@ async function doOnePoll(client: Client<boolean>) {
     await checkNotificationsForCorp(thisCorp, client);
 
     client.user?.setActivity(
-      `${new Date(Date.now()).toLocaleString(
+      `${new Date().toLocaleString(
         'en-GB',
         {
+          timeZone: 'UTC',
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
@@ -298,7 +299,7 @@ async function doOnePoll(client: Client<boolean>) {
           month: 'short',
           year: 'numeric',
         }
-      )}: checking structures...`
+      )} UTC: checking structures...`
     );
   }
 }
