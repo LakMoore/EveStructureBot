@@ -18,6 +18,11 @@ import { getEveServerStatus } from '../EveESI';
 
 const POLL_ATTEMPT_DELAY = 3000;
 let corpIndex = 0;
+// Configurable presence update interval (seconds). Default: 60s
+const PRESENCE_UPDATE_INTERVAL_SECONDS =
+  parseInt(process.env.PRESENCE_UPDATE_INTERVAL_SECONDS ?? '60', 10) || 60;
+const PRESENCE_UPDATE_INTERVAL_MS = PRESENCE_UPDATE_INTERVAL_SECONDS * 1000;
+let lastPresenceUpdate = 0;
 
 export default async function ready(client: Client) {
   for await (const [thisClient] of Client.on(client, 'ready')) {
@@ -287,19 +292,24 @@ async function doOnePoll(client: Client<boolean>) {
     await checkStarbasesForCorp(thisCorp, client);
     await checkNotificationsForCorp(thisCorp, client);
 
-    client.user?.setActivity(
-      `${new Date().toLocaleString(
-        'en-GB',
-        {
-          timeZone: 'UTC',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        }
-      )} UTC: checking structures...`
-    );
+    // Throttle presence updates to the configured interval to avoid hitting Gateway rate limits
+    const now = Date.now();
+    if (now - lastPresenceUpdate >= PRESENCE_UPDATE_INTERVAL_MS) {
+      client.user?.setActivity(
+        `${new Date().toLocaleString(
+          'en-GB',
+          {
+            timeZone: 'UTC',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: undefined,
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }
+        )} UTC: checking structures...`
+      );
+      lastPresenceUpdate = now;
+    }
   }
 }
