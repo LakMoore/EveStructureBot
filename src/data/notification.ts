@@ -76,6 +76,7 @@ const NOOP_NOTIFICATIONS: Array<
   'JumpCloneDeletedMsg2',
   'CorpAppNewMsg',
   'InsuranceExpirationMsg',
+  'InsuranceIssuedMsg',
   'DailyItemRewardAutoClaimed',
   'InsurancePayoutMsg',
   'CharAppAcceptMsg',
@@ -462,6 +463,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'OwnershipTransferred',
+    {
+      message: 'Structure Ownership Transferred',
+      colour: Colors.Yellow,
+      role_to_mention: () => undefined,
+      handler: handleOwnershipTransferredNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'WarDeclared',
     {
       message: 'War Declared',
@@ -546,6 +560,32 @@ export function initNotifications() {
       colour: Colors.Orange,
       role_to_mention: (c) => c.attack_alert_role,
       handler: handleSovStructureReinforcedNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
+    'SovCommandNodeEventStarted',
+    {
+      message: 'Sovereignty Command Node Event Started',
+      colour: Colors.Orange,
+      role_to_mention: (c) => c.attack_alert_role,
+      handler: handleSovCommandNodeEventStartedNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
+    'SovAllClaimAquiredMsg',
+    {
+      message: 'Sovereignty Claim Acquired',
+      colour: Colors.Green,
+      role_to_mention: () => undefined,
+      handler: handleSovAllClaimAquiredNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
@@ -776,6 +816,67 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   }
 }
 
+async function handleOwnershipTransferredNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const newOwnerCorpId = Number(values['newOwnerCorpID']) || 0;
+    const oldOwnerCorpId = Number(values['oldOwnerCorpID']) || 0;
+    const structureTypeId = Number(values['structureTypeID']) || 0;
+    const solarsystemID = Number(values['solarSystemID']) || 0;
+    const structureName = values['structureName'] || 'Unknown structure';
+    const systemName = await getSystemName(solarsystemID);
+    const regionName = await getRegionNameFromSystemId(solarsystemID);
+    const dotLanLink = solarsystemID
+      ? `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`
+      : 'Unknown System';
+    const newOwnerName = newOwnerCorpId
+      ? await getCorpName(newOwnerCorpId)
+      : 'Unknown corporation';
+    const oldOwnerName = oldOwnerCorpId
+      ? await getCorpName(oldOwnerCorpId)
+      : 'Unknown corporation';
+    const structureTypeName = await getItemName(structureTypeId);
+    const messageDetail = `${structureName} (${structureTypeName}) transferred from ${oldOwnerName} to ${newOwnerName}.
+Where: ${dotLanLink} (${regionName})`;
+    const thumbnail = structureTypeId
+      ? `https://images.evetech.net/types/${structureTypeId}/render?size=64`
+      : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+        if (details.structureStateMessage && thisChannel.structureStatus) {
+          await sendMessage(
+            channel,
+            {
+              embeds: [
+                generateGeneralNotificationEmbed(
+                  details.colour,
+                  details.message,
+                  messageDetail,
+                  details.note.timestamp,
+                  details.corp.corpName,
+                  thumbnail
+                ),
+              ],
+            },
+            `Structure Notification: ${details.message}`
+          );
+        }
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occured in handleOwnershipTransferredNotification for ${details.message}. Body: ${details.note.text}%n`
+        + String(error)
+    );
+  }
+}
+
 function parseStructureReinforcementInfo(text?: string) {
   const structures: Array<{ structureId: string; name: string }> = [];
   const lines = text?.split(/\r?\n/) ?? [];
@@ -802,21 +903,24 @@ async function handleStructuresReinforcementChangedNotification(
     const values = parseNotificationText(details.note.text);
     const structures = parseStructureReinforcementInfo(details.note.text);
     const hour = Number(values['hour']);
-    const reinforcementTime = Number.isInteger(hour) && hour >= 0 && hour <= 23
-      ? `${String(hour).padStart(2, '0')}:00 EVE time`
-      : 'an unknown time';
+    const reinforcementTime =
+      Number.isInteger(hour) && hour >= 0 && hour <= 23
+        ? `${String(hour).padStart(2, '0')}:00 EVE time`
+        : 'an unknown time';
     const structureNames = structures.map(({ structureId, name }) => {
       const thisStruct = details.corp.structures.find(
         (struct) => String(struct.structure_id) === structureId
       );
       return thisStruct?.name ?? name;
     });
-    const structureCount = Number(values['numStructures']) || structureNames.length;
-    const names = structureNames.length > 0
-      ? `\n\nAffected structures:\n${structureNames
-        .map((name) => `- ${name}`)
-        .join('\n')}`
-      : '';
+    const structureCount =
+      Number(values['numStructures']) || structureNames.length;
+    const names =
+      structureNames.length > 0
+        ? `\n\nAffected structures:\n${structureNames
+            .map((name) => `- ${name}`)
+            .join('\n')}`
+        : '';
     const messageDetail = `The reinforcement hour for ${structureCount} structure${
       structureCount === 1 ? '' : 's'
     } has changed to ${reinforcementTime}.${names}`;
@@ -1790,6 +1894,119 @@ async function handleSovStructureReinforcedNotification(
   catch (error) {
     LOGGER.error(
       `An error occured in handleSovStructureReinforcedNotification for ${details.message}. Body: ${details.note.text}%n`
+        + String(error)
+    );
+  }
+}
+
+async function handleSovCommandNodeEventStartedNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const solarsystemID = Number(values['solarSystemID']) || 0;
+    const systemName = await getSystemName(solarsystemID);
+    const regionName = await getRegionNameFromSystemId(solarsystemID);
+    const dotLanLink = solarsystemID
+      ? `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`
+      : 'Unknown System';
+    const messageDetail = `A sovereignty command node event has started in ${dotLanLink} (${regionName}).`;
+    const allianceId = Number(details.note.sender_id) || 0;
+    const allianceName = await getAllianceName(allianceId);
+    const thumbnail = allianceId
+      ? `https://images.evetech.net/alliances/${allianceId}/logo?size=64`
+      : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+        if (details.structureStateMessage && thisChannel.structureStatus) {
+          let content;
+          const role = details.role_to_mention(thisChannel);
+          if (role) {
+            content = `<@&${role}>`;
+          }
+
+          await sendMessage(
+            channel,
+            {
+              content,
+              embeds: [
+                generateGeneralNotificationEmbed(
+                  details.colour,
+                  details.message,
+                  messageDetail,
+                  details.note.timestamp,
+                  allianceName,
+                  thumbnail
+                ),
+              ],
+            },
+            `Sov Command Node Notification: ${details.message}`
+          );
+        }
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occured in handleSovCommandNodeEventStartedNotification for ${details.message}. Body: ${details.note.text}%n`
+        + String(error)
+    );
+  }
+}
+
+async function handleSovAllClaimAquiredNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const allianceId = Number(values['allianceID']) || 0;
+    const corporationId = Number(values['corpID']) || 0;
+    const solarsystemID = Number(values['solarSystemID']) || 0;
+    const systemName = await getSystemName(solarsystemID);
+    const regionName = await getRegionNameFromSystemId(solarsystemID);
+    const dotLanLink = solarsystemID
+      ? `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`
+      : 'Unknown System';
+    const allianceName = await getAllianceName(allianceId);
+    const corporationName = corporationId
+      ? await getCorpName(corporationId)
+      : details.corp.corpName;
+    const messageDetail = `${corporationName} has acquired a sovereignty claim for ${allianceName} in ${dotLanLink} (${regionName}).`;
+    const thumbnail = allianceId
+      ? `https://images.evetech.net/alliances/${allianceId}/logo?size=64`
+      : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+        if (details.structureStateMessage && thisChannel.structureStatus) {
+          await sendMessage(
+            channel,
+            {
+              embeds: [
+                generateGeneralNotificationEmbed(
+                  details.colour,
+                  details.message,
+                  messageDetail,
+                  details.note.timestamp,
+                  allianceName,
+                  thumbnail
+                ),
+              ],
+            },
+            `Sov Claim Notification: ${details.message}`
+          );
+        }
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occured in handleSovAllClaimAquiredNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
