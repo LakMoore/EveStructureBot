@@ -515,6 +515,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'WarSurrenderOfferMsg',
+    {
+      message: 'War Surrender Offer',
+      colour: Colors.Orange,
+      role_to_mention: () => undefined,
+      handler: handleWarSurrenderOfferNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'AllWarCorpJoinedAllianceMsg',
     {
       message: 'Corporation Joined Alliance (War Risk)',
@@ -1322,6 +1335,63 @@ async function handleWarInheritedNotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleWarSurrenderOfferNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const ownerId1 = Number(values['ownerID1']) || 0;
+    const ownerId2 = Number(values['ownerID2']) || 0;
+    const negotiationId = values['warNegotiationID'] || 'unknown';
+    const iskValue = Number(values['iskValue']);
+
+    const [owner1, owner2] = await Promise.all([
+      getWarEntityName(ownerId1),
+      getWarEntityName(ownerId2),
+    ]);
+    const iskText = Number.isFinite(iskValue)
+      ? ` for ${iskValue.toLocaleString('en-US')} ISK`
+      : '';
+    const notificationMessage = `A surrender offer was made between ${owner1} and ${owner2}${iskText}. Negotiation ID: ${negotiationId}.`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = details.role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                notificationMessage,
+                details.note.timestamp,
+                details.corp.corpName
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleWarSurrenderOfferNotification for ${details.message}. Body: ${details.note.text}\n`
         + String(error)
     );
   }
