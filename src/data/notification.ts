@@ -448,16 +448,18 @@ export function initNotifications() {
     }
   );
 
-  // TODO: need to parse multiple structures to handle this notification.
-  // messageTypes.set('StructuresReinforcementChanged', {
-  //   message: 'Structure Reinforcement Time Changed',
-  //   colour: Colors.Yellow,
-  //   role_to_mention: (c) => undefined,
-  //   handler: handleStructureNotification,
-  //   structureStateMessage: true,
-  //   structureFuelMessage: false,
-  //   miningUpdatesMessage: false,
-  // });
+  messageTypes.set(
+    'StructuresReinforcementChanged',
+    {
+      message: 'Structure Reinforcement Time Changed',
+      colour: Colors.Yellow,
+      role_to_mention: () => undefined,
+      handler: handleStructuresReinforcementChangedNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 
   messageTypes.set(
     'WarDeclared',
@@ -769,6 +771,94 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
+        + String(error)
+    );
+  }
+}
+
+function parseStructureReinforcementInfo(text?: string) {
+  const structures: Array<{ structureId: string; name: string }> = [];
+  const lines = text?.split(/\r?\n/) ?? [];
+
+  for (let index = 0; index < lines.length; index++) {
+    const structureId = /^-\s+-\s+(\d+)$/.exec(lines[index].trim())?.[1];
+    const nameLine = lines[index + 1]?.trim();
+    const name = nameLine?.startsWith('- ')
+      ? nameLine.slice(2).trim()
+      : undefined;
+
+    if (structureId && name) {
+      structures.push({ structureId, name });
+    }
+  }
+
+  return structures;
+}
+
+async function handleStructuresReinforcementChangedNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const structures = parseStructureReinforcementInfo(details.note.text);
+    const hour = Number(values['hour']);
+    const reinforcementTime = Number.isInteger(hour) && hour >= 0 && hour <= 23
+      ? `${String(hour).padStart(2, '0')}:00 EVE time`
+      : 'an unknown time';
+    const structureNames = structures.map(({ structureId, name }) => {
+      const thisStruct = details.corp.structures.find(
+        (struct) => String(struct.structure_id) === structureId
+      );
+      return thisStruct?.name ?? name;
+    });
+    const structureCount = Number(values['numStructures']) || structureNames.length;
+    const names = structureNames.length > 0
+      ? `\n\nAffected structures:\n${structureNames
+        .map((name) => `- ${name}`)
+        .join('\n')}`
+      : '';
+    const messageDetail = `The reinforcement hour for ${structureCount} structure${
+      structureCount === 1 ? '' : 's'
+    } has changed to ${reinforcementTime}.${names}`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (!(channel instanceof TextChannel)) {
+        continue;
+      }
+
+      const thisChannel = data.channelFor(channel);
+      if (!details.structureStateMessage || !thisChannel.structureStatus) {
+        continue;
+      }
+
+      let content;
+      const role = details.role_to_mention(thisChannel);
+      if (role) {
+        content = `<@&${role}>`;
+      }
+
+      await sendMessage(
+        channel,
+        {
+          content,
+          embeds: [
+            generateGeneralNotificationEmbed(
+              details.colour,
+              details.message,
+              messageDetail,
+              details.note.timestamp,
+              details.corp.corpName
+            ),
+          ],
+        },
+        `Structure Notification: ${details.message}`
+      );
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occured in handleStructuresReinforcementChangedNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
