@@ -502,6 +502,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'WarAllyInherited',
+    {
+      message: 'War Ally Inherited',
+      colour: Colors.Orange,
+      role_to_mention: () => undefined,
+      handler: handleWarInheritedNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'AllWarCorpJoinedAllianceMsg',
     {
       message: 'Corporation Joined Alliance (War Risk)',
