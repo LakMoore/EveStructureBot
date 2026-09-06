@@ -617,6 +617,19 @@ export function initNotifications() {
       miningUpdatesMessage: false,
     }
   );
+
+  messageTypes.set(
+    'EntosisCaptureStarted',
+    {
+      message: 'Entosis Capture Started',
+      colour: Colors.Red,
+      role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 }
 
 async function noopHandler(details: NotificationDetails) {
