@@ -87,6 +87,7 @@ const NOOP_NOTIFICATIONS: Array<
   'BillPaidCorpAllMsg',
   'GameTimeAdded',
   'RaffleExpired',
+  'RaffleFinished',
   'CorporationGoalCreated',
   'CorporationGoalClosed',
   'KillReportVictim',
@@ -580,6 +581,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'CorpBecameWarEligible',
+    {
+      message: 'Corporation Became War Eligible',
+      colour: Colors.Orange,
+      role_to_mention: () => undefined,
+      handler: handleCorpBecameWarEligibleNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'SovStructureReinforced',
     {
       message: 'Sovereignty Hub Reinforced',
@@ -630,11 +644,128 @@ export function initNotifications() {
       miningUpdatesMessage: false,
     }
   );
+
+  messageTypes.set(
+    'CorpNewCEOMsg',
+    {
+      message: 'CORPORATION CEO CHANGED',
+      colour: Colors.Yellow,
+      role_to_mention: () => undefined,
+      handler: handleCorpNewCEONotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
+    'CharTerminationMsg',
+    {
+      message: 'CHARACTER TERMINATED FROM CORPORATION',
+      colour: Colors.Orange,
+      role_to_mention: () => undefined,
+      handler: handleCharTerminationNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
 }
 
 async function noopHandler(details: NotificationDetails) {
   // intentionally do nothing for ignored notification types
   return;
+}
+
+async function handleCorpNewCEONotification(details: NotificationDetails) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const corpId = Number(values['corpID']) || details.corp.corpId;
+    const newCeoId = Number(values['newCeoID']) || 0;
+    const oldCeoId = Number(values['oldCeoID']) || 0;
+    const corpName =
+      corpId === details.corp.corpId
+        ? details.corp.corpName
+        : await getCorpName(corpId);
+    const newCeoName = await getCharacterName(newCeoId);
+    const oldCeoName = await getCharacterName(oldCeoId);
+    const messageDetail = `The CEO changed from ${oldCeoName} (${oldCeoId}) to ${newCeoName} (${newCeoId}).`;
+    const thumbnail = `https://images.evetech.net/corporations/${corpId}/logo?size=64`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        await sendMessage(
+          channel,
+          {
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                messageDetail,
+                details.note.timestamp,
+                corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `Corporation Notification: ${details.message}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleCorpNewCEONotification. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleCharTerminationNotification(details: NotificationDetails) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const characterId = Number(values['charID']) || 0;
+    const corpId = Number(values['corpID']) || details.corp.corpId;
+    const characterName = await getCharacterName(characterId);
+    const corpName =
+      corpId === details.corp.corpId
+        ? details.corp.corpName
+        : await getCorpName(corpId);
+    const security = values['security'];
+    const messageDetail = `${characterName} was terminated from ${corpName}.${
+      security ? ` Security status: ${security}.` : ''
+    }`;
+    const thumbnail = `https://images.evetech.net/corporations/${corpId}/logo?size=64`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        await sendMessage(
+          channel,
+          {
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                messageDetail,
+                details.note.timestamp,
+                corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `Corporation Notification: ${details.message}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleCharTerminationNotification. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
 }
 
 export function initNoOpNotifications() {
@@ -1622,6 +1753,52 @@ async function handleCorpNoLongerWarEligibleNotification(
     const thumbnail = noLongerEligibleCorpId
       ? `https://images.evetech.net/corporations/${noLongerEligibleCorpId}/logo?size=64`
       : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = details.role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                notificationMessage,
+                details.note.timestamp,
+                details.corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleCorpBecameWarEligibleNotification(
+  details: NotificationDetails
+) {
+  try {
+    const notificationMessage = `${details.corp.corpName} is now war eligible.`;
+    const thumbnail = `https://images.evetech.net/corporations/${details.corp.corpId}/logo?size=64`;
 
     for (const channelId of details.corp.channelIds) {
       const channel = details.client.channels.cache.get(channelId);
