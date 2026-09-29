@@ -217,6 +217,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'MoonminingExtractionCancelled',
+    {
+      message: 'Moon mining extraction cancelled',
+      colour: Colors.Orange,
+      role_to_mention: () => undefined,
+      handler: handleMoonMiningNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: true,
+    }
+  );
+
+  messageTypes.set(
     'MoonminingExtractionFinished',
     {
       message: 'Moon mining extraction finished',
@@ -1269,6 +1282,12 @@ async function handleMoonMiningNotification(details: NotificationDetails) {
     let structureName = thisStruct?.name;
 
     let moonName = await getMoonName(values['moonID']);
+    const isCancelled = details.note.type === 'MoonminingExtractionCancelled';
+    const cancelledById = Number(values['cancelledBy']) || 0;
+    const cancelledBy =
+      isCancelled && cancelledById
+        ? await getCharacterName(cancelledById)
+        : undefined;
 
     let dotLanLink = `Unknown System`;
     if (systemId) {
@@ -1297,9 +1316,11 @@ async function handleMoonMiningNotification(details: NotificationDetails) {
       );
     }
 
-    let messageDetail = `What: The moon drill on the ${await getItemName(
-      typeId
-    )}${structureName}
+    let messageDetail = `${
+      isCancelled
+        ? `Extraction cancelled${cancelledBy ? ` by ${cancelledBy}` : ''}.\n`
+        : ''
+    }What: The moon drill on the ${await getItemName(typeId)}${structureName}
 Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
 
     if (values['autoTime']) {
