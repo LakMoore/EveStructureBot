@@ -92,6 +92,7 @@ const NOOP_NOTIFICATIONS: Array<
   'CorporationGoalClosed',
   'KillReportVictim',
   'StructureItemsDelivered',
+  'FacWarLPPayoutEvent',
 ];
 
 export function parseNotificationText(text?: string) {
