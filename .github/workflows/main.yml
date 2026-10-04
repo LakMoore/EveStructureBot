@@ -16,7 +16,10 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd /home/pmtwo/StructureBot
-            sudo -u pmtwo git pull origin main
+            sudo -u pmtwo git fetch origin
+            sudo -u pmtwo git reset --hard origin/main
+            # sudo -u pmtwo nvm install
+            # sudo -u pmtwo nvm use
             sudo -u pmtwo npm install
             sudo -u pmtwo npx tsc
             sudo -u pmtwo pm2 restart StructureBot

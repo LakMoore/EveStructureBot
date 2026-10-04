@@ -102,10 +102,13 @@ export function parseNotificationText(text?: string) {
     const lines = text.split('\n');
     const result: { [key: string]: string } = {};
     for (const line of lines) {
-      const parts = line.split(':');
-      if (parts.length === 2) {
-        const key = parts[0]; // don't trim the key, some notifications have important leading spaces to differentiate similar keys (e.g. "typeID" vs "  typeID")
-        const value = parts[1].replace('&id001', '').trim();
+      const separatorIndex = line.indexOf(':');
+      if (separatorIndex >= 0) {
+        const key = line.slice(0, separatorIndex); // don't trim the key, some notifications have important leading spaces to differentiate similar keys (e.g. "typeID" vs "  typeID")
+        const value = line
+          .slice(separatorIndex + 1)
+          .replace('&id001', '')
+          .trim();
         result[key] = value;
       }
     }
@@ -782,11 +785,32 @@ async function handleCharTerminationNotification(details: NotificationDetails) {
     const values = parseNotificationText(details.note.text);
     const characterId = Number(values['charID']) || 0;
     const corpId = Number(values['corpID']) || details.corp.corpId;
-    const characterName = await getCharacterName(characterId);
-    const corpName =
-      corpId === details.corp.corpId
-        ? details.corp.corpName
-        : await getCorpName(corpId);
+    let characterName = characterId
+      ? `Character ${characterId}`
+      : 'Unknown Character';
+    if (characterId) {
+      try {
+        characterName = await getCharacterName(characterId);
+      }
+      catch (error) {
+        LOGGER.warning(
+          `Could not resolve terminated character ${characterId}: ${error instanceof Error ? error.message : JSON.stringify(error)}`
+        );
+      }
+    }
+
+    let corpName = details.corp.corpName;
+    if (corpId !== details.corp.corpId) {
+      corpName = `Corporation ${corpId}`;
+      try {
+        corpName = await getCorpName(corpId);
+      }
+      catch (error) {
+        LOGGER.warning(
+          `Could not resolve corporation ${corpId} for character termination: ${error instanceof Error ? error.message : JSON.stringify(error)}`
+        );
+      }
+    }
     const security = values['security'];
     const messageDetail = `${characterName} was terminated from ${corpName}.${
       security ? ` Security status: ${security}.` : ''
