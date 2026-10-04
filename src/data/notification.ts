@@ -93,6 +93,8 @@ const NOOP_NOTIFICATIONS: Array<
   'KillReportVictim',
   'StructureItemsDelivered',
   'FacWarLPPayoutEvent',
+  'CloneRevokedMsg2',
+  'StructureItemsMovedToSafety',
 ];
 
 export function parseNotificationText(text?: string) {
@@ -543,6 +545,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'MutualWarInviteSent',
+    {
+      message: 'Mutual War Invitation Sent',
+      colour: Colors.Orange,
+      role_to_mention: () => undefined,
+      handler: handleMutualWarInviteSentNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'AllWarCorpJoinedAllianceMsg',
     {
       message: 'Corporation Joined Alliance (War Risk)',
@@ -621,6 +636,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'SovStructureDestroyed',
+    {
+      message: 'Sovereignty Hub Destroyed',
+      colour: Colors.Red,
+      role_to_mention: (c) => c.attack_alert_role,
+      handler: handleStructureNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'SovCommandNodeEventStarted',
     {
       message: 'Sovereignty Command Node Event Started',
@@ -640,6 +668,19 @@ export function initNotifications() {
       colour: Colors.Green,
       role_to_mention: () => undefined,
       handler: handleSovAllClaimAquiredNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
+    'SovAllClaimLostMsg',
+    {
+      message: 'Sovereignty Claim Lost',
+      colour: Colors.Red,
+      role_to_mention: (c) => c.attack_alert_role,
+      handler: handleSovAllClaimLostNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
       miningUpdatesMessage: false,
@@ -1563,6 +1604,73 @@ async function handleWarSurrenderOfferNotification(
   }
 }
 
+async function handleMutualWarInviteSentNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const againstId = Number(values['againstID']) || 0;
+    const declaredById = Number(values['declaredByID']) || 0;
+    const against = await getWarEntityName(againstId);
+    const declaredBy = await getWarEntityName(declaredById);
+
+    let expiryMessage = '';
+    if (values['expireTimeStamp']) {
+      try {
+        const expiryDate = new Date(
+          filetimeToJsTimestamp(values['expireTimeStamp'])
+        );
+        expiryMessage = ` It expires ${getRelativeDiscordTime(expiryDate)}.`;
+      }
+      catch {
+        // Omit the expiry when the notification contains an invalid timestamp.
+      }
+    }
+
+    const notificationMessage = `${declaredBy} sent a mutual war invitation to ${against}.${expiryMessage}`;
+    const thumbnail = declaredById
+      ? `https://images.evetech.net/alliances/${declaredById}/logo?size=64`
+      : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = details.role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                notificationMessage,
+                details.note.timestamp,
+                details.corp.corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleMutualWarInviteSentNotification for ${details.message}. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
 async function handleWarHQRemovedFromSpaceNotification(
   details: NotificationDetails
 ) {
@@ -2302,6 +2410,66 @@ async function handleSovAllClaimAquiredNotification(
   catch (error) {
     LOGGER.error(
       `An error occured in handleSovAllClaimAquiredNotification for ${details.message}. Body: ${details.note.text}%n`
+        + String(error)
+    );
+  }
+}
+
+async function handleSovAllClaimLostNotification(details: NotificationDetails) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const allianceId = Number(values['allianceID']) || 0;
+    const corporationId = Number(values['corpID']) || 0;
+    const solarsystemID = Number(values['solarSystemID']) || 0;
+    const systemName = await getSystemName(solarsystemID);
+    const regionName = await getRegionNameFromSystemId(solarsystemID);
+    const dotLanLink = solarsystemID
+      ? `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(' ', '_')})`
+      : 'Unknown System';
+    const allianceName = await getAllianceName(allianceId);
+    const corporationName = corporationId
+      ? await getCorpName(corporationId)
+      : details.corp.corpName;
+    const messageDetail = `${corporationName} has lost a sovereignty claim for ${allianceName} in ${dotLanLink} (${regionName}).`;
+    const thumbnail = allianceId
+      ? `https://images.evetech.net/alliances/${allianceId}/logo?size=64`
+      : undefined;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+        if (details.structureStateMessage && thisChannel.structureStatus) {
+          let content;
+          const role = details.role_to_mention(thisChannel);
+          if (role) {
+            content = `<@&${role}>`;
+          }
+
+          await sendMessage(
+            channel,
+            {
+              content,
+              embeds: [
+                generateGeneralNotificationEmbed(
+                  details.colour,
+                  details.message,
+                  messageDetail,
+                  details.note.timestamp,
+                  allianceName,
+                  thumbnail
+                ),
+              ],
+            },
+            `Sov Claim Notification: ${details.message}`
+          );
+        }
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occured in handleSovAllClaimLostNotification for ${details.message}. Body: ${details.note.text}%n`
         + String(error)
     );
   }
