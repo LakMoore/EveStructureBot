@@ -717,6 +717,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'CorpFriendlyFireDisableTimerCompleted',
+    {
+      message: 'CORPORATION FRIENDLY FIRE DISABLED',
+      colour: Colors.Green,
+      role_to_mention: () => undefined,
+      handler: handleCorpFriendlyFireDisableTimerCompletedNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'CharTerminationMsg',
     {
       message: 'CHARACTER TERMINATED FROM CORPORATION',
@@ -775,6 +788,58 @@ async function handleCorpNewCEONotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occurred in handleCorpNewCEONotification. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleCorpFriendlyFireDisableTimerCompletedNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const corpId = Number(values['corpID']) || details.corp.corpId;
+    let corpName = details.corp.corpName;
+    if (corpId !== details.corp.corpId) {
+      corpName = `Corporation ${corpId}`;
+      try {
+        corpName = await getCorpName(corpId);
+      }
+      catch (error) {
+        LOGGER.warning(
+          `Could not resolve corporation ${corpId} for friendly-fire notification: ${error instanceof Error ? error.message : JSON.stringify(error)}`
+        );
+      }
+    }
+
+    const messageDetail = `Friendly fire is now disabled for ${corpName}. Aggression against corporation members will follow normal Crimewatch rules.`;
+    const thumbnail = `https://images.evetech.net/corporations/${corpId}/logo?size=64`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        await sendMessage(
+          channel,
+          {
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                messageDetail,
+                details.note.timestamp,
+                corpName,
+                thumbnail
+              ),
+            ],
+          },
+          `Corporation Notification: ${details.message}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleCorpFriendlyFireDisableTimerCompletedNotification. Body: ${details.note.text}\n`
         + String(error)
     );
   }
