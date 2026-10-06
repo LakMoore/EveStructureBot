@@ -1125,7 +1125,7 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+        + (error instanceof Error ? error.message : JSON.stringify(error))
     );
   }
 }
@@ -2213,7 +2213,15 @@ async function generateStructureAggressorStatement(values: {
   if (!aggressor_id) {
     return '';
   }
-  const aggressorCharName = await getCharacterName(aggressor_id);
+  let aggressorCharName = 'Unknown Character';
+  try {
+    aggressorCharName = await getCharacterName(aggressor_id);
+  }
+  catch (error) {
+    LOGGER.warning(
+      `Could not resolve attacking character ${aggressor_id}: ${error instanceof Error ? error.message : JSON.stringify(error)}`
+    );
+  }
   const corpName = values['corpName'] || 'Unknown Corporation';
   const allianceName = values['allianceName'] || 'Unknown Alliance';
 
