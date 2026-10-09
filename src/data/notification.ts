@@ -548,6 +548,32 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'AcceptedSurrender',
+    {
+      message: 'War Surrender Accepted',
+      colour: Colors.Green,
+      role_to_mention: () => undefined,
+      handler: handleAcceptedSurrenderNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
+    'CorpWarSurrenderMsg',
+    {
+      message: 'Corporation War Surrender',
+      colour: Colors.Orange,
+      role_to_mention: () => undefined,
+      handler: handleCorpWarSurrenderNotification,
+      structureStateMessage: true,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'MutualWarInviteSent',
     {
       message: 'Mutual War Invitation Sent',
@@ -1688,6 +1714,132 @@ async function handleWarSurrenderOfferNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleWarSurrenderOfferNotification for ${details.message}. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleAcceptedSurrenderNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const characterId = Number(values['charID']) || 0;
+    const entityId = Number(values['entityID']) || 0;
+    const iskValue =
+      values['iskValue'] === undefined
+        ? Number.NaN
+        : Number(values['iskValue']);
+    const offeringId = values['offeringID'];
+
+    const [characterName, entityName] = await Promise.all([
+      getCharacterName(characterId),
+      getWarEntityName(entityId),
+    ]);
+    const iskText = Number.isFinite(iskValue)
+      ? ` for ${iskValue.toLocaleString('en-US')} ISK`
+      : '';
+    const offeringText = offeringId ? ` Offer ID: ${offeringId}.` : '';
+    const notificationMessage = `A surrender offer involving ${entityName} was accepted by ${characterName}${iskText}.${offeringText}`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = details.role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                notificationMessage,
+                details.note.timestamp,
+                details.corp.corpName
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleAcceptedSurrenderNotification for ${details.message}. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
+}
+
+async function handleCorpWarSurrenderNotification(
+  details: NotificationDetails
+) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const againstId = Number(values['againstID']) || 0;
+    const declaredById = Number(values['declaredByID']) || 0;
+    const cost =
+      values['cost'] && values['cost'] !== 'null'
+        ? Number(values['cost'])
+        : Number.NaN;
+    const delayHours =
+      values['delayHours'] && values['delayHours'] !== 'null'
+        ? Number(values['delayHours'])
+        : Number.NaN;
+
+    const [against, declaredBy] = await Promise.all([
+      getWarEntityName(againstId),
+      getWarEntityName(declaredById),
+    ]);
+    const terms = [
+      Number.isFinite(cost) ? `${cost.toLocaleString('en-US')} ISK` : undefined,
+      Number.isFinite(delayHours) ? `${delayHours} hour delay` : undefined,
+    ].filter((term) => term !== undefined);
+    const termsText = terms.length > 0 ? ` Terms: ${terms.join(', ')}.` : '';
+    const notificationMessage = `A surrender was recorded for the war between ${declaredBy} and ${against}.${termsText}`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        const thisChannel = data.channelFor(channel);
+
+        let content;
+        const role = details.role_to_mention(thisChannel);
+        if (role) {
+          content = `<@&${role}>`;
+        }
+
+        await sendMessage(
+          channel,
+          {
+            content,
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                notificationMessage,
+                details.note.timestamp,
+                details.corp.corpName
+              ),
+            ],
+          },
+          `War Notification: ${notificationMessage}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleCorpWarSurrenderNotification for ${details.message}. Body: ${details.note.text}\n`
         + String(error)
     );
   }
