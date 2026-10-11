@@ -87,7 +87,9 @@ export class Data {
   private _autoSavePromise?: Promise<void>;
 
   public async init() {
-    await storage.init();
+    // This store does not use TTLs; the library's expiry scan reads every file
+    // and can emit unhandled rejections when any historical entry is corrupt.
+    await storage.init({ expiredInterval: 0 });
 
     let temp: AuthenticatedCorp[] = await storage.getItem(Data.CORPS_DATA_KEY);
     if (!temp) {
@@ -128,9 +130,18 @@ export class Data {
     }
 
     this._channels = tempChannels;
-    const tempLastUpdateAnnouncement: string | undefined =
-      await storage.getItem(Data.UPDATE_ANNOUNCEMENT_KEY);
-    this._lastUpdateAnnouncement = tempLastUpdateAnnouncement ?? '';
+    try {
+      const tempLastUpdateAnnouncement: string | undefined =
+        await storage.getItem(Data.UPDATE_ANNOUNCEMENT_KEY);
+      this._lastUpdateAnnouncement = tempLastUpdateAnnouncement ?? '';
+    }
+    catch (error) {
+      LOGGER.warning(
+        'Could not read the last update announcement marker; it will be recreated on save: '
+          + (error instanceof Error ? error.message : String(error))
+      );
+      this._lastUpdateAnnouncement = '';
+    }
 
     for (const thisCorp of this._authenticatedCorps) {
       if (!thisCorp.members) {
