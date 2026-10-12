@@ -756,6 +756,19 @@ export function initNotifications() {
   );
 
   messageTypes.set(
+    'BillOutOfMoneyMsg',
+    {
+      message: 'CORPORATION BILL PAYMENT FAILED',
+      colour: Colors.Red,
+      role_to_mention: () => undefined,
+      handler: handleBillOutOfMoneyNotification,
+      structureStateMessage: false,
+      structureFuelMessage: false,
+      miningUpdatesMessage: false,
+    }
+  );
+
+  messageTypes.set(
     'CharTerminationMsg',
     {
       message: 'CHARACTER TERMINATED FROM CORPORATION',
@@ -772,6 +785,55 @@ export function initNotifications() {
 async function noopHandler(details: NotificationDetails) {
   // intentionally do nothing for ignored notification types
   return;
+}
+
+async function handleBillOutOfMoneyNotification(details: NotificationDetails) {
+  try {
+    const values = parseNotificationText(details.note.text);
+    const billTypeId = values['billTypeID'] || 'unknown';
+    let dueDateText = 'an unknown time';
+
+    if (values['dueDate']) {
+      try {
+        const dueDate = new Date(filetimeToJsTimestamp(values['dueDate']));
+        if (!Number.isNaN(dueDate.getTime())) {
+          dueDateText = getRelativeDiscordTime(dueDate);
+        }
+      }
+      catch {
+        // Keep the notification useful if its due date is malformed.
+      }
+    }
+
+    const messageDetail = `The corporation did not have enough ISK to pay bill type ${billTypeId}. Payment was due ${dueDateText}.`;
+
+    for (const channelId of details.corp.channelIds) {
+      const channel = details.client.channels.cache.get(channelId);
+      if (channel instanceof TextChannel) {
+        await sendMessage(
+          channel,
+          {
+            embeds: [
+              generateGeneralNotificationEmbed(
+                details.colour,
+                details.message,
+                messageDetail,
+                details.note.timestamp,
+                details.corp.corpName
+              ),
+            ],
+          },
+          `Corporation Notification: ${details.message}`
+        );
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `An error occurred in handleBillOutOfMoneyNotification. Body: ${details.note.text}\n`
+        + String(error)
+    );
+  }
 }
 
 async function handleCorpNewCEONotification(details: NotificationDetails) {
