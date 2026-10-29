@@ -97,6 +97,7 @@ const NOOP_NOTIFICATIONS: Array<
   'FacWarLPPayoutEvent',
   'CloneRevokedMsg2',
   'StructureItemsMovedToSafety',
+  'GiftReceived',
 ];
 
 export function parseNotificationText(text?: string) {
