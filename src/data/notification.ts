@@ -30,8 +30,9 @@
     type: 'StructureUnderAttack'
   }*/
 
-import { Client, Colors, TextChannel } from 'discord.js';
-import { AuthenticatedCorp, DiscordChannel } from './data';
+import type { Client } from 'discord.js';
+import { Colors, TextChannel } from 'discord.js';
+import type { AuthenticatedCorp, DiscordChannel } from './data';
 import { DOTLAN_MAP_URL } from '../embeds/structureNotification';
 import { data, getRelativeDiscordTime, sendMessage } from '../Bot';
 import {
@@ -44,9 +45,11 @@ import {
   getRegionNameFromSystemId,
   getSystemName,
 } from '../starbases';
+import type {
+  GetCharacterNotificationsResponse
+} from '@localisprimary/esi';
 import {
-  EsiClient,
-  GetCharacterNotificationsResponse,
+  EsiClient
 } from '@localisprimary/esi';
 import { generateGeneralNotificationEmbed } from '../embeds/generalNotification';
 import { LOGGER } from '../Logger';
@@ -66,39 +69,40 @@ interface NotificationDetails {
 // Static list of notifications the bot should ignore (no action required)
 const NOOP_NOTIFICATIONS: Array<
   GetCharacterNotificationsResponse[number]['type']
-> = [
-  'KillReportFinalBlow',
-  'NPCStandingsLost',
-  'CorpAllBillMsg',
-  'CloneActivationMsg2',
-  'CharAppWithdrawMsg',
-  'CharLeftCorpMsg',
-  'JumpCloneDeletedMsg1',
-  'JumpCloneDeletedMsg2',
-  'CorpAppNewMsg',
-  'InsuranceExpirationMsg',
-  'InsuranceIssuedMsg',
-  'DailyItemRewardAutoClaimed',
-  'InsurancePayoutMsg',
-  'CharAppAcceptMsg',
-  'FreelanceProjectExpired',
-  'FreelanceProjectCompleted',
-  'SeasonalChallengeCompleted',
-  'ContactAdd',
-  'ContactEdit',
-  'BillPaidCorpAllMsg',
-  'GameTimeAdded',
-  'RaffleExpired',
-  'RaffleFinished',
-  'CorporationGoalCreated',
-  'CorporationGoalClosed',
-  'KillReportVictim',
-  'StructureItemsDelivered',
-  'FacWarLPPayoutEvent',
-  'CloneRevokedMsg2',
-  'StructureItemsMovedToSafety',
-  'GiftReceived',
-];
+> =
+  [
+    'BillPaidCorpAllMsg',
+    'CharAppAcceptMsg',
+    'CharAppWithdrawMsg',
+    'CharLeftCorpMsg',
+    'CloneActivationMsg2',
+    'CloneRevokedMsg2',
+    'ContactAdd',
+    'CorpAllBillMsg',
+    'CorpAppNewMsg',
+    'CorporationGoalClosed',
+    'CorporationGoalCreated',
+    'DailyItemRewardAutoClaimed',
+    'FacWarLPPayoutEvent',
+    'FreelanceProjectCompleted',
+    'FreelanceProjectExpired',
+    'GameTimeAdded',
+    'GiftReceived',
+    'InsuranceExpirationMsg',
+    'InsuranceIssuedMsg',
+    'InsurancePayoutMsg',
+    'JumpCloneDeletedMsg2',
+    'KillReportFinalBlow',
+    'KillReportVictim',
+    'KillRightEarned',
+    'LocateCharMsg',
+    'NPCStandingsLost',
+    'RaffleExpired',
+    'RaffleFinished',
+    'SeasonalChallengeCompleted',
+    'StructureItemsDelivered',
+    'StructureItemsMovedToSafety',
+  ];
 
 export function parseNotificationText(text?: string) {
   if (text) {
@@ -165,7 +169,7 @@ export function initNotifications() {
     {
       message: 'SKYHOOK DEPLOYED',
       colour: Colors.Green,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleSkyhookNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -191,7 +195,7 @@ export function initNotifications() {
     {
       message: 'SKYHOOK ONLINE',
       colour: Colors.Green,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleSkyhookNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -347,7 +351,7 @@ export function initNotifications() {
     {
       message: 'Structure online',
       colour: Colors.Green,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -373,7 +377,7 @@ export function initNotifications() {
     {
       message: 'Structure has started unanchoring',
       colour: Colors.Red,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -386,7 +390,7 @@ export function initNotifications() {
     {
       message: 'Structure power restored',
       colour: Colors.Green,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: true,
@@ -464,7 +468,7 @@ export function initNotifications() {
     {
       message: 'Structure Anchoring',
       colour: Colors.Yellow,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleStructureNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -503,7 +507,7 @@ export function initNotifications() {
     {
       message: 'War Declared',
       colour: Colors.Red,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleWarDeclaredNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -516,7 +520,7 @@ export function initNotifications() {
     {
       message: 'War Inherited',
       colour: Colors.Orange,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleWarInheritedNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -607,7 +611,7 @@ export function initNotifications() {
     {
       message: 'War Headquarters No Longer Exists',
       colour: Colors.Orange,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleWarHQRemovedFromSpaceNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -620,7 +624,7 @@ export function initNotifications() {
     {
       message: 'War Retracted by CONCORD',
       colour: Colors.Orange,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleWarRetractedByConcordNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -633,7 +637,7 @@ export function initNotifications() {
     {
       message: 'Corporation No Longer War Eligible',
       colour: Colors.Orange,
-      role_to_mention: (c) => undefined,
+      role_to_mention: () => undefined,
       handler: handleCorpNoLongerWarEligibleNotification,
       structureStateMessage: true,
       structureFuelMessage: false,
@@ -785,7 +789,7 @@ export function initNotifications() {
   );
 }
 
-async function noopHandler(details: NotificationDetails) {
+async function noopHandler() {
   // intentionally do nothing for ignored notification types
   return;
 }
@@ -834,7 +838,7 @@ async function handleBillOutOfMoneyNotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occurred in handleBillOutOfMoneyNotification. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -879,7 +883,7 @@ async function handleCorpNewCEONotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occurred in handleCorpNewCEONotification. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -931,7 +935,7 @@ async function handleCorpFriendlyFireDisableTimerCompletedNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleCorpFriendlyFireDisableTimerCompletedNotification. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -968,9 +972,8 @@ async function handleCharTerminationNotification(details: NotificationDetails) {
       }
     }
     const security = values['security'];
-    const messageDetail = `${characterName} was terminated from ${corpName}.${
-      security ? ` Security status: ${security}.` : ''
-    }`;
+    const messageDetail = `${characterName} was terminated from ${corpName}.${security ? ` Security status: ${security}.` : ''
+      }`;
     const thumbnail = `https://images.evetech.net/corporations/${corpId}/logo?size=64`;
 
     for (const channelId of details.corp.channelIds) {
@@ -998,7 +1001,7 @@ async function handleCharTerminationNotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occurred in handleCharTerminationNotification. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1106,7 +1109,7 @@ async function handleSkyhookNotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1216,7 +1219,7 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
-        + (error instanceof Error ? error.message : JSON.stringify(error))
+      + (error instanceof Error ? error.message : JSON.stringify(error))
     );
   }
 }
@@ -1277,7 +1280,7 @@ Where: ${dotLanLink} (${regionName})`;
   catch (error) {
     LOGGER.error(
       `An error occured in handleOwnershipTransferredNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1323,12 +1326,11 @@ async function handleStructuresReinforcementChangedNotification(
     const names =
       structureNames.length > 0
         ? `\n\nAffected structures:\n${structureNames
-            .map((name) => `- ${name}`)
-            .join('\n')}`
+          .map((name) => `- ${name}`)
+          .join('\n')}`
         : '';
-    const messageDetail = `The reinforcement hour for ${structureCount} structure${
-      structureCount === 1 ? '' : 's'
-    } has changed to ${reinforcementTime}.${names}`;
+    const messageDetail = `The reinforcement hour for ${structureCount} structure${structureCount === 1 ? '' : 's'
+      } has changed to ${reinforcementTime}.${names}`;
 
     for (const channelId of details.corp.channelIds) {
       const channel = details.client.channels.cache.get(channelId);
@@ -1368,7 +1370,7 @@ async function handleStructuresReinforcementChangedNotification(
   catch (error) {
     LOGGER.error(
       `An error occured in handleStructuresReinforcementChangedNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1419,9 +1421,8 @@ async function handleStructureImpendingAbandonmentNotification(
         ? `in ${daysUntilAbandon} day${daysUntilAbandon === 1 ? '' : 's'}`
         : 'soon';
     const messageDetail = `A ${ownership} structure is approaching abandonment ${daysText}, and assets are at risk.
-What: ${await getItemName(typeId)}${
-      structureName ? ` called '${structureName}'` : ''
-    }
+What: ${await getItemName(typeId)}${structureName ? ` called '${structureName}'` : ''
+      }
 Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
 
     const thumbnail = `https://images.evetech.net/types/${typeId}/render?size=64`;
@@ -1465,7 +1466,7 @@ Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1479,7 +1480,7 @@ async function handleMoonMiningNotification(details: NotificationDetails) {
     const oresByVolume = await Promise.all(
       Object
         .entries(values)
-        .filter(([key, value]) => {
+        .filter(([key]) => {
           return /^\d+$/.test(key);
         })
         .map(async ([key, value]) => {
@@ -1538,11 +1539,10 @@ async function handleMoonMiningNotification(details: NotificationDetails) {
       );
     }
 
-    let messageDetail = `${
-      isCancelled
-        ? `Extraction cancelled${cancelledBy ? ` by ${cancelledBy}` : ''}.\n`
-        : ''
-    }What: The moon drill on the ${await getItemName(typeId)}${structureName}
+    let messageDetail = `${isCancelled
+      ? `Extraction cancelled${cancelledBy ? ` by ${cancelledBy}` : ''}.\n`
+      : ''
+      }What: The moon drill on the ${await getItemName(typeId)}${structureName}
 Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
 
     if (values['autoTime']) {
@@ -1602,7 +1602,7 @@ Where: Planet ${moonName} in ${dotLanLink} (${regionName})`;
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1658,7 +1658,7 @@ async function handleWarDeclaredNotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1722,7 +1722,7 @@ async function handleWarInheritedNotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1779,7 +1779,7 @@ async function handleWarSurrenderOfferNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleWarSurrenderOfferNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1840,7 +1840,7 @@ async function handleAcceptedSurrenderNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleAcceptedSurrenderNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1905,7 +1905,7 @@ async function handleCorpWarSurrenderNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleCorpWarSurrenderNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -1972,7 +1972,7 @@ async function handleMutualWarInviteSentNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleMutualWarInviteSentNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2031,7 +2031,7 @@ async function handleWarHQRemovedFromSpaceNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2101,7 +2101,7 @@ async function handleWarRetractedByConcordNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2159,7 +2159,7 @@ async function handleAllWarCorpJoinedAllianceNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2224,7 +2224,7 @@ async function handleCorpNoLongerWarEligibleNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2270,7 +2270,7 @@ async function handleCorpBecameWarEligibleNotification(
   catch (error) {
     LOGGER.error(
       `An error occurred in handleNotification for ${details.message}. Body: ${details.note.text}\n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2317,8 +2317,7 @@ async function getWarEntityName(
     }
     catch (error) {
       LOGGER.debug(
-        `War entity lookup failed for ${entityId}: ${
-          error instanceof Error ? error.message : String(error)
+        `War entity lookup failed for ${entityId}: ${error instanceof Error ? error.message : String(error)
         }`
       );
     }
@@ -2338,8 +2337,8 @@ async function handleTowerNotification(details: NotificationDetails) {
 
     let builtMessage = `What: ${typeName}
 Where: Planet ${moonName
-      .replace(systemName, '')
-      .trim()} in ${systemName} (${regionName})`;
+        .replace(systemName, '')
+        .trim()} in ${systemName} (${regionName})`;
 
     let fuelMessage = false;
     let statusMessage = false;
@@ -2351,8 +2350,7 @@ Where: Planet ${moonName
       // POS wants something
       const itemName = await getItemName(wantedTypeID); // spaces are required
       builtMessage
-        += `\n${wantedQuantity} ${itemName}${
-          wantedQuantity === 1 ? '' : 's'
+        += `\n${wantedQuantity} ${itemName}${wantedQuantity === 1 ? '' : 's'
         } remain${wantedQuantity === 1 ? 's' : ''}`;
       fuelMessage = true;
     }
@@ -2405,7 +2403,7 @@ Where: Planet ${moonName
   catch (error) {
     LOGGER.error(
       `An error occured in handleNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2516,7 +2514,7 @@ function stripHtmlTags(war_HQ: string) {
 }
 function formatOreVolume(volume: number) {
   // format with commas as thousand separators with 0 decimal places, then add m³ at the end
-  let displayVolume = Math
+  const displayVolume = Math
     .round(volume)
     .toLocaleString(
       'en-US',
@@ -2554,7 +2552,7 @@ async function handleSovStructureReinforcedNotification(
     const solarsystemID = Number(values['solarSystemID']) || 0;
     const systemName = await getSystemName(solarsystemID);
     const regionName = await getRegionNameFromSystemId(solarsystemID);
-    let decloakTime = values['decloakTime'];
+    const decloakTime = values['decloakTime'];
     let decloakTimeStr = '';
     if (decloakTime) {
       // decloakTime is a filetime (100ns since 1601-01-01 UTC)
@@ -2570,7 +2568,7 @@ async function handleSovStructureReinforcedNotification(
         '_'
       )})`;
     }
-    let messageDetail = `The Sovereignty Hub in ${dotLanLink} (${regionName}) has been reinforced by hostile forces.\n${decloakTimeStr}`;
+    const messageDetail = `The Sovereignty Hub in ${dotLanLink} (${regionName}) has been reinforced by hostile forces.\n${decloakTimeStr}`;
 
     const allianceId = values['sender_id'];
     const allianceName = await getAllianceName(allianceId);
@@ -2611,7 +2609,7 @@ async function handleSovStructureReinforcedNotification(
   catch (error) {
     LOGGER.error(
       `An error occured in handleSovStructureReinforcedNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2669,7 +2667,7 @@ async function handleSovCommandNodeEventStartedNotification(
   catch (error) {
     LOGGER.error(
       `An error occured in handleSovCommandNodeEventStartedNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2724,7 +2722,7 @@ async function handleSovAllClaimAquiredNotification(
   catch (error) {
     LOGGER.error(
       `An error occured in handleSovAllClaimAquiredNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
@@ -2784,7 +2782,7 @@ async function handleSovAllClaimLostNotification(details: NotificationDetails) {
   catch (error) {
     LOGGER.error(
       `An error occured in handleSovAllClaimLostNotification for ${details.message}. Body: ${details.note.text}%n`
-        + String(error)
+      + String(error)
     );
   }
 }
