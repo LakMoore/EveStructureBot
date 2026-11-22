@@ -1129,10 +1129,11 @@ async function handleStructureNotification(details: NotificationDetails) {
       || values['solarsystemID']
       || values['solarSystemID'];
     let structureName = thisStruct?.name;
+    let systemName: string | undefined;
 
     let dotLanLink = `Unknown System`;
     if (systemId) {
-      const systemName = await getSystemName(systemId);
+      systemName = await getSystemName(systemId);
       dotLanLink = `[${systemName}](${DOTLAN_MAP_URL}${systemName.replaceAll(
         ' ',
         '_'
@@ -1156,8 +1157,16 @@ async function handleStructureNotification(details: NotificationDetails) {
       );
     }
 
+    let location = dotLanLink;
+    if (values['planetID']) {
+      const planetName = (await getPlanetName(Number(values['planetID'])))
+        .replace(systemName ?? '', '')
+        .trim();
+      location = `Planet ${planetName} in ${dotLanLink}`;
+    }
+
     let messageDetail = `What: ${await getItemName(typeId)}${structureName}
-Where: ${dotLanLink} (${await getRegionNameFromSystemId(systemId)})`;
+Where: ${location} (${await getRegionNameFromSystemId(systemId)})`;
 
     if (values['timestamp'] && values['vulnerableTime']) {
       const jsTimestamp = filetimeToJsTimestamp(values['timestamp']); // 1764937640000 (ms since 1970)
@@ -2424,7 +2433,7 @@ function formatPercentage(
 async function generateStructureAggressorStatement(values: {
   [key: string]: string;
 }) {
-  const aggressor_id = Number(values['charID']) || 0;
+  const aggressor_id = Number(values['aggressorID'] || values['charID']) || 0;
   if (!aggressor_id) {
     return '';
   }
@@ -2437,8 +2446,12 @@ async function generateStructureAggressorStatement(values: {
       `Could not resolve attacking character ${aggressor_id}: ${error instanceof Error ? error.message : JSON.stringify(error)}`
     );
   }
-  const corpName = values['corpName'] || 'Unknown Corporation';
-  const allianceName = values['allianceName'] || 'Unknown Alliance';
+  const corpName = values['aggressorCorpID']
+    ? await getCorpName(values['aggressorCorpID'])
+    : values['corpName'] || 'Unknown Corporation';
+  const allianceName = values['aggressorAllianceID']
+    ? await getAllianceName(values['aggressorAllianceID'])
+    : values['allianceName'] || 'Unknown Alliance';
 
   return generateAggressorStatement(
     aggressor_id,
@@ -2475,7 +2488,7 @@ async function generateAggressorStatement(
 ) {
   return `
   
-Aggressor: [${aggressorCharName}](https://zkillboard.com/character/${aggressorID}/)
+Who: [${aggressorCharName}](https://zkillboard.com/character/${aggressorID}/)
 Corporation: [${corpName}](${dotLanCorpURL}${corpName.replaceAll(' ', '_')})
 Alliance: [${allianceName}](${dotLanAllianceURL}${allianceName.replaceAll(
     ' ',
